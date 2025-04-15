@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonalInfoForm } from "./PersonalInfoForm";
 import { SummaryForm } from "./SummaryForm";
@@ -10,13 +10,15 @@ import { LanguagesForm } from "./LanguagesForm";
 import { ProjectsForm } from "./ProjectsForm";
 import { InterestsForm } from "./InterestsForm";
 import { ReferencesForm } from "./ReferencesForm";
-import { SVGProps } from "react";
+import { LucideProps } from "lucide-react";
 import { User, FileText, Briefcase, BookOpen, Code, Globe, FolderGit2, Heart } from "lucide-react";
+
+type IconComponentType = React.ComponentType<LucideProps>;
 
 interface TabInfo {
   id: string;
   label: string;
-  icon: (props: SVGProps<SVGSVGElement>) => JSX.Element;
+  icon: IconComponentType;
   component: React.ReactNode;
 }
 
