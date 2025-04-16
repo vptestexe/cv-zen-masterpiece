@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,29 +58,31 @@ export function PersonalInfoForm() {
     
     // Create an offscreen canvas to manipulate the image
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
     
     const img = new Image();
     img.onload = () => {
-      // Set canvas size based on image dimensions
+      // Set canvas size to be a square that fits the image dimensions
       const size = Math.max(img.width, img.height);
       canvas.width = size;
       canvas.height = size;
       
-      // Clear canvas
+      // Clear canvas with transparent background
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Move to center, rotate, and scale
+      ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((newRotation * Math.PI) / 180);
       ctx.scale(newScale, newScale);
       
-      // Draw image centered
+      // Draw image centered with transparency preserved
       ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
+      ctx.restore();
       
       // Convert to data URL and update state
-      const dataUrl = canvas.toDataURL('image/jpeg');
+      const dataUrl = canvas.toDataURL('image/png');
       updatePersonalInfo('profilePhoto', dataUrl);
     };
     
@@ -211,12 +212,11 @@ export function PersonalInfoForm() {
         <div className="flex flex-col gap-4 mt-2">
           <div className="flex items-center gap-4">
             {personalInfo.profilePhoto && (
-              <div className="h-20 w-20 rounded-full overflow-hidden border bg-muted flex-shrink-0">
+              <div className="h-20 w-20 rounded-full overflow-hidden border bg-transparent flex-shrink-0">
                 <img
                   src={personalInfo.profilePhoto}
                   alt="Profile"
                   className="h-full w-full object-cover"
-                  style={{ transform: `rotate(${rotation}deg) scale(${scale})` }}
                 />
               </div>
             )}
@@ -250,7 +250,7 @@ export function PersonalInfoForm() {
               <div className="text-sm font-medium mb-2">Ajustement de la photo</div>
               
               <div className="flex justify-center mb-4">
-                <div className="h-40 w-40 rounded-full overflow-hidden border bg-muted flex-shrink-0">
+                <div className="h-40 w-40 rounded-full overflow-hidden border bg-transparent flex-shrink-0">
                   <img
                     src={personalInfo.profilePhoto}
                     alt="Profile"
