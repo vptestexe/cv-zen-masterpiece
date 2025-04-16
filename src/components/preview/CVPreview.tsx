@@ -11,11 +11,65 @@ import { InterestsPreview } from "./InterestsPreview";
 import { ReferencesPreview } from "./ReferencesPreview";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 export function CVPreview() {
-  const { cvData, cvTheme } = useCVContext();
+  const { cvData, cvTheme, updateTheme } = useCVContext();
   const { summary, workExperiences, educations, skills, languages, projects, interests, references } = cvData;
   const isMobile = useIsMobile();
+  const location = useLocation();
+
+  // Extract template ID from the URL
+  useEffect(() => {
+    const path = location.pathname;
+    const templateId = path.split('/').pop();
+    
+    if (templateId && templateId !== 'editor') {
+      // Apply template-specific styles
+      switch (templateId) {
+        case 'classic':
+          updateTheme('primaryColor', '#0170c4');
+          updateTheme('titleStyle', 'underline');
+          updateTheme('titleFont', 'playfair');
+          updateTheme('textFont', 'roboto');
+          break;
+        case 'modern':
+          updateTheme('primaryColor', '#7E69AB');
+          updateTheme('titleStyle', 'background');
+          updateTheme('titleFont', 'roboto');
+          updateTheme('textFont', 'roboto');
+          break;
+        case 'creative':
+          updateTheme('primaryColor', '#F97316');
+          updateTheme('titleStyle', 'border');
+          updateTheme('titleFont', 'playfair');
+          updateTheme('textFont', 'playfair');
+          break;
+        case 'professional':
+          updateTheme('primaryColor', '#403E43');
+          updateTheme('titleStyle', 'underline');
+          updateTheme('titleFont', 'roboto');
+          updateTheme('textFont', 'roboto');
+          break;
+        case 'minimalist':
+          updateTheme('primaryColor', '#222222');
+          updateTheme('titleStyle', 'plain');
+          updateTheme('titleFont', 'roboto');
+          updateTheme('textFont', 'roboto');
+          break;
+        case 'elegant':
+          updateTheme('primaryColor', '#D946EF');
+          updateTheme('titleStyle', 'background');
+          updateTheme('titleFont', 'playfair');
+          updateTheme('textFont', 'playfair');
+          break;
+        default:
+          // Default style
+          break;
+      }
+    }
+  }, [location.pathname, updateTheme]);
 
   // Apply theme
   const previewStyle = {
