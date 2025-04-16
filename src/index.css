@@ -89,8 +89,12 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans overflow-x-hidden;
   }
 
   .cv-section-title {
@@ -98,11 +102,22 @@
   }
 
   .cv-preview {
-    @apply bg-white shadow-lg p-8 h-full overflow-y-auto;
+    @apply bg-white shadow-lg p-4 sm:p-8 h-full overflow-y-auto;
   }
 
   .drag-handle {
     @apply cursor-move;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -124,3 +139,15 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* Améliorations pour les écrans mobiles */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Évite le zoom sur les inputs sur iOS */
+  }
+  
+  .cv-preview {
+    font-size: 0.9rem;
+  }
+}
+

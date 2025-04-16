@@ -10,10 +10,12 @@ import { ProjectsPreview } from "./ProjectsPreview";
 import { InterestsPreview } from "./InterestsPreview";
 import { ReferencesPreview } from "./ReferencesPreview";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function CVPreview() {
   const { cvData, cvTheme } = useCVContext();
   const { summary, workExperiences, educations, skills, languages, projects, interests, references } = cvData;
+  const isMobile = useIsMobile();
 
   // Apply theme
   const previewStyle = {
@@ -77,7 +79,7 @@ export function CVPreview() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-6 mb-6`}>
         {hasSkills && (
           <div>
             <h2 className={titleClass} style={titleStyle}>Compétences</h2>
