@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { CVData, CVTheme, WorkExperience, Education, Skill, Language, Project, Interest, Reference } from '@/types/cv';
@@ -135,9 +134,9 @@ const getTemplateData = (templateId: string | undefined) => {
           { id: uuidv4(), name: 'Docker', level: 3 },
         ],
         languages: [
-          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' },
-          { id: uuidv4(), name: 'Anglais', level: 'Courant' },
-          { id: uuidv4(), name: 'Espagnol', level: 'Intermédiaire' },
+          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' as const },
+          { id: uuidv4(), name: 'Anglais', level: 'Courant' as const },
+          { id: uuidv4(), name: 'Espagnol', level: 'Intermédiaire' as const },
         ],
         projects: [
           {
@@ -250,9 +249,9 @@ const getTemplateData = (templateId: string | undefined) => {
           { id: uuidv4(), name: 'Adobe Creative Suite', level: 3 },
         ],
         languages: [
-          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' },
-          { id: uuidv4(), name: 'Anglais', level: 'Bilingue' },
-          { id: uuidv4(), name: 'Allemand', level: 'Intermédiaire' },
+          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' as const },
+          { id: uuidv4(), name: 'Anglais', level: 'Bilingue' as const },
+          { id: uuidv4(), name: 'Allemand', level: 'Intermédiaire' as const },
         ],
         projects: [
           {
@@ -286,8 +285,8 @@ const getTemplateData = (templateId: string | undefined) => {
       theme: {
         ...defaultCVTheme,
         primaryColor: '#8B5CF6',
-        titleFont: 'roboto',
-        titleStyle: 'background',
+        titleFont: 'roboto' as const,
+        titleStyle: 'background' as const,
       }
     };
   }
@@ -356,9 +355,9 @@ const getTemplateData = (templateId: string | undefined) => {
           { id: uuidv4(), name: 'HTML/CSS', level: 3 },
         ],
         languages: [
-          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' },
-          { id: uuidv4(), name: 'Anglais', level: 'Courant' },
-          { id: uuidv4(), name: 'Italien', level: 'Intermédiaire' },
+          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' as const },
+          { id: uuidv4(), name: 'Anglais', level: 'Courant' as const },
+          { id: uuidv4(), name: 'Italien', level: 'Intermédiaire' as const },
         ],
         projects: [
           {
@@ -394,8 +393,8 @@ const getTemplateData = (templateId: string | undefined) => {
       theme: {
         ...defaultCVTheme,
         primaryColor: '#D946EF',
-        photoPosition: 'right',
-        titleStyle: 'border',
+        photoPosition: 'right' as const,
+        titleStyle: 'border' as const,
       }
     };
   }
@@ -472,9 +471,9 @@ const getTemplateData = (templateId: string | undefined) => {
           { id: uuidv4(), name: 'SQL', level: 3 },
         ],
         languages: [
-          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' },
-          { id: uuidv4(), name: 'Anglais', level: 'Bilingue' },
-          { id: uuidv4(), name: 'Allemand', level: 'Courant' },
+          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' as const },
+          { id: uuidv4(), name: 'Anglais', level: 'Bilingue' as const },
+          { id: uuidv4(), name: 'Allemand', level: 'Courant' as const },
         ],
         projects: [
           {
@@ -508,9 +507,9 @@ const getTemplateData = (templateId: string | undefined) => {
       theme: {
         ...defaultCVTheme,
         primaryColor: '#0EA5E9',
-        textFont: 'playfair',
-        photoSize: 'small',
-        titleStyle: 'plain',
+        textFont: 'playfair' as const,
+        photoSize: 'small' as const,
+        titleStyle: 'plain' as const,
       }
     };
   }
@@ -579,8 +578,8 @@ const getTemplateData = (templateId: string | undefined) => {
           { id: uuidv4(), name: 'Conception Systèmes Distribués', level: 5 },
         ],
         languages: [
-          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' },
-          { id: uuidv4(), name: 'Anglais', level: 'Bilingue' },
+          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' as const },
+          { id: uuidv4(), name: 'Anglais', level: 'Bilingue' as const },
         ],
         projects: [
           {
@@ -616,8 +615,8 @@ const getTemplateData = (templateId: string | undefined) => {
         ...defaultCVTheme,
         primaryColor: '#121212',
         backgroundColor: '#f5f5f5',
-        titleStyle: 'plain',
-        photoPosition: 'left',
+        titleStyle: 'plain' as const,
+        photoPosition: 'left' as const,
       }
     };
   }
@@ -685,9 +684,9 @@ const getTemplateData = (templateId: string | undefined) => {
           { id: uuidv4(), name: 'Retraite', level: 4 },
         ],
         languages: [
-          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' },
-          { id: uuidv4(), name: 'Anglais', level: 'Courant' },
-          { id: uuidv4(), name: 'Allemand', level: 'Courant' },
+          { id: uuidv4(), name: 'Français', level: 'Langue maternelle' as const },
+          { id: uuidv4(), name: 'Anglais', level: 'Courant' as const },
+          { id: uuidv4(), name: 'Allemand', level: 'Courant' as const },
         ],
         projects: [
           {
@@ -721,9 +720,9 @@ const getTemplateData = (templateId: string | undefined) => {
       theme: {
         ...defaultCVTheme,
         primaryColor: '#A16207',
-        titleFont: 'playfair',
-        textFont: 'playfair',
-        titleStyle: 'underline',
+        titleFont: 'playfair' as const,
+        textFont: 'playfair' as const,
+        titleStyle: 'underline' as const,
       }
     };
   }
@@ -760,290 +759,3 @@ export const CVProvider = ({ children }: { children: ReactNode }) => {
         ...prev.personalInfo,
         [field]: value,
       },
-    }));
-  };
-
-  const updateSummary = (summary: string) => {
-    setCVData(prev => ({
-      ...prev,
-      summary,
-    }));
-  };
-
-  // Work Experience
-  const addWorkExperience = () => {
-    const newExperience: WorkExperience = {
-      id: uuidv4(),
-      position: '',
-      company: '',
-      startDate: '',
-      endDate: '',
-      location: '',
-      description: '',
-    };
-
-    setCVData(prev => ({
-      ...prev,
-      workExperiences: [...prev.workExperiences, newExperience],
-    }));
-  };
-
-  const updateWorkExperience = (id: string, field: string, value: string) => {
-    setCVData(prev => ({
-      ...prev,
-      workExperiences: prev.workExperiences.map(exp => 
-        exp.id === id ? { ...exp, [field]: value } : exp
-      ),
-    }));
-  };
-
-  const removeWorkExperience = (id: string) => {
-    setCVData(prev => ({
-      ...prev,
-      workExperiences: prev.workExperiences.filter(exp => exp.id !== id),
-    }));
-  };
-
-  // Education
-  const addEducation = () => {
-    const newEducation: Education = {
-      id: uuidv4(),
-      degree: '',
-      institution: '',
-      startDate: '',
-      endDate: '',
-      location: '',
-      description: '',
-    };
-
-    setCVData(prev => ({
-      ...prev,
-      educations: [...prev.educations, newEducation],
-    }));
-  };
-
-  const updateEducation = (id: string, field: string, value: string) => {
-    setCVData(prev => ({
-      ...prev,
-      educations: prev.educations.map(edu => 
-        edu.id === id ? { ...edu, [field]: value } : edu
-      ),
-    }));
-  };
-
-  const removeEducation = (id: string) => {
-    setCVData(prev => ({
-      ...prev,
-      educations: prev.educations.filter(edu => edu.id !== id),
-    }));
-  };
-
-  // Skills
-  const addSkill = () => {
-    const newSkill: Skill = {
-      id: uuidv4(),
-      name: '',
-      level: 3,
-    };
-
-    setCVData(prev => ({
-      ...prev,
-      skills: [...prev.skills, newSkill],
-    }));
-  };
-
-  const updateSkill = (id: string, field: string, value: string | number) => {
-    setCVData(prev => ({
-      ...prev,
-      skills: prev.skills.map(skill => 
-        skill.id === id ? { ...skill, [field]: value } : skill
-      ),
-    }));
-  };
-
-  const removeSkill = (id: string) => {
-    setCVData(prev => ({
-      ...prev,
-      skills: prev.skills.filter(skill => skill.id !== id),
-    }));
-  };
-
-  // Languages
-  const addLanguage = () => {
-    const newLanguage: Language = {
-      id: uuidv4(),
-      name: '',
-      level: 'Intermédiaire',
-    };
-
-    setCVData(prev => ({
-      ...prev,
-      languages: [...prev.languages, newLanguage],
-    }));
-  };
-
-  const updateLanguage = (id: string, field: string, value: string) => {
-    setCVData(prev => ({
-      ...prev,
-      languages: prev.languages.map(lang => 
-        lang.id === id ? { ...lang, [field]: value } : lang
-      ),
-    }));
-  };
-
-  const removeLanguage = (id: string) => {
-    setCVData(prev => ({
-      ...prev,
-      languages: prev.languages.filter(lang => lang.id !== id),
-    }));
-  };
-
-  // Projects
-  const addProject = () => {
-    const newProject: Project = {
-      id: uuidv4(),
-      title: '',
-      description: '',
-      link: '',
-    };
-
-    setCVData(prev => ({
-      ...prev,
-      projects: [...prev.projects, newProject],
-    }));
-  };
-
-  const updateProject = (id: string, field: string, value: string) => {
-    setCVData(prev => ({
-      ...prev,
-      projects: prev.projects.map(project => 
-        project.id === id ? { ...project, [field]: value } : project
-      ),
-    }));
-  };
-
-  const removeProject = (id: string) => {
-    setCVData(prev => ({
-      ...prev,
-      projects: prev.projects.filter(project => project.id !== id),
-    }));
-  };
-
-  // Interests
-  const addInterest = () => {
-    const newInterest: Interest = {
-      id: uuidv4(),
-      name: '',
-    };
-
-    setCVData(prev => ({
-      ...prev,
-      interests: [...prev.interests, newInterest],
-    }));
-  };
-
-  const updateInterest = (id: string, field: string, value: string) => {
-    setCVData(prev => ({
-      ...prev,
-      interests: prev.interests.map(interest => 
-        interest.id === id ? { ...interest, [field]: value } : interest
-      ),
-    }));
-  };
-
-  const removeInterest = (id: string) => {
-    setCVData(prev => ({
-      ...prev,
-      interests: prev.interests.filter(interest => interest.id !== id),
-    }));
-  };
-
-  // References
-  const addReference = () => {
-    const newReference: Reference = {
-      id: uuidv4(),
-      name: '',
-      position: '',
-      company: '',
-      email: '',
-      phone: '',
-    };
-
-    setCVData(prev => ({
-      ...prev,
-      references: [...prev.references, newReference],
-    }));
-  };
-
-  const updateReference = (id: string, field: string, value: string) => {
-    setCVData(prev => ({
-      ...prev,
-      references: prev.references.map(reference => 
-        reference.id === id ? { ...reference, [field]: value } : reference
-      ),
-    }));
-  };
-
-  const removeReference = (id: string) => {
-    setCVData(prev => ({
-      ...prev,
-      references: prev.references.filter(reference => reference.id !== id),
-    }));
-  };
-
-  // Theme
-  const updateTheme = (field: string, value: string) => {
-    setCVTheme(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  // Reset CV to default values
-  const resetCV = () => {
-    if (templateId) {
-      const template = getTemplateData(templateId);
-      setCVData(template.data);
-      setCVTheme(template.theme);
-    } else {
-      setCVData(defaultCVData);
-      setCVTheme(defaultCVTheme);
-    }
-  };
-
-  return (
-    <CVContext.Provider
-      value={{
-        cvData,
-        cvTheme,
-        updatePersonalInfo,
-        updateSummary,
-        addWorkExperience,
-        updateWorkExperience,
-        removeWorkExperience,
-        addEducation,
-        updateEducation,
-        removeEducation,
-        addSkill,
-        updateSkill,
-        removeSkill,
-        addLanguage,
-        updateLanguage,
-        removeLanguage,
-        addProject,
-        updateProject,
-        removeProject,
-        addInterest,
-        updateInterest,
-        removeInterest,
-        addReference,
-        updateReference,
-        removeReference,
-        updateTheme,
-        resetCV,
-      }}
-    >
-      {children}
-    </CVContext.Provider>
-  );
-};
