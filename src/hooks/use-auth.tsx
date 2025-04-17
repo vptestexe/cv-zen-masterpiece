@@ -34,6 +34,7 @@ export const useAuth = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_email');
     localStorage.removeItem('user_name');
+    // Ne pas supprimer les CV lors de la déconnexion
     setIsAuthenticated(false);
     setUser(null);
   };

@@ -7,6 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Edit, Download, Trash2, Plus, LogOut, FileText } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useAuth } from "@/hooks/use-auth";
+
+const generateUniqueId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
 
 // Fonction pour récupérer les CV enregistrés
 const getSavedCVs = () => {
@@ -22,6 +27,11 @@ const getSavedCVs = () => {
   return [];
 };
 
+// Fonction pour sauvegarder les CV dans le localStorage
+const saveCVs = (cvs) => {
+  localStorage.setItem('saved_cvs', JSON.stringify(cvs));
+};
+
 // Données initiales pré-remplies avec des exemples de CV
 const getInitialCVs = () => {
   const savedCVs = getSavedCVs();
@@ -30,7 +40,7 @@ const getInitialCVs = () => {
   }
   
   // Si aucun CV n'est enregistré, retourner les CV de démo
-  return [
+  const demoCVs = [
     {
       id: "cv1",
       title: "CV Développeur Web",
@@ -44,20 +54,23 @@ const getInitialCVs = () => {
       lastUpdated: new Date("2025-04-01").toISOString(),
     }
   ];
+  
+  // Enregistrer les CV de démo dans le localStorage
+  saveCVs(demoCVs);
+  
+  return demoCVs;
 };
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userCVs, setUserCVs] = useState(getInitialCVs);
+  const [userCVs, setUserCVs] = useState([]);
   const [userName, setUserName] = useState("");
+  const { isAuthenticated, user, logout } = useAuth();
   
-  // Vérification de l'authentification
+  // Vérification de l'authentification et chargement des CV
   useEffect(() => {
-    const authToken = localStorage.getItem('auth_token');
-    const name = localStorage.getItem('user_name');
-    
-    if (!authToken) {
+    if (!isAuthenticated) {
       navigate("/login");
       toast({
         title: "Accès refusé",
@@ -65,17 +78,14 @@ const Dashboard = () => {
         variant: "destructive"
       });
     } else {
-      setUserName(name || "Utilisateur");
+      setUserName(user?.name || "Utilisateur");
       
       // Charger les CV enregistrés
-      const savedCVs = getSavedCVs();
-      if (savedCVs && savedCVs.length > 0) {
-        setUserCVs(savedCVs);
-      }
+      setUserCVs(getInitialCVs());
     }
-  }, [navigate, toast]);
+  }, [isAuthenticated, navigate, toast, user]);
   
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
@@ -84,7 +94,7 @@ const Dashboard = () => {
     });
   };
   
-  const handleEdit = (cvId: string) => {
+  const handleEdit = (cvId) => {
     // Trouver le CV correspondant pour obtenir son template
     const cv = userCVs.find(cv => cv.id === cvId);
     if (cv) {
@@ -97,8 +107,7 @@ const Dashboard = () => {
     }
   };
   
-  const handleDownload = (cvId: string) => {
-    // Dans une application réelle, cela téléchargerait le CV spécifique
+  const handleDownload = (cvId) => {
     toast({
       title: "Téléchargement du CV",
       description: "Votre CV est en cours de téléchargement"
@@ -113,13 +122,13 @@ const Dashboard = () => {
     }, 2000);
   };
   
-  const handleDelete = (cvId: string) => {
+  const handleDelete = (cvId) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce CV ?")) {
       const updatedCVs = userCVs.filter(cv => cv.id !== cvId);
       setUserCVs(updatedCVs);
       
       // Enregistrer la liste mise à jour dans le localStorage
-      localStorage.setItem('saved_cvs', JSON.stringify(updatedCVs));
+      saveCVs(updatedCVs);
       
       toast({
         title: "CV supprimé",
@@ -137,10 +146,8 @@ const Dashboard = () => {
   };
   
   const handleLogout = () => {
-    // Supprimer le token d'authentification
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('user_name');
+    // Utiliser la fonction de déconnexion de useAuth
+    logout();
     
     // Rediriger vers la page d'accueil
     navigate("/");

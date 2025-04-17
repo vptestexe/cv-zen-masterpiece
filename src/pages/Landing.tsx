@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -27,6 +26,22 @@ const Landing = () => {
       navigate('/login');
     } else {
       navigate('/dashboard');
+    }
+  };
+
+  const handleTemplateClick = (templateId) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour utiliser ce modèle",
+      });
+      navigate('/login');
+    } else {
+      navigate(`/editor/${templateId}`);
+      toast({
+        title: "Modèle sélectionné",
+        description: `Vous pouvez maintenant personnaliser le modèle ${templateId}`,
+      });
     }
   };
 
@@ -73,7 +88,10 @@ const Landing = () => {
               </Button>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300">
+              <div 
+                className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer"
+                onClick={() => handleTemplateClick('classic')}
+              >
                 <div className="h-64 bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
                   <h3 className="text-white font-bold text-xl mb-2">Classique</h3>
                   <div className="bg-white/20 h-4 w-24 rounded mb-4"></div>
@@ -81,7 +99,10 @@ const Landing = () => {
                   <div className="bg-white/20 h-3 w-28 rounded mb-4"></div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300">
+              <div 
+                className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer"
+                onClick={() => handleTemplateClick('modern')}
+              >
                 <div className="h-64 bg-gradient-to-r from-teal-500 to-emerald-600 p-6">
                   <h3 className="text-white font-bold text-xl mb-2">Moderne</h3>
                   <div className="bg-white/20 h-4 w-24 rounded mb-4"></div>
@@ -89,7 +110,10 @@ const Landing = () => {
                   <div className="bg-white/20 h-3 w-28 rounded mb-4"></div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300">
+              <div 
+                className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer"
+                onClick={() => handleTemplateClick('creative')}
+              >
                 <div className="h-64 bg-gradient-to-r from-purple-500 to-pink-600 p-6">
                   <h3 className="text-white font-bold text-xl mb-2">Créatif</h3>
                   <div className="bg-white/20 h-4 w-24 rounded mb-4"></div>
@@ -97,7 +121,10 @@ const Landing = () => {
                   <div className="bg-white/20 h-3 w-28 rounded mb-4"></div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300">
+              <div 
+                className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer"
+                onClick={() => handleTemplateClick('professional')}
+              >
                 <div className="h-64 bg-gradient-to-r from-gray-700 to-gray-900 p-6">
                   <h3 className="text-white font-bold text-xl mb-2">Professionnel</h3>
                   <div className="bg-white/20 h-4 w-24 rounded mb-4"></div>

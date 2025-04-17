@@ -1,9 +1,8 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate, useParams } from "react-router-dom";
 import { CVProvider } from "./contexts/CVContext";
 import { useEffect, useState } from "react";
 import Index from "./pages/Index";
@@ -45,6 +44,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const EditorWithTemplate = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { templateId } = useParams();
   
   useEffect(() => {
     // Extraire les paramètres de template de l'URL
@@ -53,14 +53,14 @@ const EditorWithTemplate = () => {
     const style = params.get('style');
     
     // Si des paramètres de template sont présents dans l'URL, les appliquer au thème du CV
-    console.log("Template parameters:", { color, style });
+    console.log("Template parameters:", { templateId, color, style });
     
     // Nettoyer l'URL en supprimant les paramètres de requête
     if (params.toString()) {
       // Naviguer vers le même chemin sans paramètres de requête
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate]);
+  }, [location, navigate, templateId]);
   
   return (
     <ProtectedRoute>
