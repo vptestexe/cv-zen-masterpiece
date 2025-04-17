@@ -1,52 +1,34 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate, useParams } from "react-router-dom";
 import { CVProvider } from "./contexts/CVContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import { useToast } from "./hooks/use-toast";
+import { useAuth } from "./hooks/use-auth";
 
 const queryClient = new QueryClient();
-
-// Service d'authentification simplifié (dans une vraie application, on utiliserait un contexte d'authentification)
-const getAuthStatus = () => {
-  const authToken = localStorage.getItem('auth_token');
-  return !!authToken; // Converti en booléen
-};
-
-// Composant pour gérer l'authentification
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const isAuthenticated = getAuthStatus();
-  
-  useEffect(() => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Accès refusé",
-        description: "Veuillez vous connecter pour accéder à cette page",
-        variant: "destructive"
-      });
-      navigate("/login");
-    }
-  }, [isAuthenticated, navigate, toast]);
-  
-  return isAuthenticated ? <>{children}</> : null;
-};
 
 // Composant pour gérer les paramètres de template
 const EditorWithTemplate = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { templateId } = useParams();
+  const { isAuthenticated } = useAuth();
   
   useEffect(() => {
+    // Rediriger vers la page de connexion si l'utilisateur n'est pas authentifié
+    if (!isAuthenticated) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    
     // Extraire les paramètres de template de l'URL
     const params = new URLSearchParams(location.search);
     const color = params.get('color');
@@ -60,13 +42,30 @@ const EditorWithTemplate = () => {
       // Naviguer vers le même chemin sans paramètres de requête
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate, templateId]);
+  }, [location, navigate, templateId, isAuthenticated]);
   
-  return (
-    <ProtectedRoute>
-      <Index />
-    </ProtectedRoute>
-  );
+  // Si l'utilisateur n'est pas authentifié, ne rien afficher (la redirection est gérée dans useEffect)
+  if (!isAuthenticated) return null;
+  
+  return <Index />;
+};
+
+// Composant pour protéger les routes qui nécessitent une authentification
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  useEffect(() => {
+    // Attendre que la vérification d'authentification soit terminée
+    if (!isLoading && !isAuthenticated) {
+      navigate("/login", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+  
+  // Si le chargement est en cours ou l'utilisateur n'est pas authentifié, ne rien afficher
+  if (isLoading || !isAuthenticated) return null;
+  
+  return <>{children}</>;
 };
 
 const App = () => (

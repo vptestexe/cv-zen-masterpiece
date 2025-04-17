@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -37,6 +38,7 @@ const Landing = () => {
       });
       navigate('/login');
     } else {
+      // Rediriger vers l'éditeur avec le modèle sélectionné
       navigate(`/editor/${templateId}`);
       toast({
         title: "Modèle sélectionné",
@@ -44,6 +46,9 @@ const Landing = () => {
       });
     }
   };
+
+  // Ne pas rediriger si l'authentification est en cours de chargement
+  if (isLoading) return null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -88,6 +93,7 @@ const Landing = () => {
               </Button>
             </div>
             <div className="grid grid-cols-2 gap-6">
+              {/* Template cards */}
               <div 
                 className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 cursor-pointer"
                 onClick={() => handleTemplateClick('classic')}
