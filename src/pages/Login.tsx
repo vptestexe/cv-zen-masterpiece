@@ -3,19 +3,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, User, ArrowLeft } from "lucide-react";
+import { LogIn, User, ArrowLeft, Home } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { login, isAuthenticated } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  
+  // Vérifier si l'utilisateur est déjà authentifié
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from || "/dashboard";
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,10 +47,8 @@ const Login = () => {
     setTimeout(() => {
       setIsLoading(false);
       
-      // Ajouter un token dans le localStorage (dans une vraie application, ce serait un JWT)
-      localStorage.setItem('auth_token', 'simulated_jwt_token');
-      localStorage.setItem('user_email', email);
-      localStorage.setItem('user_name', isLogin ? email.split('@')[0] : name);
+      // Utiliser la fonction login du hook useAuth
+      login(email, isLogin ? email.split('@')[0] : name);
       
       // Simulation de succès
       toast({
@@ -49,9 +58,14 @@ const Login = () => {
           : "Vous pouvez maintenant vous connecter à votre compte",
       });
       
-      // Si c'est une connexion, rediriger vers le dashboard
-      navigate("/dashboard");
+      // Si c'est une connexion, rediriger vers le dashboard ou la page précédente
+      const from = location.state?.from || "/dashboard";
+      navigate(from, { replace: true });
     }, 1500);
+  };
+  
+  const goToHome = () => {
+    navigate("/");
   };
   
   return (
@@ -59,14 +73,24 @@ const Login = () => {
       <div className="flex-1 container flex items-center justify-center py-8">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <Button 
-              variant="ghost" 
-              className="w-fit p-0 mb-4" 
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour à l'accueil
-            </Button>
+            <div className="flex justify-between items-center mb-4">
+              <Button 
+                variant="ghost" 
+                className="w-fit p-0" 
+                onClick={goToHome}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour à l'accueil
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-fit" 
+                onClick={goToHome}
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Page d'accueil
+              </Button>
+            </div>
             <CardTitle className="text-2xl">
               {isLogin ? "Connexion" : "Créer un compte"}
             </CardTitle>

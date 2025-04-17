@@ -11,7 +11,7 @@ import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import { useAuth } from "./hooks/use-auth";
+import { useAuth, AuthProvider } from "./hooks/use-auth";
 
 const queryClient = new QueryClient();
 
@@ -25,7 +25,7 @@ const EditorWithTemplate = () => {
   useEffect(() => {
     // Rediriger vers la page de connexion si l'utilisateur n'est pas authentifié
     if (!isAuthenticated) {
-      navigate("/login", { replace: true });
+      navigate("/login", { replace: true, state: { from: location.pathname } });
       return;
     }
     
@@ -53,14 +53,15 @@ const EditorWithTemplate = () => {
 // Composant pour protéger les routes qui nécessitent une authentification
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   
   useEffect(() => {
     // Attendre que la vérification d'authentification soit terminée
     if (!isLoading && !isAuthenticated) {
-      navigate("/login", { replace: true });
+      navigate("/login", { replace: true, state: { from: location.pathname } });
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate, location]);
   
   // Si le chargement est en cours ou l'utilisateur n'est pas authentifié, ne rien afficher
   if (isLoading || !isAuthenticated) return null;
@@ -71,33 +72,35 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <CVProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Page d'accueil */}
-            <Route path="/" element={<Landing />} />
-            
-            {/* Authentification */}
-            <Route path="/login" element={<Login />} />
-            
-            {/* Dashboard utilisateur (protégé) */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            
-            {/* Éditeur de CV (protégé) */}
-            <Route path="/editor" element={<EditorWithTemplate />} />
-            <Route path="/editor/:templateId" element={<EditorWithTemplate />} />
-            
-            {/* Route 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </CVProvider>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <CVProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Page d'accueil */}
+              <Route path="/" element={<Landing />} />
+              
+              {/* Authentification */}
+              <Route path="/login" element={<Login />} />
+              
+              {/* Dashboard utilisateur (protégé) */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              
+              {/* Éditeur de CV (protégé) */}
+              <Route path="/editor" element={<EditorWithTemplate />} />
+              <Route path="/editor/:templateId" element={<EditorWithTemplate />} />
+              
+              {/* Route 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </CVProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

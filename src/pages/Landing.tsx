@@ -24,7 +24,7 @@ const Landing = () => {
         title: "Connexion requise",
         description: "Veuillez vous connecter pour créer ou modifier un CV",
       });
-      navigate('/login');
+      navigate('/login', { state: { from: "/dashboard" } });
     } else {
       navigate('/dashboard');
     }
@@ -36,7 +36,8 @@ const Landing = () => {
         title: "Connexion requise",
         description: "Veuillez vous connecter pour utiliser ce modèle",
       });
-      navigate('/login');
+      // Stocker la destination voulue pour y revenir après la connexion
+      navigate('/login', { state: { from: `/editor/${templateId}` } });
     } else {
       // Rediriger vers l'éditeur avec le modèle sélectionné
       navigate(`/editor/${templateId}`);
@@ -64,7 +65,7 @@ const Landing = () => {
                 <Button variant="outline" onClick={() => navigate('/login')}>
                   Se connecter
                 </Button>
-                <Button onClick={() => navigate('/login')}>
+                <Button onClick={() => navigate('/login', { state: { isSignUp: true } })}>
                   Créer un compte
                 </Button>
               </>
