@@ -5,16 +5,21 @@ import { CVEditor } from "@/components/editor/CVEditor";
 import { CVPreview } from "@/components/preview/CVPreview";
 import { ThemePalette } from "@/components/ThemePalette";
 import { useToast } from "@/hooks/use-toast";
-import { Save, RefreshCw, ChevronUp } from "lucide-react";
+import { Save, RefreshCw, ChevronUp, ArrowLeft, Download } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const Index = () => {
   const { resetCV } = useCVContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [scrolled, setScrolled] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const handleSaveCV = () => {
     // In a real application, this would save to a server
@@ -30,6 +35,57 @@ const Index = () => {
       toast({
         title: "CV réinitialisé",
         description: "Votre CV a été réinitialisé avec succès."
+      });
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    navigate("/dashboard");
+  };
+
+  const handleDownloadCV = async () => {
+    if (!previewRef.current) return;
+    
+    toast({
+      title: "Préparation du téléchargement",
+      description: "Veuillez patienter pendant la création du PDF..."
+    });
+    
+    try {
+      const previewElement = previewRef.current;
+      
+      const canvas = await html2canvas(previewElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff"
+      });
+      
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      
+      // A4 dimensions in mm (210 x 297)
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      pdf.save('mon-cv.pdf');
+      
+      toast({
+        title: "CV téléchargé",
+        description: "Votre CV a été téléchargé avec succès au format PDF."
+      });
+    } catch (error) {
+      console.error("Erreur lors du téléchargement:", error);
+      toast({
+        title: "Erreur de téléchargement",
+        description: "Une erreur est survenue lors du téléchargement de votre CV.",
+        variant: "destructive"
       });
     }
   };
@@ -56,7 +112,18 @@ const Index = () => {
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-20">
         <div className="container mx-auto py-4 px-4 sm:px-6 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">CV Zen <span className="font-playfair">Masterpiece</span></h1>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleBackToDashboard} 
+              className="rounded-full"
+              aria-label="Retour au tableau de bord"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">CV Zen <span className="font-playfair">Masterpiece</span></h1>
+          </div>
           <div className="flex gap-2">
             {isMobile && (
               <div className="flex rounded-lg overflow-hidden border">
@@ -96,6 +163,7 @@ const Index = () => {
           className={`w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
             isMobile && activeTab !== "preview" ? "hidden" : "block"
           }`}
+          ref={previewRef}
         >
           <CVPreview />
         </div>
@@ -108,6 +176,10 @@ const Index = () => {
             © {new Date().getFullYear()} CV Zen Masterpiece - Un créateur de CV simple et élégant
           </p>
           <div className="flex gap-2 sm:gap-3">
+            <Button onClick={handleDownloadCV} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+              Télécharger
+            </Button>
             <Button onClick={handleSaveCV} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
               <Save className="h-3 w-3 sm:h-4 sm:w-4" />
               Sauvegarder

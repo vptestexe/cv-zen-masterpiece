@@ -2,9 +2,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Download, Trash2, Plus, LogOut, FileText } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // Données factices pour les CV de l'utilisateur
 const initialCVs = [
@@ -26,6 +28,23 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userCVs, setUserCVs] = useState(initialCVs);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Dans une vraie application, cela viendrait d'un contexte d'authentification
+  
+  // Vérification de l'authentification (simulation)
+  useEffect(() => {
+    // Vérifier si l'utilisateur est connecté
+    // Dans une vraie application, cela devrait vérifier un token ou un état d'authentification
+    
+    // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
+    if (!isAuthenticated) {
+      navigate("/login");
+      toast({
+        title: "Accès refusé",
+        description: "Veuillez vous connecter pour accéder à votre tableau de bord",
+        variant: "destructive"
+      });
+    }
+  }, [isAuthenticated, navigate, toast]);
   
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -37,18 +56,33 @@ const Dashboard = () => {
   };
   
   const handleEdit = (cvId: string) => {
-    navigate(`/`); // Pour l'instant, nous dirigeons vers la page d'édition principale
-    toast({
-      title: "Modification du CV",
-      description: "Vous pouvez maintenant modifier votre CV"
-    });
+    // Trouver le CV correspondant pour obtenir son template
+    const cv = userCVs.find(cv => cv.id === cvId);
+    if (cv) {
+      // Naviguer vers l'éditeur avec le template spécifié
+      navigate(`/editor/${cv.template}`);
+      toast({
+        title: "Modification du CV",
+        description: "Vous pouvez maintenant modifier votre CV"
+      });
+    }
   };
   
   const handleDownload = (cvId: string) => {
+    // Dans une application réelle, cela téléchargerait le CV spécifique
+    // Pour cette simulation, nous montrons juste un toast
     toast({
       title: "Téléchargement du CV",
       description: "Votre CV est en cours de téléchargement"
     });
+    
+    // Simuler un délai de téléchargement
+    setTimeout(() => {
+      toast({
+        title: "CV téléchargé",
+        description: "Votre CV a été téléchargé avec succès"
+      });
+    }, 2000);
   };
   
   const handleDelete = (cvId: string) => {
@@ -70,6 +104,8 @@ const Dashboard = () => {
   };
   
   const handleLogout = () => {
+    // Dans une vraie application, cela déconnecterait l'utilisateur
+    // Pour cette simulation, nous redirigeons simplement vers la page d'accueil
     navigate("/");
     toast({
       title: "Déconnexion réussie",
