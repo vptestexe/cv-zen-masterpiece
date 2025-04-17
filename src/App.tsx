@@ -15,12 +15,17 @@ import { useToast } from "./hooks/use-toast";
 
 const queryClient = new QueryClient();
 
-// Composant pour gérer l'authentification (dans une vraie application, cela utiliserait un contexte d'authentification)
+// Service d'authentification simplifié (dans une vraie application, on utiliserait un contexte d'authentification)
+const getAuthStatus = () => {
+  const authToken = localStorage.getItem('auth_token');
+  return !!authToken; // Converti en booléen
+};
+
+// Composant pour gérer l'authentification
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  // Simulation d'authentification - dans une vraie application, cela vérifierait un token ou un contexte d'authentification
-  const isAuthenticated = true; // Toujours vrai pour la démo
+  const isAuthenticated = getAuthStatus();
   
   useEffect(() => {
     if (!isAuthenticated) {
@@ -48,7 +53,6 @@ const EditorWithTemplate = () => {
     const style = params.get('style');
     
     // Si des paramètres de template sont présents dans l'URL, les appliquer au thème du CV
-    // Cela serait géré par le CVContext
     console.log("Template parameters:", { color, style });
     
     // Nettoyer l'URL en supprimant les paramètres de requête

@@ -13,14 +13,33 @@ const Login = () => {
   const { toast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
+    // Validation de base
+    if (!email || !password || (!isLogin && !name)) {
+      toast({
+        title: "Erreur de saisie",
+        description: "Veuillez remplir tous les champs obligatoires",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+      return;
+    }
+    
     // Simuler une authentification
     setTimeout(() => {
       setIsLoading(false);
+      
+      // Ajouter un token dans le localStorage (dans une vraie application, ce serait un JWT)
+      localStorage.setItem('auth_token', 'simulated_jwt_token');
+      localStorage.setItem('user_email', email);
+      localStorage.setItem('user_name', isLogin ? email.split('@')[0] : name);
       
       // Simulation de succès
       toast({
@@ -31,12 +50,7 @@ const Login = () => {
       });
       
       // Si c'est une connexion, rediriger vers le dashboard
-      if (isLogin) {
-        navigate("/dashboard");
-      } else {
-        // Si c'est une inscription, basculer vers la connexion
-        setIsLogin(true);
-      }
+      navigate("/dashboard");
     }, 1500);
   };
   
@@ -68,18 +82,38 @@ const Login = () => {
               {!isLogin && (
                 <div className="space-y-2">
                   <Label htmlFor="name">Nom complet</Label>
-                  <Input id="name" placeholder="John Doe" required />
+                  <Input 
+                    id="name" 
+                    placeholder="John Doe" 
+                    required 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
               )}
               
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="votre@email.com" required />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="votre@email.com" 
+                  required 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="password">Mot de passe</Label>
-                <Input id="password" type="password" placeholder="••••••••" required />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="••••••••" 
+                  required 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
               
               <Button 

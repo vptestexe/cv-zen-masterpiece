@@ -8,43 +8,72 @@ import { Edit, Download, Trash2, Plus, LogOut, FileText } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// Données factices pour les CV de l'utilisateur
-const initialCVs = [
-  {
-    id: "cv1",
-    title: "CV Développeur Web",
-    template: "classic",
-    lastUpdated: new Date("2025-03-15").toISOString(),
-  },
-  {
-    id: "cv2",
-    title: "CV Marketing Digital",
-    template: "modern",
-    lastUpdated: new Date("2025-04-01").toISOString(),
+// Fonction pour récupérer les CV enregistrés
+const getSavedCVs = () => {
+  const savedCVsJSON = localStorage.getItem('saved_cvs');
+  if (savedCVsJSON) {
+    try {
+      return JSON.parse(savedCVsJSON);
+    } catch (e) {
+      console.error("Erreur lors de la récupération des CV:", e);
+      return [];
+    }
   }
-];
+  return [];
+};
+
+// Données initiales pré-remplies avec des exemples de CV
+const getInitialCVs = () => {
+  const savedCVs = getSavedCVs();
+  if (savedCVs && savedCVs.length > 0) {
+    return savedCVs;
+  }
+  
+  // Si aucun CV n'est enregistré, retourner les CV de démo
+  return [
+    {
+      id: "cv1",
+      title: "CV Développeur Web",
+      template: "classic",
+      lastUpdated: new Date("2025-03-15").toISOString(),
+    },
+    {
+      id: "cv2",
+      title: "CV Marketing Digital",
+      template: "modern",
+      lastUpdated: new Date("2025-04-01").toISOString(),
+    }
+  ];
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userCVs, setUserCVs] = useState(initialCVs);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Dans une vraie application, cela viendrait d'un contexte d'authentification
+  const [userCVs, setUserCVs] = useState(getInitialCVs);
+  const [userName, setUserName] = useState("");
   
-  // Vérification de l'authentification (simulation)
+  // Vérification de l'authentification
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté
-    // Dans une vraie application, cela devrait vérifier un token ou un état d'authentification
+    const authToken = localStorage.getItem('auth_token');
+    const name = localStorage.getItem('user_name');
     
-    // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
-    if (!isAuthenticated) {
+    if (!authToken) {
       navigate("/login");
       toast({
         title: "Accès refusé",
         description: "Veuillez vous connecter pour accéder à votre tableau de bord",
         variant: "destructive"
       });
+    } else {
+      setUserName(name || "Utilisateur");
+      
+      // Charger les CV enregistrés
+      const savedCVs = getSavedCVs();
+      if (savedCVs && savedCVs.length > 0) {
+        setUserCVs(savedCVs);
+      }
     }
-  }, [isAuthenticated, navigate, toast]);
+  }, [navigate, toast]);
   
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -70,7 +99,6 @@ const Dashboard = () => {
   
   const handleDownload = (cvId: string) => {
     // Dans une application réelle, cela téléchargerait le CV spécifique
-    // Pour cette simulation, nous montrons juste un toast
     toast({
       title: "Téléchargement du CV",
       description: "Votre CV est en cours de téléchargement"
@@ -87,7 +115,12 @@ const Dashboard = () => {
   
   const handleDelete = (cvId: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce CV ?")) {
-      setUserCVs(prevCVs => prevCVs.filter(cv => cv.id !== cvId));
+      const updatedCVs = userCVs.filter(cv => cv.id !== cvId);
+      setUserCVs(updatedCVs);
+      
+      // Enregistrer la liste mise à jour dans le localStorage
+      localStorage.setItem('saved_cvs', JSON.stringify(updatedCVs));
+      
       toast({
         title: "CV supprimé",
         description: "Votre CV a été supprimé avec succès"
@@ -99,13 +132,17 @@ const Dashboard = () => {
     navigate("/");
     toast({
       title: "Création d'un nouveau CV",
-      description: "Commencez à créer votre nouveau CV"
+      description: "Choisissez un modèle pour commencer"
     });
   };
   
   const handleLogout = () => {
-    // Dans une vraie application, cela déconnecterait l'utilisateur
-    // Pour cette simulation, nous redirigeons simplement vers la page d'accueil
+    // Supprimer le token d'authentification
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_name');
+    
+    // Rediriger vers la page d'accueil
     navigate("/");
     toast({
       title: "Déconnexion réussie",
@@ -121,10 +158,15 @@ const Dashboard = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">
             <span className="font-playfair">CV Zen Masterpiece</span>
           </h1>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Déconnexion</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline text-sm text-muted-foreground mr-2">
+              Bonjour, {userName}
+            </span>
+            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Déconnexion</span>
+            </Button>
+          </div>
         </div>
       </header>
       

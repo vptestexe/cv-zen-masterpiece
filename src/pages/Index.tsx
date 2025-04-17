@@ -8,21 +8,75 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, RefreshCw, ChevronUp, ArrowLeft, Download } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { v4 as uuidv4 } from 'uuid';
 
 const Index = () => {
-  const { resetCV } = useCVContext();
+  const { resetCV, cvData } = useCVContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { templateId } = useParams<{ templateId?: string }>();
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [scrolled, setScrolled] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // Vérifier l'authentification
+  useEffect(() => {
+    const authToken = localStorage.getItem('auth_token');
+    
+    if (!authToken) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour créer ou modifier un CV",
+        variant: "destructive"
+      });
+      navigate("/login");
+    }
+  }, [navigate, toast]);
+
   const handleSaveCV = () => {
-    // In a real application, this would save to a server
+    // Vérifier que le CV a au moins un nom
+    if (!cvData.personalInfo.fullName) {
+      toast({
+        title: "Informations incomplètes",
+        description: "Veuillez au moins renseigner votre nom complet",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Récupérer les CV existants
+    const savedCVsJSON = localStorage.getItem('saved_cvs');
+    let savedCVs = [];
+    
+    if (savedCVsJSON) {
+      try {
+        savedCVs = JSON.parse(savedCVsJSON);
+      } catch (e) {
+        console.error("Erreur lors de la récupération des CV:", e);
+      }
+    }
+    
+    // Créer un nouvel objet CV
+    const newCV = {
+      id: uuidv4(),
+      title: cvData.personalInfo.jobTitle 
+        ? `${cvData.personalInfo.fullName} - ${cvData.personalInfo.jobTitle}` 
+        : `CV de ${cvData.personalInfo.fullName}`,
+      template: templateId || "classic",
+      lastUpdated: new Date().toISOString(),
+      data: cvData
+    };
+    
+    // Ajouter le nouveau CV à la liste
+    savedCVs.push(newCV);
+    
+    // Sauvegarder dans le localStorage
+    localStorage.setItem('saved_cvs', JSON.stringify(savedCVs));
+    
     toast({
       title: "CV sauvegardé",
       description: "Votre CV a été sauvegardé avec succès.",
