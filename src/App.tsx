@@ -20,11 +20,11 @@ const EditorWithTemplate = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { templateId } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
   useEffect(() => {
-    // Rediriger vers la page de connexion si l'utilisateur n'est pas authentifié
-    if (!isAuthenticated) {
+    // Si le chargement est terminé et l'utilisateur n'est pas authentifié
+    if (!isLoading && !isAuthenticated) {
       navigate("/login", { replace: true, state: { from: location.pathname } });
       return;
     }
@@ -39,12 +39,18 @@ const EditorWithTemplate = () => {
     
     // Nettoyer l'URL en supprimant les paramètres de requête
     if (params.toString()) {
-      // Naviguer vers le même chemin sans paramètres de requête
-      navigate(location.pathname, { replace: true });
+      // Préserver le paramètre cvId s'il existe
+      const cvId = params.get('cvId');
+      if (cvId) {
+        navigate(location.pathname, { replace: true, state: { cvId } });
+      } else {
+        navigate(location.pathname, { replace: true });
+      }
     }
-  }, [location, navigate, templateId, isAuthenticated]);
+  }, [location, navigate, templateId, isAuthenticated, isLoading]);
   
-  // Si l'utilisateur n'est pas authentifié, ne rien afficher (la redirection est gérée dans useEffect)
+  // Si l'utilisateur n'est pas authentifié et le chargement est terminé, afficher null
+  if (isLoading) return null;
   if (!isAuthenticated) return null;
   
   return <Index />;

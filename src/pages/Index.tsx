@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, RefreshCw, ChevronUp, ArrowLeft, Download } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { v4 as uuidv4 } from 'uuid';
@@ -18,10 +18,28 @@ const Index = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const location = useLocation();
   const { templateId } = useParams<{ templateId?: string }>();
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [scrolled, setScrolled] = useState(false);
+  const [currentCVId, setCurrentCVId] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  
+  // Get the current CV ID from the query parameters or state
+  useEffect(() => {
+    // Check if a CV ID was passed via location state
+    const stateWithId = location.state as { cvId?: string } | null;
+    if (stateWithId?.cvId) {
+      setCurrentCVId(stateWithId.cvId);
+    } else {
+      // Extract from query params as a fallback
+      const params = new URLSearchParams(location.search);
+      const cvId = params.get('cvId');
+      if (cvId) {
+        setCurrentCVId(cvId);
+      }
+    }
+  }, [location]);
 
   // Vérifier l'authentification
   useEffect(() => {
@@ -60,32 +78,74 @@ const Index = () => {
       }
     }
     
-    // Créer un nouvel objet CV
-    const newCV = {
-      id: uuidv4(),
-      title: cvData.personalInfo.jobTitle 
-        ? `${cvData.personalInfo.fullName} - ${cvData.personalInfo.jobTitle}` 
-        : `CV de ${cvData.personalInfo.fullName}`,
-      template: templateId || "classic",
-      lastUpdated: new Date().toISOString(),
-      data: cvData
-    };
-    
-    // Ajouter le nouveau CV à la liste
-    savedCVs.push(newCV);
+    // Créer un titre pour le CV
+    const cvTitle = cvData.personalInfo.jobTitle 
+      ? `${cvData.personalInfo.fullName} - ${cvData.personalInfo.jobTitle}` 
+      : `CV de ${cvData.personalInfo.fullName}`;
+      
+    // Check if we're updating an existing CV or creating a new one
+    if (currentCVId) {
+      // Find and update existing CV
+      const cvIndex = savedCVs.findIndex((cv: any) => cv.id === currentCVId);
+      
+      if (cvIndex !== -1) {
+        // Update existing CV
+        savedCVs[cvIndex] = {
+          ...savedCVs[cvIndex],
+          title: cvTitle,
+          template: templateId || savedCVs[cvIndex].template || "classic",
+          lastUpdated: new Date().toISOString(),
+          data: cvData
+        };
+        
+        toast({
+          title: "CV mis à jour",
+          description: "Votre CV a été mis à jour avec succès.",
+        });
+      } else {
+        // CV ID not found, create new one with the same ID
+        savedCVs.push({
+          id: currentCVId,
+          title: cvTitle,
+          template: templateId || "classic",
+          lastUpdated: new Date().toISOString(),
+          data: cvData
+        });
+        
+        toast({
+          title: "CV créé",
+          description: "Un nouveau CV a été créé car celui en cours de modification n'existe plus.",
+        });
+      }
+    } else {
+      // Create a new CV
+      const newCV = {
+        id: uuidv4(),
+        title: cvTitle,
+        template: templateId || "classic",
+        lastUpdated: new Date().toISOString(),
+        data: cvData
+      };
+      
+      savedCVs.push(newCV);
+      // Update the current CV ID to the new one
+      setCurrentCVId(newCV.id);
+      
+      toast({
+        title: "CV sauvegardé",
+        description: "Votre CV a été sauvegardé avec succès.",
+      });
+    }
     
     // Sauvegarder dans le localStorage
     localStorage.setItem('saved_cvs', JSON.stringify(savedCVs));
-    
-    toast({
-      title: "CV sauvegardé",
-      description: "Votre CV a été sauvegardé avec succès.",
-    });
   };
 
   const handleResetCV = () => {
     if (confirm("Êtes-vous sûr de vouloir réinitialiser votre CV ? Toutes les données saisies seront perdues.")) {
       resetCV();
+      // Reset the current CV ID when resetting the CV
+      setCurrentCVId(null);
       toast({
         title: "CV réinitialisé",
         description: "Votre CV a été réinitialisé avec succès."

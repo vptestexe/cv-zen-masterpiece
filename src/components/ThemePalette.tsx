@@ -103,6 +103,11 @@ export function ThemePalette() {
     };
   }, [isDragging]);
 
+  // Ensure all theme updates are properly typed
+  const handleThemeUpdate = (field: keyof CVTheme, value: string) => {
+    updateTheme(field, value);
+  };
+
   return (
     <div
       ref={paletteRef}
@@ -149,7 +154,7 @@ export function ThemePalette() {
                     backgroundColor: color,
                     boxShadow: cvTheme.primaryColor === color ? "0 0 0 2px white, 0 0 0 4px " + color : "none" 
                   }}
-                  onClick={() => updateTheme('primaryColor', color)}
+                  onClick={() => handleThemeUpdate('primaryColor', color)}
                 />
               ))}
 
@@ -168,7 +173,7 @@ export function ThemePalette() {
                       id="custom-color"
                       type="color"
                       value={cvTheme.primaryColor}
-                      onChange={(e) => updateTheme('primaryColor', e.target.value)}
+                      onChange={(e) => handleThemeUpdate('primaryColor', e.target.value)}
                       className="w-full h-8"
                     />
                   </div>
@@ -182,7 +187,7 @@ export function ThemePalette() {
             <input
               type="color"
               value={cvTheme.backgroundColor}
-              onChange={(e) => updateTheme('backgroundColor', e.target.value)}
+              onChange={(e) => handleThemeUpdate('backgroundColor', e.target.value)}
               className="w-full h-8"
             />
           </div>
@@ -192,7 +197,7 @@ export function ThemePalette() {
             <Label htmlFor="title-font">Police des titres</Label>
             <Select
               value={cvTheme.titleFont}
-              onValueChange={(value) => updateTheme('titleFont', value)}
+              onValueChange={(value) => handleThemeUpdate('titleFont', value)}
             >
               <SelectTrigger id="title-font">
                 <SelectValue placeholder="Choisir une police" />
@@ -211,7 +216,7 @@ export function ThemePalette() {
             <Label htmlFor="text-font">Police du texte principal</Label>
             <Select
               value={cvTheme.textFont}
-              onValueChange={(value) => updateTheme('textFont', value)}
+              onValueChange={(value) => handleThemeUpdate('textFont', value)}
             >
               <SelectTrigger id="text-font">
                 <SelectValue placeholder="Choisir une police" />
@@ -231,7 +236,7 @@ export function ThemePalette() {
             <Label htmlFor="photo-position">Position de la photo</Label>
             <Select
               value={cvTheme.photoPosition}
-              onValueChange={(value: "top" | "left" | "right") => updateTheme('photoPosition', value)}
+              onValueChange={(value: "top" | "left" | "right") => handleThemeUpdate('photoPosition', value)}
             >
               <SelectTrigger id="photo-position">
                 <SelectValue placeholder="Choisir une position" />
@@ -250,7 +255,7 @@ export function ThemePalette() {
             <Label htmlFor="photo-size">Taille de la photo</Label>
             <Select
               value={cvTheme.photoSize}
-              onValueChange={(value: "small" | "medium" | "large") => updateTheme('photoSize', value)}
+              onValueChange={(value: "small" | "medium" | "large") => handleThemeUpdate('photoSize', value)}
             >
               <SelectTrigger id="photo-size">
                 <SelectValue placeholder="Choisir une taille" />
@@ -269,7 +274,7 @@ export function ThemePalette() {
             <Label htmlFor="title-style">Style des titres</Label>
             <Select
               value={cvTheme.titleStyle}
-              onValueChange={(value: "plain" | "underline" | "background" | "border") => updateTheme('titleStyle', value)}
+              onValueChange={(value: "plain" | "underline" | "background" | "border") => handleThemeUpdate('titleStyle', value)}
             >
               <SelectTrigger id="title-style">
                 <SelectValue placeholder="Choisir un style" />

@@ -65,28 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    // Si le hook est utilisé en dehors du Provider, vérifier directement le localStorage
-    const authToken = localStorage.getItem('auth_token');
-    const userName = localStorage.getItem('user_name');
-    const userEmail = localStorage.getItem('user_email');
-    
-    const isAuthenticated = !!authToken;
-    const user = userName && userEmail ? { name: userName, email: userEmail } : null;
-    
-    const login = (email: string, name: string) => {
-      localStorage.setItem('auth_token', 'simulated_jwt_token');
-      localStorage.setItem('user_email', email);
-      localStorage.setItem('user_name', name);
-    };
-    
-    const logout = () => {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_email');
-      localStorage.removeItem('user_name');
-    };
-    
-    return { isAuthenticated, isLoading: false, user, login, logout };
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  
   return context;
 };
