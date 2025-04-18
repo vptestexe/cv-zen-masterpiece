@@ -14,7 +14,7 @@ import jsPDF from "jspdf";
 import { v4 as uuidv4 } from 'uuid';
 
 const Index = () => {
-  const { resetCV, cvData, cvTheme } = useCVContext();
+  const { resetCV, cvData, cvTheme, setInitialTheme } = useCVContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -31,6 +31,8 @@ const Index = () => {
     const stateWithId = location.state as { cvId?: string } | null;
     if (stateWithId?.cvId) {
       setCurrentCVId(stateWithId.cvId);
+      // Load the CV with its theme
+      loadSavedCV(stateWithId.cvId);
       console.log("CV ID from state:", stateWithId.cvId);
     } else {
       // Extract from query params as a fallback
@@ -38,10 +40,31 @@ const Index = () => {
       const cvId = params.get('cvId');
       if (cvId) {
         setCurrentCVId(cvId);
+        // Load the CV with its theme
+        loadSavedCV(cvId);
         console.log("CV ID from URL:", cvId);
       }
     }
   }, [location]);
+
+  // Function to load a saved CV with its theme
+  const loadSavedCV = (cvId: string) => {
+    try {
+      const savedCVsJSON = localStorage.getItem('saved_cvs');
+      if (savedCVsJSON) {
+        const savedCVs = JSON.parse(savedCVsJSON);
+        const savedCV = savedCVs.find((cv: any) => cv.id === cvId);
+        
+        if (savedCV && savedCV.theme) {
+          console.log("Loading saved theme:", savedCV.theme);
+          // Set the theme from the saved CV
+          setInitialTheme(savedCV.theme);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading saved CV:", error);
+    }
+  };
 
   // Vérifier l'authentification
   useEffect(() => {

@@ -2,13 +2,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCVContext } from "@/contexts/CVContext";
 import { ChevronUp, Minus, Move, Palette } from "lucide-react";
-import { CVTheme } from "@/types/cv";
 import { useToast } from "@/hooks/use-toast";
 
 export function ThemePalette() {
@@ -109,75 +106,75 @@ export function ThemePalette() {
   const handleUpdateTitleFont = (value: string) => {
     if (value === "playfair" || value === "roboto") {
       updateTheme("titleFont", value);
+      console.log("Updated title font to:", value);
       toast({
         title: "Style mis à jour",
         description: `Police des titres changée en ${value === "playfair" ? "Playfair Display" : "Roboto"}.`,
       });
-      console.log("Updated title font to:", value);
     }
   };
 
   const handleUpdateTextFont = (value: string) => {
     if (value === "playfair" || value === "roboto") {
       updateTheme("textFont", value);
+      console.log("Updated text font to:", value);
       toast({
         title: "Style mis à jour",
         description: `Police du texte changée en ${value === "playfair" ? "Playfair Display" : "Roboto"}.`,
       });
-      console.log("Updated text font to:", value);
     }
   };
 
   const handleUpdatePhotoPosition = (value: string) => {
     if (value === "top" || value === "left" || value === "right") {
       updateTheme("photoPosition", value);
+      console.log("Updated photo position to:", value);
       toast({
         title: "Style mis à jour",
         description: `Position de la photo changée.`,
       });
-      console.log("Updated photo position to:", value);
     }
   };
 
   const handleUpdatePhotoSize = (value: string) => {
     if (value === "small" || value === "medium" || value === "large") {
       updateTheme("photoSize", value);
+      console.log("Updated photo size to:", value);
       toast({
         title: "Style mis à jour",
         description: `Taille de la photo changée.`,
       });
-      console.log("Updated photo size to:", value);
     }
   };
 
   const handleUpdateTitleStyle = (value: string) => {
     if (value === "plain" || value === "underline" || value === "background" || value === "border") {
       updateTheme("titleStyle", value);
+      console.log("Updated title style to:", value);
       toast({
         title: "Style mis à jour",
         description: `Style des titres changé.`,
       });
-      console.log("Updated title style to:", value);
     }
   };
 
   const handleColorChange = (color: string) => {
     updateTheme("primaryColor", color);
+    console.log("Updated primary color to:", color);
     toast({
       title: "Couleur mise à jour",
       description: "La couleur principale a été changée.",
     });
-    console.log("Updated primary color to:", color);
   };
 
   const handleBackgroundColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const color = e.target.value;
     updateTheme("backgroundColor", color);
+    console.log("Updated background color to:", color);
     toast({
       title: "Couleur mise à jour",
       description: "La couleur d'arrière-plan a été changée.",
     });
-    console.log("Updated background color to:", color);
   };
 
   return (

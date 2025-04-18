@@ -19,7 +19,6 @@ export function CVPreview() {
   const { summary, workExperiences, educations, skills, languages, projects, interests, references } = cvData;
   const isMobile = useIsMobile();
   const location = useLocation();
-  // Utiliser un état local pour forcer les re-rendus
   const [themeUpdateCounter, setThemeUpdateCounter] = useState(0);
 
   // Effet pour appliquer les styles de template
@@ -71,21 +70,24 @@ export function CVPreview() {
           // Default style
           break;
       }
+      // Force re-render
       setThemeUpdateCounter(prev => prev + 1);
     }
-  }, [location.pathname, updateTheme]);
+  }, [location.pathname]);
   
   // Effet pour forcer le rendu quand le thème change
   useEffect(() => {
-    setThemeUpdateCounter(prev => prev + 1);
     console.log("Theme updated:", cvTheme);
+    setThemeUpdateCounter(prev => prev + 1);
   }, [cvTheme]);
 
   // Apply theme with dynamic updates
   const previewStyle = {
     backgroundColor: cvTheme.backgroundColor || "white",
     color: "rgb(63 63 70)",
-    fontFamily: cvTheme.textFont === "playfair" ? "'Playfair Display', serif" : "'Roboto', sans-serif",
+    fontFamily: cvTheme.textFont === "playfair" 
+      ? "'Playfair Display', serif" 
+      : "'Roboto', sans-serif",
   };
 
   // Check if a section has content
