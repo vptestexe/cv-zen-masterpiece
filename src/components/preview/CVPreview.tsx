@@ -88,6 +88,7 @@ export function CVPreview() {
   const hasInterests = interests.length > 0 && interests.some(int => int.name);
   const hasReferences = references.length > 0 && references.some(ref => ref.name);
 
+  // Ajouter une classe pour forcer le rendu quand le thème change
   const titleClass = cn(
     "text-lg font-semibold mb-3",
     cvTheme.titleFont === "playfair" ? "font-playfair" : "font-sans",

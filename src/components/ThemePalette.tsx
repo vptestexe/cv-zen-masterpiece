@@ -103,9 +103,35 @@ export function ThemePalette() {
     };
   }, [isDragging]);
 
-  // Ensure all theme updates are properly typed
-  const handleThemeUpdate = (field: keyof CVTheme, value: string) => {
-    updateTheme(field, value);
+  // Ensure type safety when updating theme properties
+  const handleUpdateTitleFont = (value: string) => {
+    if (value === "playfair" || value === "roboto") {
+      updateTheme("titleFont", value);
+    }
+  };
+
+  const handleUpdateTextFont = (value: string) => {
+    if (value === "playfair" || value === "roboto") {
+      updateTheme("textFont", value);
+    }
+  };
+
+  const handleUpdatePhotoPosition = (value: string) => {
+    if (value === "top" || value === "left" || value === "right") {
+      updateTheme("photoPosition", value);
+    }
+  };
+
+  const handleUpdatePhotoSize = (value: string) => {
+    if (value === "small" || value === "medium" || value === "large") {
+      updateTheme("photoSize", value);
+    }
+  };
+
+  const handleUpdateTitleStyle = (value: string) => {
+    if (value === "plain" || value === "underline" || value === "background" || value === "border") {
+      updateTheme("titleStyle", value);
+    }
   };
 
   return (
@@ -154,7 +180,8 @@ export function ThemePalette() {
                     backgroundColor: color,
                     boxShadow: cvTheme.primaryColor === color ? "0 0 0 2px white, 0 0 0 4px " + color : "none" 
                   }}
-                  onClick={() => handleThemeUpdate('primaryColor', color)}
+                  onClick={() => updateTheme("primaryColor", color)}
+                  aria-label={`Couleur ${color}`}
                 />
               ))}
 
@@ -162,6 +189,7 @@ export function ThemePalette() {
                 <PopoverTrigger asChild>
                   <button
                     className="h-6 w-6 rounded-full border overflow-hidden flex items-center justify-center bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary ring-offset-2"
+                    aria-label="Couleur personnalisée"
                   >
                     +
                   </button>
@@ -173,7 +201,7 @@ export function ThemePalette() {
                       id="custom-color"
                       type="color"
                       value={cvTheme.primaryColor}
-                      onChange={(e) => handleThemeUpdate('primaryColor', e.target.value)}
+                      onChange={(e) => updateTheme("primaryColor", e.target.value)}
                       className="w-full h-8"
                     />
                   </div>
@@ -187,7 +215,7 @@ export function ThemePalette() {
             <input
               type="color"
               value={cvTheme.backgroundColor}
-              onChange={(e) => handleThemeUpdate('backgroundColor', e.target.value)}
+              onChange={(e) => updateTheme("backgroundColor", e.target.value)}
               className="w-full h-8"
             />
           </div>
@@ -197,7 +225,7 @@ export function ThemePalette() {
             <Label htmlFor="title-font">Police des titres</Label>
             <Select
               value={cvTheme.titleFont}
-              onValueChange={(value) => handleThemeUpdate('titleFont', value)}
+              onValueChange={handleUpdateTitleFont}
             >
               <SelectTrigger id="title-font">
                 <SelectValue placeholder="Choisir une police" />
@@ -216,7 +244,7 @@ export function ThemePalette() {
             <Label htmlFor="text-font">Police du texte principal</Label>
             <Select
               value={cvTheme.textFont}
-              onValueChange={(value) => handleThemeUpdate('textFont', value)}
+              onValueChange={handleUpdateTextFont}
             >
               <SelectTrigger id="text-font">
                 <SelectValue placeholder="Choisir une police" />
@@ -236,7 +264,7 @@ export function ThemePalette() {
             <Label htmlFor="photo-position">Position de la photo</Label>
             <Select
               value={cvTheme.photoPosition}
-              onValueChange={(value: "top" | "left" | "right") => handleThemeUpdate('photoPosition', value)}
+              onValueChange={handleUpdatePhotoPosition}
             >
               <SelectTrigger id="photo-position">
                 <SelectValue placeholder="Choisir une position" />
@@ -255,7 +283,7 @@ export function ThemePalette() {
             <Label htmlFor="photo-size">Taille de la photo</Label>
             <Select
               value={cvTheme.photoSize}
-              onValueChange={(value: "small" | "medium" | "large") => handleThemeUpdate('photoSize', value)}
+              onValueChange={handleUpdatePhotoSize}
             >
               <SelectTrigger id="photo-size">
                 <SelectValue placeholder="Choisir une taille" />
@@ -274,7 +302,7 @@ export function ThemePalette() {
             <Label htmlFor="title-style">Style des titres</Label>
             <Select
               value={cvTheme.titleStyle}
-              onValueChange={(value: "plain" | "underline" | "background" | "border") => handleThemeUpdate('titleStyle', value)}
+              onValueChange={handleUpdateTitleStyle}
             >
               <SelectTrigger id="title-style">
                 <SelectValue placeholder="Choisir un style" />
