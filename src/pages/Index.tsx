@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useCVContext } from "@/contexts/CVContext";
 import { CVEditor } from "@/components/editor/CVEditor";
@@ -25,29 +24,23 @@ const Index = () => {
   const [currentCVId, setCurrentCVId] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   
-  // Get the current CV ID from the query parameters or state
   useEffect(() => {
-    // Check if a CV ID was passed via location state
     const stateWithId = location.state as { cvId?: string } | null;
     if (stateWithId?.cvId) {
       setCurrentCVId(stateWithId.cvId);
-      // Load the CV with its theme
       loadSavedCV(stateWithId.cvId);
       console.log("CV ID from state:", stateWithId.cvId);
     } else {
-      // Extract from query params as a fallback
       const params = new URLSearchParams(location.search);
       const cvId = params.get('cvId');
       if (cvId) {
         setCurrentCVId(cvId);
-        // Load the CV with its theme
         loadSavedCV(cvId);
         console.log("CV ID from URL:", cvId);
       }
     }
   }, [location]);
 
-  // Function to load a saved CV with its theme
   const loadSavedCV = (cvId: string) => {
     try {
       const savedCVsJSON = localStorage.getItem('saved_cvs');
@@ -57,7 +50,6 @@ const Index = () => {
         
         if (savedCV && savedCV.theme) {
           console.log("Loading saved theme:", savedCV.theme);
-          // Set the theme from the saved CV
           setInitialTheme(savedCV.theme);
         }
       }
@@ -66,7 +58,6 @@ const Index = () => {
     }
   };
 
-  // Vérifier l'authentification
   useEffect(() => {
     const authToken = localStorage.getItem('auth_token');
     
@@ -80,13 +71,11 @@ const Index = () => {
     }
   }, [navigate, toast]);
 
-  // Log theme changes pour debugging
   useEffect(() => {
     console.log("Current theme in Index:", cvTheme);
   }, [cvTheme]);
 
   const handleSaveCV = () => {
-    // Vérifier que le CV a au moins un nom
     if (!cvData.personalInfo.fullName) {
       toast({
         title: "Informations incomplètes",
@@ -96,7 +85,6 @@ const Index = () => {
       return;
     }
 
-    // Récupérer les CV existants
     const savedCVsJSON = localStorage.getItem('saved_cvs');
     let savedCVs = [];
     
@@ -108,25 +96,21 @@ const Index = () => {
       }
     }
     
-    // Créer un titre pour le CV
     const cvTitle = cvData.personalInfo.jobTitle 
       ? `${cvData.personalInfo.fullName} - ${cvData.personalInfo.jobTitle}` 
       : `CV de ${cvData.personalInfo.fullName}`;
       
-    // Check if we're updating an existing CV or creating a new one
     if (currentCVId) {
-      // Find and update existing CV
       const cvIndex = savedCVs.findIndex((cv: any) => cv.id === currentCVId);
       
       if (cvIndex !== -1) {
-        // Update existing CV
         savedCVs[cvIndex] = {
           ...savedCVs[cvIndex],
           title: cvTitle,
           template: templateId || savedCVs[cvIndex].template || "classic",
           lastUpdated: new Date().toISOString(),
           data: cvData,
-          theme: cvTheme // Sauvegarder aussi le thème
+          theme: cvTheme
         };
         
         toast({
@@ -135,7 +119,6 @@ const Index = () => {
         });
         console.log("Updated CV:", savedCVs[cvIndex]);
       } else {
-        // CV ID not found, create new one with the same ID
         const newCV = {
           id: currentCVId,
           title: cvTitle,
@@ -144,6 +127,7 @@ const Index = () => {
           data: cvData,
           theme: cvTheme
         };
+        
         savedCVs.push(newCV);
         
         toast({
@@ -153,7 +137,6 @@ const Index = () => {
         console.log("Created new CV with existing ID:", newCV);
       }
     } else {
-      // Create a new CV
       const newCVId = uuidv4();
       const newCV = {
         id: newCVId,
@@ -165,7 +148,6 @@ const Index = () => {
       };
       
       savedCVs.push(newCV);
-      // Update the current CV ID to the new one
       setCurrentCVId(newCVId);
       
       toast({
@@ -175,14 +157,12 @@ const Index = () => {
       console.log("Created brand new CV:", newCV);
     }
     
-    // Sauvegarder dans le localStorage
     localStorage.setItem('saved_cvs', JSON.stringify(savedCVs));
   };
 
   const handleResetCV = () => {
     if (confirm("Êtes-vous sûr de vouloir réinitialiser votre CV ? Toutes les données saisies seront perdues.")) {
       resetCV();
-      // Reset the current CV ID when resetting the CV
       setCurrentCVId(null);
       toast({
         title: "CV réinitialisé",
@@ -215,7 +195,6 @@ const Index = () => {
       
       const imgData = canvas.toDataURL('image/jpeg', 1.0);
       
-      // A4 dimensions in mm (210 x 297)
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -261,7 +240,6 @@ const Index = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
-      {/* Header */}
       <header className="bg-white border-b sticky top-0 z-20">
         <div className="container mx-auto py-4 px-4 sm:px-6 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -299,9 +277,7 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="flex-1 container mx-auto flex flex-col md:flex-row gap-6 p-4 sm:p-6">
-        {/* Editor Panel */}
         <div 
           className={`w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
             isMobile && activeTab !== "editor" ? "hidden" : "block"
@@ -310,7 +286,6 @@ const Index = () => {
           <CVEditor />
         </div>
 
-        {/* Preview Panel */}
         <div 
           className={`w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
             isMobile && activeTab !== "preview" ? "hidden" : "block"
@@ -322,7 +297,6 @@ const Index = () => {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="bg-white border-t py-4 px-4 sm:px-6 sticky bottom-0 z-10">
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
@@ -345,7 +319,6 @@ const Index = () => {
         </div>
       </footer>
 
-      {/* Scroll to top button */}
       {scrolled && (
         <button 
           onClick={scrollToTop} 
@@ -356,7 +329,6 @@ const Index = () => {
         </button>
       )}
 
-      {/* Theme Customizer Palette */}
       <ThemePalette />
     </div>
   );
