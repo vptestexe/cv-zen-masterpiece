@@ -14,7 +14,7 @@ import jsPDF from "jspdf";
 import { v4 as uuidv4 } from 'uuid';
 
 const Index = () => {
-  const { resetCV, cvData } = useCVContext();
+  const { resetCV, cvData, cvTheme } = useCVContext();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -31,12 +31,14 @@ const Index = () => {
     const stateWithId = location.state as { cvId?: string } | null;
     if (stateWithId?.cvId) {
       setCurrentCVId(stateWithId.cvId);
+      console.log("CV ID from state:", stateWithId.cvId);
     } else {
       // Extract from query params as a fallback
       const params = new URLSearchParams(location.search);
       const cvId = params.get('cvId');
       if (cvId) {
         setCurrentCVId(cvId);
+        console.log("CV ID from URL:", cvId);
       }
     }
   }, [location]);
@@ -54,6 +56,11 @@ const Index = () => {
       navigate("/login");
     }
   }, [navigate, toast]);
+
+  // Log theme changes pour debugging
+  useEffect(() => {
+    console.log("Current theme in Index:", cvTheme);
+  }, [cvTheme]);
 
   const handleSaveCV = () => {
     // Vérifier que le CV a au moins un nom
@@ -95,46 +102,54 @@ const Index = () => {
           title: cvTitle,
           template: templateId || savedCVs[cvIndex].template || "classic",
           lastUpdated: new Date().toISOString(),
-          data: cvData
+          data: cvData,
+          theme: cvTheme // Sauvegarder aussi le thème
         };
         
         toast({
           title: "CV mis à jour",
           description: "Votre CV a été mis à jour avec succès.",
         });
+        console.log("Updated CV:", savedCVs[cvIndex]);
       } else {
         // CV ID not found, create new one with the same ID
-        savedCVs.push({
+        const newCV = {
           id: currentCVId,
           title: cvTitle,
           template: templateId || "classic",
           lastUpdated: new Date().toISOString(),
-          data: cvData
-        });
+          data: cvData,
+          theme: cvTheme
+        };
+        savedCVs.push(newCV);
         
         toast({
           title: "CV créé",
           description: "Un nouveau CV a été créé car celui en cours de modification n'existe plus.",
         });
+        console.log("Created new CV with existing ID:", newCV);
       }
     } else {
       // Create a new CV
+      const newCVId = uuidv4();
       const newCV = {
-        id: uuidv4(),
+        id: newCVId,
         title: cvTitle,
         template: templateId || "classic",
         lastUpdated: new Date().toISOString(),
-        data: cvData
+        data: cvData,
+        theme: cvTheme
       };
       
       savedCVs.push(newCV);
       // Update the current CV ID to the new one
-      setCurrentCVId(newCV.id);
+      setCurrentCVId(newCVId);
       
       toast({
         title: "CV sauvegardé",
         description: "Votre CV a été sauvegardé avec succès.",
       });
+      console.log("Created brand new CV:", newCV);
     }
     
     // Sauvegarder dans le localStorage
@@ -277,9 +292,10 @@ const Index = () => {
           className={`w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
             isMobile && activeTab !== "preview" ? "hidden" : "block"
           }`}
-          ref={previewRef}
         >
-          <CVPreview />
+          <div ref={previewRef}>
+            <CVPreview />
+          </div>
         </div>
       </main>
 

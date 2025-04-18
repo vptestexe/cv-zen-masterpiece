@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCVContext } from "@/contexts/CVContext";
 import { ChevronUp, Minus, Move, Palette } from "lucide-react";
 import { CVTheme } from "@/types/cv";
+import { useToast } from "@/hooks/use-toast";
 
 export function ThemePalette() {
   const { cvTheme, updateTheme } = useCVContext();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [position, setPosition] = useState({ x: 20, y: 80 });
   const [isDragging, setIsDragging] = useState(false);
@@ -107,31 +109,75 @@ export function ThemePalette() {
   const handleUpdateTitleFont = (value: string) => {
     if (value === "playfair" || value === "roboto") {
       updateTheme("titleFont", value);
+      toast({
+        title: "Style mis à jour",
+        description: `Police des titres changée en ${value === "playfair" ? "Playfair Display" : "Roboto"}.`,
+      });
+      console.log("Updated title font to:", value);
     }
   };
 
   const handleUpdateTextFont = (value: string) => {
     if (value === "playfair" || value === "roboto") {
       updateTheme("textFont", value);
+      toast({
+        title: "Style mis à jour",
+        description: `Police du texte changée en ${value === "playfair" ? "Playfair Display" : "Roboto"}.`,
+      });
+      console.log("Updated text font to:", value);
     }
   };
 
   const handleUpdatePhotoPosition = (value: string) => {
     if (value === "top" || value === "left" || value === "right") {
       updateTheme("photoPosition", value);
+      toast({
+        title: "Style mis à jour",
+        description: `Position de la photo changée.`,
+      });
+      console.log("Updated photo position to:", value);
     }
   };
 
   const handleUpdatePhotoSize = (value: string) => {
     if (value === "small" || value === "medium" || value === "large") {
       updateTheme("photoSize", value);
+      toast({
+        title: "Style mis à jour",
+        description: `Taille de la photo changée.`,
+      });
+      console.log("Updated photo size to:", value);
     }
   };
 
   const handleUpdateTitleStyle = (value: string) => {
     if (value === "plain" || value === "underline" || value === "background" || value === "border") {
       updateTheme("titleStyle", value);
+      toast({
+        title: "Style mis à jour",
+        description: `Style des titres changé.`,
+      });
+      console.log("Updated title style to:", value);
     }
+  };
+
+  const handleColorChange = (color: string) => {
+    updateTheme("primaryColor", color);
+    toast({
+      title: "Couleur mise à jour",
+      description: "La couleur principale a été changée.",
+    });
+    console.log("Updated primary color to:", color);
+  };
+
+  const handleBackgroundColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const color = e.target.value;
+    updateTheme("backgroundColor", color);
+    toast({
+      title: "Couleur mise à jour",
+      description: "La couleur d'arrière-plan a été changée.",
+    });
+    console.log("Updated background color to:", color);
   };
 
   return (
@@ -180,7 +226,7 @@ export function ThemePalette() {
                     backgroundColor: color,
                     boxShadow: cvTheme.primaryColor === color ? "0 0 0 2px white, 0 0 0 4px " + color : "none" 
                   }}
-                  onClick={() => updateTheme("primaryColor", color)}
+                  onClick={() => handleColorChange(color)}
                   aria-label={`Couleur ${color}`}
                 />
               ))}
@@ -201,7 +247,7 @@ export function ThemePalette() {
                       id="custom-color"
                       type="color"
                       value={cvTheme.primaryColor}
-                      onChange={(e) => updateTheme("primaryColor", e.target.value)}
+                      onChange={(e) => handleColorChange(e.target.value)}
                       className="w-full h-8"
                     />
                   </div>
@@ -215,7 +261,7 @@ export function ThemePalette() {
             <input
               type="color"
               value={cvTheme.backgroundColor}
-              onChange={(e) => updateTheme("backgroundColor", e.target.value)}
+              onChange={handleBackgroundColorChange}
               className="w-full h-8"
             />
           </div>

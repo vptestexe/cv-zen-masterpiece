@@ -12,20 +12,23 @@ import { ReferencesPreview } from "./ReferencesPreview";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function CVPreview() {
   const { cvData, cvTheme, updateTheme } = useCVContext();
   const { summary, workExperiences, educations, skills, languages, projects, interests, references } = cvData;
   const isMobile = useIsMobile();
   const location = useLocation();
+  // Utiliser un état local pour forcer les re-rendus
+  const [themeUpdateCounter, setThemeUpdateCounter] = useState(0);
 
-  // Extract template ID from the URL
+  // Effet pour appliquer les styles de template
   useEffect(() => {
     const path = location.pathname;
     const templateId = path.split('/').pop();
     
     if (templateId && templateId !== 'editor') {
+      console.log("Applying template:", templateId);
       // Apply template-specific styles
       switch (templateId) {
         case 'classic':
@@ -68,10 +71,17 @@ export function CVPreview() {
           // Default style
           break;
       }
+      setThemeUpdateCounter(prev => prev + 1);
     }
   }, [location.pathname, updateTheme]);
+  
+  // Effet pour forcer le rendu quand le thème change
+  useEffect(() => {
+    setThemeUpdateCounter(prev => prev + 1);
+    console.log("Theme updated:", cvTheme);
+  }, [cvTheme]);
 
-  // Apply theme
+  // Apply theme with dynamic updates
   const previewStyle = {
     backgroundColor: cvTheme.backgroundColor || "white",
     color: "rgb(63 63 70)",
@@ -88,7 +98,7 @@ export function CVPreview() {
   const hasInterests = interests.length > 0 && interests.some(int => int.name);
   const hasReferences = references.length > 0 && references.some(ref => ref.name);
 
-  // Ajouter une classe pour forcer le rendu quand le thème change
+  // Créer les classes de titre avec les styles dynamiques
   const titleClass = cn(
     "text-lg font-semibold mb-3",
     cvTheme.titleFont === "playfair" ? "font-playfair" : "font-sans",
@@ -110,7 +120,11 @@ export function CVPreview() {
     : { color: cvTheme.primaryColor };
 
   return (
-    <div className="cv-preview" style={previewStyle}>
+    <div 
+      className="cv-preview" 
+      style={previewStyle}
+      key={`preview-${themeUpdateCounter}`} // Forcer le rendu quand le thème change
+    >
       <PersonalInfoPreview titleClass={titleClass} titleStyle={titleStyle} />
 
       {hasSummary && (
