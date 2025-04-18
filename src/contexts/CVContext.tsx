@@ -31,10 +31,9 @@ interface CVContextProps {
   removeReference: (id: string) => void;
   updateTheme: (field: string, value: string) => void;
   resetCV: () => void;
-  setInitialTheme: (theme: CVTheme) => void; // Added the missing property
+  setInitialTheme: (theme: CVTheme) => void;
 }
 
-// Données de base vides pour un nouveau CV
 const defaultCVData: CVData = {
   personalInfo: {
     fullName: '',
@@ -57,20 +56,17 @@ const defaultCVData: CVData = {
   references: [],
 };
 
-// Thème par défaut
 const defaultCVTheme: CVTheme = {
   titleFont: 'playfair',
   textFont: 'roboto',
-  primaryColor: '#0170c4', // cvblue-600
+  primaryColor: '#0170c4',
   backgroundColor: '#ffffff',
   photoPosition: 'top',
   photoSize: 'medium',
   titleStyle: 'underline',
 };
 
-// Exemple de données pré-remplies pour les modèles de CV
 const getTemplateData = (templateId: string | undefined) => {
-  // CV classique (basé sur le développement web)
   if (templateId === 'classic') {
     return {
       data: {
@@ -177,7 +173,6 @@ const getTemplateData = (templateId: string | undefined) => {
     };
   }
   
-  // CV moderne (basé sur le marketing digital)
   else if (templateId === 'modern') {
     return {
       data: {
@@ -292,7 +287,6 @@ const getTemplateData = (templateId: string | undefined) => {
     };
   }
   
-  // Exemple créatif pour les métiers artistiques et créatifs
   else if (templateId === 'creative') {
     return {
       data: {
@@ -400,7 +394,6 @@ const getTemplateData = (templateId: string | undefined) => {
     };
   }
   
-  // CV professionnel (basé sur la finance)
   else if (templateId === 'professional') {
     return {
       data: {
@@ -515,7 +508,6 @@ const getTemplateData = (templateId: string | undefined) => {
     };
   }
   
-  // CV minimaliste
   else if (templateId === 'minimalist') {
     return {
       data: {
@@ -622,7 +614,6 @@ const getTemplateData = (templateId: string | undefined) => {
     };
   }
   
-  // CV élégant
   else if (templateId === 'elegant') {
     return {
       data: {
@@ -728,11 +719,12 @@ const getTemplateData = (templateId: string | undefined) => {
     };
   }
   
-  // Si le modèle n'est pas reconnu, retourner les valeurs par défaut vides
-  return {
-    data: defaultCVData,
-    theme: defaultCVTheme
-  };
+  else {
+    return {
+      data: defaultCVData,
+      theme: defaultCVTheme
+    };
+  }
 };
 
 export const CVContext = createContext<CVContextProps>({} as CVContextProps);
@@ -744,7 +736,6 @@ export const CVProvider = ({ children }: { children: ReactNode }) => {
   const [cvData, setCVData] = useState<CVData>(defaultCVData);
   const [cvTheme, setCVTheme] = useState<CVTheme>(defaultCVTheme);
 
-  // Initialiser avec des données de modèle si un templateId est fourni
   useEffect(() => {
     if (templateId) {
       const template = getTemplateData(templateId);
@@ -756,3 +747,284 @@ export const CVProvider = ({ children }: { children: ReactNode }) => {
   const updatePersonalInfo = (field: string, value: string) => {
     setCVData(prev => ({
       ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        [field]: value
+      }
+    }));
+  };
+
+  const updateSummary = (summary: string) => {
+    setCVData(prev => ({
+      ...prev,
+      summary
+    }));
+  };
+
+  const addWorkExperience = () => {
+    const newWorkExperience: WorkExperience = {
+      id: uuidv4(),
+      position: '',
+      company: '',
+      startDate: '',
+      endDate: '',
+      location: '',
+      description: ''
+    };
+
+    setCVData(prev => ({
+      ...prev,
+      workExperiences: [...prev.workExperiences, newWorkExperience]
+    }));
+  };
+
+  const updateWorkExperience = (id: string, field: string, value: string) => {
+    setCVData(prev => ({
+      ...prev,
+      workExperiences: prev.workExperiences.map(exp => 
+        exp.id === id ? { ...exp, [field]: value } : exp
+      )
+    }));
+  };
+
+  const removeWorkExperience = (id: string) => {
+    setCVData(prev => ({
+      ...prev,
+      workExperiences: prev.workExperiences.filter(exp => exp.id !== id)
+    }));
+  };
+
+  const addEducation = () => {
+    const newEducation: Education = {
+      id: uuidv4(),
+      degree: '',
+      institution: '',
+      startDate: '',
+      endDate: '',
+      location: '',
+      description: ''
+    };
+
+    setCVData(prev => ({
+      ...prev,
+      educations: [...prev.educations, newEducation]
+    }));
+  };
+
+  const updateEducation = (id: string, field: string, value: string) => {
+    setCVData(prev => ({
+      ...prev,
+      educations: prev.educations.map(edu => 
+        edu.id === id ? { ...edu, [field]: value } : edu
+      )
+    }));
+  };
+
+  const removeEducation = (id: string) => {
+    setCVData(prev => ({
+      ...prev,
+      educations: prev.educations.filter(edu => edu.id !== id)
+    }));
+  };
+
+  const addSkill = () => {
+    const newSkill: Skill = {
+      id: uuidv4(),
+      name: '',
+      level: 3
+    };
+
+    setCVData(prev => ({
+      ...prev,
+      skills: [...prev.skills, newSkill]
+    }));
+  };
+
+  const updateSkill = (id: string, field: string, value: string | number) => {
+    setCVData(prev => ({
+      ...prev,
+      skills: prev.skills.map(skill => 
+        skill.id === id ? { ...skill, [field]: value } : skill
+      )
+    }));
+  };
+
+  const removeSkill = (id: string) => {
+    setCVData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(skill => skill.id !== id)
+    }));
+  };
+
+  const addLanguage = () => {
+    const newLanguage: Language = {
+      id: uuidv4(),
+      name: '',
+      level: 'Courant'
+    };
+
+    setCVData(prev => ({
+      ...prev,
+      languages: [...prev.languages, newLanguage]
+    }));
+  };
+
+  const updateLanguage = (id: string, field: string, value: string) => {
+    setCVData(prev => ({
+      ...prev,
+      languages: prev.languages.map(lang => 
+        lang.id === id ? { ...lang, [field]: value } : lang
+      )
+    }));
+  };
+
+  const removeLanguage = (id: string) => {
+    setCVData(prev => ({
+      ...prev,
+      languages: prev.languages.filter(lang => lang.id !== id)
+    }));
+  };
+
+  const addProject = () => {
+    const newProject: Project = {
+      id: uuidv4(),
+      title: '',
+      description: '',
+      link: ''
+    };
+
+    setCVData(prev => ({
+      ...prev,
+      projects: [...prev.projects, newProject]
+    }));
+  };
+
+  const updateProject = (id: string, field: string, value: string) => {
+    setCVData(prev => ({
+      ...prev,
+      projects: prev.projects.map(project => 
+        project.id === id ? { ...project, [field]: value } : project
+      )
+    }));
+  };
+
+  const removeProject = (id: string) => {
+    setCVData(prev => ({
+      ...prev,
+      projects: prev.projects.filter(project => project.id !== id)
+    }));
+  };
+
+  const addInterest = () => {
+    const newInterest: Interest = {
+      id: uuidv4(),
+      name: ''
+    };
+
+    setCVData(prev => ({
+      ...prev,
+      interests: [...prev.interests, newInterest]
+    }));
+  };
+
+  const updateInterest = (id: string, field: string, value: string) => {
+    setCVData(prev => ({
+      ...prev,
+      interests: prev.interests.map(interest => 
+        interest.id === id ? { ...interest, [field]: value } : interest
+      )
+    }));
+  };
+
+  const removeInterest = (id: string) => {
+    setCVData(prev => ({
+      ...prev,
+      interests: prev.interests.filter(interest => interest.id !== id)
+    }));
+  };
+
+  const addReference = () => {
+    const newReference: Reference = {
+      id: uuidv4(),
+      name: '',
+      position: '',
+      company: '',
+      email: '',
+      phone: ''
+    };
+
+    setCVData(prev => ({
+      ...prev,
+      references: [...prev.references, newReference]
+    }));
+  };
+
+  const updateReference = (id: string, field: string, value: string) => {
+    setCVData(prev => ({
+      ...prev,
+      references: prev.references.map(reference => 
+        reference.id === id ? { ...reference, [field]: value } : reference
+      )
+    }));
+  };
+
+  const removeReference = (id: string) => {
+    setCVData(prev => ({
+      ...prev,
+      references: prev.references.filter(reference => reference.id !== id)
+    }));
+  };
+
+  const updateTheme = (field: string, value: string) => {
+    setCVTheme(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const resetCV = () => {
+    setCVData(defaultCVData);
+    setCVTheme(defaultCVTheme);
+  };
+
+  const setInitialTheme = (theme: CVTheme) => {
+    setCVTheme(theme);
+  };
+
+  return (
+    <CVContext.Provider
+      value={{
+        cvData,
+        cvTheme,
+        updatePersonalInfo,
+        updateSummary,
+        addWorkExperience,
+        updateWorkExperience,
+        removeWorkExperience,
+        addEducation,
+        updateEducation,
+        removeEducation,
+        addSkill,
+        updateSkill,
+        removeSkill,
+        addLanguage,
+        updateLanguage,
+        removeLanguage,
+        addProject,
+        updateProject,
+        removeProject,
+        addInterest,
+        updateInterest,
+        removeInterest,
+        addReference,
+        updateReference,
+        removeReference,
+        updateTheme,
+        resetCV,
+        setInitialTheme
+      }}
+    >
+      {children}
+    </CVContext.Provider>
+  );
+};
