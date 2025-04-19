@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useCVContext } from "@/contexts/CVContext";
 import { CVEditor } from "@/components/editor/CVEditor";
@@ -62,14 +63,16 @@ const Index = () => {
     const authToken = localStorage.getItem('auth_token');
     
     if (!authToken) {
-      toast({
-        title: "Connexion requise",
-        description: "Veuillez vous connecter pour créer ou modifier un CV",
-        variant: "destructive"
-      });
+      if (!isMobile) {
+        toast({
+          title: "Connexion requise",
+          description: "Veuillez vous connecter pour créer ou modifier un CV",
+          variant: "destructive"
+        });
+      }
       navigate("/login");
     }
-  }, [navigate, toast]);
+  }, [navigate, toast, isMobile]);
 
   useEffect(() => {
     console.log("Current theme in Index:", cvTheme);
@@ -77,11 +80,13 @@ const Index = () => {
 
   const handleSaveCV = () => {
     if (!cvData.personalInfo.fullName) {
-      toast({
-        title: "Informations incomplètes",
-        description: "Veuillez au moins renseigner votre nom complet",
-        variant: "destructive"
-      });
+      if (!isMobile) {
+        toast({
+          title: "Informations incomplètes",
+          description: "Veuillez au moins renseigner votre nom complet",
+          variant: "destructive"
+        });
+      }
       return;
     }
 
@@ -113,10 +118,12 @@ const Index = () => {
           theme: cvTheme
         };
         
-        toast({
-          title: "CV mis à jour",
-          description: "Votre CV a été mis à jour avec succès.",
-        });
+        if (!isMobile) {
+          toast({
+            title: "CV mis à jour",
+            description: "Votre CV a été mis à jour avec succès.",
+          });
+        }
         console.log("Updated CV:", savedCVs[cvIndex]);
       } else {
         const newCV = {
@@ -130,10 +137,12 @@ const Index = () => {
         
         savedCVs.push(newCV);
         
-        toast({
-          title: "CV créé",
-          description: "Un nouveau CV a été créé car celui en cours de modification n'existe plus.",
-        });
+        if (!isMobile) {
+          toast({
+            title: "CV créé",
+            description: "Un nouveau CV a été créé car celui en cours de modification n'existe plus.",
+          });
+        }
         console.log("Created new CV with existing ID:", newCV);
       }
     } else {
@@ -150,10 +159,12 @@ const Index = () => {
       savedCVs.push(newCV);
       setCurrentCVId(newCVId);
       
-      toast({
-        title: "CV sauvegardé",
-        description: "Votre CV a été sauvegardé avec succès.",
-      });
+      if (!isMobile) {
+        toast({
+          title: "CV sauvegardé",
+          description: "Votre CV a été sauvegardé avec succès.",
+        });
+      }
       console.log("Created brand new CV:", newCV);
     }
     
@@ -164,10 +175,13 @@ const Index = () => {
     if (confirm("Êtes-vous sûr de vouloir réinitialiser votre CV ? Toutes les données saisies seront perdues.")) {
       resetCV();
       setCurrentCVId(null);
-      toast({
-        title: "CV réinitialisé",
-        description: "Votre CV a été réinitialisé avec succès."
-      });
+      
+      if (!isMobile) {
+        toast({
+          title: "CV réinitialisé",
+          description: "Votre CV a été réinitialisé avec succès."
+        });
+      }
     }
   };
 
@@ -178,10 +192,12 @@ const Index = () => {
   const handleDownloadCV = async () => {
     if (!previewRef.current) return;
     
-    toast({
-      title: "Préparation du téléchargement",
-      description: "Veuillez patienter pendant la création du PDF..."
-    });
+    if (!isMobile) {
+      toast({
+        title: "Préparation du téléchargement",
+        description: "Veuillez patienter pendant la création du PDF..."
+      });
+    }
     
     try {
       const previewElement = previewRef.current;
@@ -207,17 +223,22 @@ const Index = () => {
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
       pdf.save('mon-cv.pdf');
       
-      toast({
-        title: "CV téléchargé",
-        description: "Votre CV a été téléchargé avec succès au format PDF."
-      });
+      if (!isMobile) {
+        toast({
+          title: "CV téléchargé",
+          description: "Votre CV a été téléchargé avec succès au format PDF."
+        });
+      }
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
-      toast({
-        title: "Erreur de téléchargement",
-        description: "Une erreur est survenue lors du téléchargement de votre CV.",
-        variant: "destructive"
-      });
+      
+      if (!isMobile) {
+        toast({
+          title: "Erreur de téléchargement",
+          description: "Une erreur est survenue lors du téléchargement de votre CV.",
+          variant: "destructive"
+        });
+      }
     }
   };
 

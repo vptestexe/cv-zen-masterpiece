@@ -8,6 +8,7 @@ import { Edit, Download, Trash2, Plus, LogOut, FileText } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -32,58 +33,33 @@ const saveCVs = (cvs) => {
   localStorage.setItem('saved_cvs', JSON.stringify(cvs));
 };
 
-// Données initiales pré-remplies avec des exemples de CV
-const getInitialCVs = () => {
-  const savedCVs = getSavedCVs();
-  if (savedCVs && savedCVs.length > 0) {
-    return savedCVs;
-  }
-  
-  // Si aucun CV n'est enregistré, retourner les CV de démo
-  const demoCVs = [
-    {
-      id: "cv1",
-      title: "CV Développeur Web",
-      template: "classic",
-      lastUpdated: new Date("2025-03-15").toISOString(),
-    },
-    {
-      id: "cv2",
-      title: "CV Marketing Digital",
-      template: "modern",
-      lastUpdated: new Date("2025-04-01").toISOString(),
-    }
-  ];
-  
-  // Enregistrer les CV de démo dans le localStorage
-  saveCVs(demoCVs);
-  
-  return demoCVs;
-};
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userCVs, setUserCVs] = useState([]);
   const [userName, setUserName] = useState("");
   const { isAuthenticated, user, logout } = useAuth();
+  const isMobile = useIsMobile();
   
   // Vérification de l'authentification et chargement des CV
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
-      toast({
-        title: "Accès refusé",
-        description: "Veuillez vous connecter pour accéder à votre tableau de bord",
-        variant: "destructive"
-      });
+      
+      if (!isMobile) {
+        toast({
+          title: "Accès refusé",
+          description: "Veuillez vous connecter pour accéder à votre tableau de bord",
+          variant: "destructive"
+        });
+      }
     } else {
       setUserName(user?.name || "Utilisateur");
       
       // Charger les CV enregistrés
-      setUserCVs(getInitialCVs());
+      setUserCVs(getSavedCVs());
     }
-  }, [isAuthenticated, navigate, toast, user]);
+  }, [isAuthenticated, navigate, toast, user, isMobile]);
   
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -99,26 +75,33 @@ const Dashboard = () => {
     const cv = userCVs.find(cv => cv.id === cvId);
     if (cv) {
       // Naviguer vers l'éditeur avec le template spécifié
-      navigate(`/editor/${cv.template}`);
-      toast({
-        title: "Modification du CV",
-        description: "Vous pouvez maintenant modifier votre CV"
-      });
+      navigate(`/editor/${cv.template}`, { state: { cvId } });
+      
+      if (!isMobile) {
+        toast({
+          title: "Modification du CV",
+          description: "Vous pouvez maintenant modifier votre CV"
+        });
+      }
     }
   };
   
   const handleDownload = (cvId) => {
-    toast({
-      title: "Téléchargement du CV",
-      description: "Votre CV est en cours de téléchargement"
-    });
+    if (!isMobile) {
+      toast({
+        title: "Téléchargement du CV",
+        description: "Votre CV est en cours de téléchargement"
+      });
+    }
     
     // Simuler un délai de téléchargement
     setTimeout(() => {
-      toast({
-        title: "CV téléchargé",
-        description: "Votre CV a été téléchargé avec succès"
-      });
+      if (!isMobile) {
+        toast({
+          title: "CV téléchargé",
+          description: "Votre CV a été téléchargé avec succès"
+        });
+      }
     }, 2000);
   };
   
@@ -130,19 +113,24 @@ const Dashboard = () => {
       // Enregistrer la liste mise à jour dans le localStorage
       saveCVs(updatedCVs);
       
-      toast({
-        title: "CV supprimé",
-        description: "Votre CV a été supprimé avec succès"
-      });
+      if (!isMobile) {
+        toast({
+          title: "CV supprimé",
+          description: "Votre CV a été supprimé avec succès"
+        });
+      }
     }
   };
   
   const handleCreateNew = () => {
     navigate("/");
-    toast({
-      title: "Création d'un nouveau CV",
-      description: "Choisissez un modèle pour commencer"
-    });
+    
+    if (!isMobile) {
+      toast({
+        title: "Création d'un nouveau CV",
+        description: "Choisissez un modèle pour commencer"
+      });
+    }
   };
   
   const handleLogout = () => {
@@ -151,10 +139,13 @@ const Dashboard = () => {
     
     // Rediriger vers la page d'accueil
     navigate("/");
-    toast({
-      title: "Déconnexion réussie",
-      description: "À bientôt !"
-    });
+    
+    if (!isMobile) {
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt !"
+      });
+    }
   };
   
   return (

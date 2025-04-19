@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCVContext } from "@/contexts/CVContext";
 import { ChevronUp, Minus, Move, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function ThemePalette() {
   const { cvTheme, updateTheme } = useCVContext();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(true);
   const [position, setPosition] = useState({ x: 20, y: 80 });
   const [isDragging, setIsDragging] = useState(false);
@@ -34,6 +36,11 @@ export function ThemePalette() {
   const fontOptions = [
     { value: "roboto", label: "Roboto (Sans Serif)" },
     { value: "playfair", label: "Playfair (Serif)" },
+    { value: "merriweather", label: "Merriweather (Serif)" },
+    { value: "montserrat", label: "Montserrat (Sans Serif)" },
+    { value: "lato", label: "Lato (Sans Serif)" },
+    { value: "opensans", label: "Open Sans (Sans Serif)" },
+    { value: "source", label: "Source Sans (Sans Serif)" },
   ];
 
   const photoPositionOptions = [
@@ -55,9 +62,20 @@ export function ThemePalette() {
     { value: "border", label: "Bordure" },
   ];
 
+  // Fixed position for mobile devices
+  useEffect(() => {
+    if (isMobile) {
+      setPosition({ x: 10, y: window.innerHeight - 350 });
+    }
+  }, [isMobile]);
+
   // Handle dragging
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    if (e.target instanceof HTMLElement && e.target.classList.contains('drag-handle')) {
+    if (isMobile) return; // Disable dragging on mobile
+    
+    if (e.target instanceof HTMLElement && 
+        (e.target.classList.contains('drag-handle') || 
+         e.target.closest('.drag-handle'))) {
       setIsDragging(true);
       
       const rect = paletteRef.current?.getBoundingClientRect();
@@ -67,6 +85,9 @@ export function ThemePalette() {
           y: e.clientY - rect.top,
         });
       }
+      
+      // Prevent text selection during drag
+      e.preventDefault();
     }
   };
 
@@ -90,37 +111,86 @@ export function ThemePalette() {
     setIsDragging(false);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isMobile) return; // Disable dragging on mobile
+    
+    if (e.target instanceof HTMLElement && 
+        (e.target.classList.contains('drag-handle') || 
+         e.target.closest('.drag-handle'))) {
+      setIsDragging(true);
+      
+      const touch = e.touches[0];
+      const rect = paletteRef.current?.getBoundingClientRect();
+      if (rect) {
+        setDragOffset({
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top,
+        });
+      }
+    }
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (isDragging) {
+      const touch = e.touches[0];
+      const newX = touch.clientX - dragOffset.x;
+      const newY = touch.clientY - dragOffset.y;
+      
+      // Check boundary constraints
+      const maxX = window.innerWidth - (paletteRef.current?.offsetWidth || 0);
+      const maxY = window.innerHeight - (paletteRef.current?.offsetHeight || 0);
+      
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      });
+      
+      // Prevent scrolling while dragging
+      e.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
     }
     
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isDragging]);
 
   // Ensure type safety when updating theme properties
   const handleUpdateTitleFont = (value: string) => {
-    if (value === "playfair" || value === "roboto") {
-      updateTheme("titleFont", value);
-      console.log("Updated title font to:", value);
+    updateTheme("titleFont", value);
+    console.log("Updated title font to:", value);
+    
+    if (!isMobile) {
       toast({
         title: "Style mis à jour",
-        description: `Police des titres changée en ${value === "playfair" ? "Playfair Display" : "Roboto"}.`,
+        description: `Police des titres changée.`,
       });
     }
   };
 
   const handleUpdateTextFont = (value: string) => {
-    if (value === "playfair" || value === "roboto") {
-      updateTheme("textFont", value);
-      console.log("Updated text font to:", value);
+    updateTheme("textFont", value);
+    console.log("Updated text font to:", value);
+    
+    if (!isMobile) {
       toast({
         title: "Style mis à jour",
-        description: `Police du texte changée en ${value === "playfair" ? "Playfair Display" : "Roboto"}.`,
+        description: `Police du texte changée.`,
       });
     }
   };
@@ -129,10 +199,13 @@ export function ThemePalette() {
     if (value === "top" || value === "left" || value === "right") {
       updateTheme("photoPosition", value);
       console.log("Updated photo position to:", value);
-      toast({
-        title: "Style mis à jour",
-        description: `Position de la photo changée.`,
-      });
+      
+      if (!isMobile) {
+        toast({
+          title: "Style mis à jour",
+          description: `Position de la photo changée.`,
+        });
+      }
     }
   };
 
@@ -140,10 +213,13 @@ export function ThemePalette() {
     if (value === "small" || value === "medium" || value === "large") {
       updateTheme("photoSize", value);
       console.log("Updated photo size to:", value);
-      toast({
-        title: "Style mis à jour",
-        description: `Taille de la photo changée.`,
-      });
+      
+      if (!isMobile) {
+        toast({
+          title: "Style mis à jour",
+          description: `Taille de la photo changée.`,
+        });
+      }
     }
   };
 
@@ -151,30 +227,39 @@ export function ThemePalette() {
     if (value === "plain" || value === "underline" || value === "background" || value === "border") {
       updateTheme("titleStyle", value);
       console.log("Updated title style to:", value);
-      toast({
-        title: "Style mis à jour",
-        description: `Style des titres changé.`,
-      });
+      
+      if (!isMobile) {
+        toast({
+          title: "Style mis à jour",
+          description: `Style des titres changé.`,
+        });
+      }
     }
   };
 
   const handleColorChange = (color: string) => {
     updateTheme("primaryColor", color);
     console.log("Updated primary color to:", color);
-    toast({
-      title: "Couleur mise à jour",
-      description: "La couleur principale a été changée.",
-    });
+    
+    if (!isMobile) {
+      toast({
+        title: "Couleur mise à jour",
+        description: "La couleur principale a été changée.",
+      });
+    }
   };
 
   const handleBackgroundColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const color = e.target.value;
     updateTheme("backgroundColor", color);
     console.log("Updated background color to:", color);
-    toast({
-      title: "Couleur mise à jour",
-      description: "La couleur d'arrière-plan a été changée.",
-    });
+    
+    if (!isMobile) {
+      toast({
+        title: "Couleur mise à jour",
+        description: "La couleur d'arrière-plan a été changée.",
+      });
+    }
   };
 
   return (
@@ -186,11 +271,14 @@ export function ThemePalette() {
         top: `${position.y}px`,
         width: '280px',
         height: isOpen ? 'auto' : '40px',
+        maxHeight: isMobile ? '350px' : 'none',
+        touchAction: isDragging ? 'none' : 'auto',
       }}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {/* Header / Drag Handle */}
-      <div className="bg-primary/90 text-white p-2 flex items-center justify-between cursor-move drag-handle">
+      <div className="bg-primary/90 text-white p-2 flex items-center justify-between cursor-move drag-handle select-none">
         <div className="flex items-center gap-2">
           <Palette className="h-4 w-4" />
           <span className="text-sm font-medium">Personnalisation</span>
@@ -210,7 +298,7 @@ export function ThemePalette() {
 
       {/* Content */}
       {isOpen && (
-        <div className="p-4 space-y-4 max-h-[calc(100vh-150px)] overflow-y-auto">
+        <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: isMobile ? '290px' : 'calc(100vh - 150px)' }}>
           {/* Colors */}
           <div className="space-y-2">
             <Label>Couleur principale</Label>
@@ -218,7 +306,7 @@ export function ThemePalette() {
               {presetColors.map((color) => (
                 <button
                   key={color}
-                  className="h-6 w-6 rounded-full border overflow-hidden focus:outline-none focus:ring-2 ring-offset-2"
+                  className="h-6 w-6 rounded-full border overflow-hidden focus:outline-none focus:ring-2 ring-offset-2 touch-target"
                   style={{ 
                     backgroundColor: color,
                     boxShadow: cvTheme.primaryColor === color ? "0 0 0 2px white, 0 0 0 4px " + color : "none" 
@@ -231,7 +319,7 @@ export function ThemePalette() {
               <Popover>
                 <PopoverTrigger asChild>
                   <button
-                    className="h-6 w-6 rounded-full border overflow-hidden flex items-center justify-center bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary ring-offset-2"
+                    className="h-6 w-6 rounded-full border overflow-hidden flex items-center justify-center bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary ring-offset-2 touch-target"
                     aria-label="Couleur personnalisée"
                   >
                     +
@@ -245,7 +333,7 @@ export function ThemePalette() {
                       type="color"
                       value={cvTheme.primaryColor}
                       onChange={(e) => handleColorChange(e.target.value)}
-                      className="w-full h-8"
+                      className="w-full h-8 touch-target"
                     />
                   </div>
                 </PopoverContent>
@@ -259,7 +347,7 @@ export function ThemePalette() {
               type="color"
               value={cvTheme.backgroundColor}
               onChange={handleBackgroundColorChange}
-              className="w-full h-8"
+              className="w-full h-8 touch-target"
             />
           </div>
 
@@ -270,12 +358,12 @@ export function ThemePalette() {
               value={cvTheme.titleFont}
               onValueChange={handleUpdateTitleFont}
             >
-              <SelectTrigger id="title-font">
+              <SelectTrigger id="title-font" className="touch-target">
                 <SelectValue placeholder="Choisir une police" />
               </SelectTrigger>
               <SelectContent>
                 {fontOptions.map((font) => (
-                  <SelectItem key={font.value} value={font.value}>
+                  <SelectItem key={font.value} value={font.value} className="touch-target">
                     {font.label}
                   </SelectItem>
                 ))}
@@ -289,12 +377,12 @@ export function ThemePalette() {
               value={cvTheme.textFont}
               onValueChange={handleUpdateTextFont}
             >
-              <SelectTrigger id="text-font">
+              <SelectTrigger id="text-font" className="touch-target">
                 <SelectValue placeholder="Choisir une police" />
               </SelectTrigger>
               <SelectContent>
                 {fontOptions.map((font) => (
-                  <SelectItem key={font.value} value={font.value}>
+                  <SelectItem key={font.value} value={font.value} className="touch-target">
                     {font.label}
                   </SelectItem>
                 ))}
@@ -309,12 +397,12 @@ export function ThemePalette() {
               value={cvTheme.photoPosition}
               onValueChange={handleUpdatePhotoPosition}
             >
-              <SelectTrigger id="photo-position">
+              <SelectTrigger id="photo-position" className="touch-target">
                 <SelectValue placeholder="Choisir une position" />
               </SelectTrigger>
               <SelectContent>
                 {photoPositionOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="touch-target">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -328,12 +416,12 @@ export function ThemePalette() {
               value={cvTheme.photoSize}
               onValueChange={handleUpdatePhotoSize}
             >
-              <SelectTrigger id="photo-size">
+              <SelectTrigger id="photo-size" className="touch-target">
                 <SelectValue placeholder="Choisir une taille" />
               </SelectTrigger>
               <SelectContent>
                 {photoSizeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="touch-target">
                     {option.label}
                   </SelectItem>
                 ))}
@@ -347,12 +435,12 @@ export function ThemePalette() {
               value={cvTheme.titleStyle}
               onValueChange={handleUpdateTitleStyle}
             >
-              <SelectTrigger id="title-style">
+              <SelectTrigger id="title-style" className="touch-target">
                 <SelectValue placeholder="Choisir un style" />
               </SelectTrigger>
               <SelectContent>
                 {titleStyleOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="touch-target">
                     {option.label}
                   </SelectItem>
                 ))}
