@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +13,6 @@ const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
-// Fonction pour récupérer les CV enregistrés
 const getSavedCVs = () => {
   const savedCVsJSON = localStorage.getItem('saved_cvs');
   if (savedCVsJSON) {
@@ -28,7 +26,6 @@ const getSavedCVs = () => {
   return [];
 };
 
-// Fonction pour sauvegarder les CV dans le localStorage
 const saveCVs = (cvs) => {
   localStorage.setItem('saved_cvs', JSON.stringify(cvs));
 };
@@ -41,7 +38,6 @@ const Dashboard = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const isMobile = useIsMobile();
   
-  // Vérification de l'authentification et chargement des CV
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -56,7 +52,6 @@ const Dashboard = () => {
     } else {
       setUserName(user?.name || "Utilisateur");
       
-      // Charger les CV enregistrés
       setUserCVs(getSavedCVs());
     }
   }, [isAuthenticated, navigate, toast, user, isMobile]);
@@ -71,10 +66,8 @@ const Dashboard = () => {
   };
   
   const handleEdit = (cvId) => {
-    // Trouver le CV correspondant pour obtenir son template
     const cv = userCVs.find(cv => cv.id === cvId);
     if (cv) {
-      // Naviguer vers l'éditeur avec le template spécifié
       navigate(`/editor/${cv.template}`, { state: { cvId } });
       
       if (!isMobile) {
@@ -87,22 +80,11 @@ const Dashboard = () => {
   };
   
   const handleDownload = (cvId) => {
-    if (!isMobile) {
-      toast({
-        title: "Téléchargement du CV",
-        description: "Votre CV est en cours de téléchargement"
-      });
+    if (isMobile) {
+      window.location.href = "wave://pay?recipient=cvzenmasterpiece&amount=1000";
+    } else {
+      window.open("https://wave.com/qr/cvzenmasterpiece?amount=1000", "_blank");
     }
-    
-    // Simuler un délai de téléchargement
-    setTimeout(() => {
-      if (!isMobile) {
-        toast({
-          title: "CV téléchargé",
-          description: "Votre CV a été téléchargé avec succès"
-        });
-      }
-    }, 2000);
   };
   
   const handleDelete = (cvId) => {
@@ -110,7 +92,6 @@ const Dashboard = () => {
       const updatedCVs = userCVs.filter(cv => cv.id !== cvId);
       setUserCVs(updatedCVs);
       
-      // Enregistrer la liste mise à jour dans le localStorage
       saveCVs(updatedCVs);
       
       if (!isMobile) {
@@ -123,7 +104,7 @@ const Dashboard = () => {
   };
   
   const handleCreateNew = () => {
-    navigate("/");
+    navigate("/editor/classic");
     
     if (!isMobile) {
       toast({
@@ -134,10 +115,8 @@ const Dashboard = () => {
   };
   
   const handleLogout = () => {
-    // Utiliser la fonction de déconnexion de useAuth
     logout();
     
-    // Rediriger vers la page d'accueil
     navigate("/");
     
     if (!isMobile) {
@@ -150,7 +129,6 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b sticky top-0 z-20">
         <div className="container mx-auto py-4 px-4 sm:px-6 flex justify-between items-center">
           <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">
@@ -168,7 +146,6 @@ const Dashboard = () => {
         </div>
       </header>
       
-      {/* Main content */}
       <main className="flex-1 container mx-auto py-8 px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
@@ -243,7 +220,6 @@ const Dashboard = () => {
         )}
       </main>
       
-      {/* Footer */}
       <footer className="bg-muted py-6 mt-auto">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
