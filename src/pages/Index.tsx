@@ -1,11 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { useCVContext } from "@/contexts/CVContext";
 import { CVEditor } from "@/components/editor/CVEditor";
 import { CVPreview } from "@/components/preview/CVPreview";
 import { ThemePalette } from "@/components/ThemePalette";
 import { useToast } from "@/hooks/use-toast";
-import { Save, RefreshCw, ChevronUp, ArrowLeft, Download } from "lucide-react";
+import { Save, RefreshCw, ChevronUp, ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -324,10 +323,6 @@ const Index = () => {
             © {new Date().getFullYear()} CV Zen Masterpiece - Un créateur de CV simple et élégant
           </p>
           <div className="flex gap-2 sm:gap-3">
-            <Button onClick={handleDownloadCV} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
-              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-              Télécharger
-            </Button>
             <Button onClick={handleSaveCV} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
               <Save className="h-3 w-3 sm:h-4 sm:w-4" />
               Sauvegarder
