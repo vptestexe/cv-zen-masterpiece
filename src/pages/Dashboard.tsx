@@ -8,6 +8,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getDownloadCount, updateDownloadCount, hasDownloadsRemaining } from "@/utils/downloadManager";
 
 const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -41,7 +42,8 @@ const Dashboard = () => {
   const isMobile = useIsMobile();
   const [paymentVerified, setPaymentVerified] = useState({});
   const [processingPayment, setProcessingPayment] = useState(false);
-  
+  const [downloadCounts, setDownloadCounts] = useState<{[key: string]: { count: number, lastPaymentDate: string }}>({});
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -57,8 +59,15 @@ const Dashboard = () => {
       setUserName(user?.name || "Utilisateur");
       
       setUserCVs(getSavedCVs());
+      
+      // Load download counts for all CVs
+      const counts = userCVs.reduce((acc, cv) => {
+        acc[cv.id] = getDownloadCount(cv.id);
+        return acc;
+      }, {} as {[key: string]: { count: number, lastPaymentDate: string }});
+      setDownloadCounts(counts);
     }
-  }, [isAuthenticated, navigate, toast, user, isMobile]);
+  }, [isAuthenticated, navigate, toast, user, isMobile, userCVs]);
   
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -84,56 +93,66 @@ const Dashboard = () => {
   };
   
   const handleDownload = async (cvId) => {
-    if (paymentVerified[cvId]) {
-      try {
-        const cv = userCVs.find(cv => cv.id === cvId);
-        if (!cv) {
-          toast({
-            title: "Erreur",
-            description: "CV introuvable",
-            variant: "destructive"
-          });
-          return;
-        }
-        
+    if (!hasDownloadsRemaining(cvId) && !paymentVerified[cvId]) {
+      setProcessingPayment(true);
+      localStorage.setItem('cv_being_paid', cvId);
+      window.location.href = "https://pay.djamo.com/a8zsl";
+      return;
+    }
+
+    try {
+      const cv = userCVs.find(cv => cv.id === cvId);
+      if (!cv) {
+        toast({
+          title: "Erreur",
+          description: "CV introuvable",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (hasDownloadsRemaining(cvId)) {
         if (!isMobile) {
           toast({
             title: "Préparation du téléchargement",
             description: "Génération du PDF en cours..."
           });
         }
-        
+
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
           format: 'a4'
         });
-        
+
         pdf.setFontSize(16);
         pdf.text(cv.title, 20, 20);
         pdf.setFontSize(12);
         pdf.text(`Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}`, 20, 30);
-        
+
         pdf.save(`cv-${cv.id}.pdf`);
-        
+
+        // Update download count and UI
+        const updatedCount = updateDownloadCount(cvId);
+        setDownloadCounts(prev => ({
+          ...prev,
+          [cvId]: updatedCount
+        }));
+
         if (!isMobile) {
           toast({
             title: "Téléchargement réussi",
-            description: "Votre CV a été téléchargé avec succès"
+            description: `Il vous reste ${updatedCount.count} téléchargements`
           });
         }
-      } catch (error) {
-        console.error("Erreur lors du téléchargement:", error);
-        toast({
-          title: "Erreur de téléchargement",
-          description: "Impossible de générer le PDF",
-          variant: "destructive"
-        });
       }
-    } else {
-      setProcessingPayment(true);
-      localStorage.setItem('cv_being_paid', cvId);
-      window.location.href = "https://pay.djamo.com/a8zsl";
+    } catch (error) {
+      console.error("Erreur lors du téléchargement:", error);
+      toast({
+        title: "Erreur de téléchargement",
+        description: "Impossible de générer le PDF",
+        variant: "destructive"
+      });
     }
   };
   
@@ -154,16 +173,18 @@ const Dashboard = () => {
               ...prev,
               [cvBeingPaid]: true
             }));
+            
+            // Reset download count to 5 when payment is verified
+            const updatedCount = updateDownloadCount(cvBeingPaid, true);
+            setDownloadCounts(prev => ({
+              ...prev,
+              [cvBeingPaid]: updatedCount
+            }));
+            
             localStorage.removeItem('cv_being_paid');
             toast({
               title: "Paiement confirmé",
-              description: `Paiement de ${PAYMENT_AMOUNT} CFA reçu. Vous pouvez maintenant télécharger votre CV.`,
-            });
-          } else if (paymentSuccessful && paymentAmount !== PAYMENT_AMOUNT) {
-            toast({
-              title: "Montant incorrect",
-              description: `Le montant payé (${paymentAmount} CFA) ne correspond pas au montant requis (${PAYMENT_AMOUNT} CFA).`,
-              variant: "destructive"
+              description: "Vous disposez maintenant de 5 téléchargements pour ce CV.",
             });
           } else {
             toast({
@@ -294,6 +315,11 @@ const Dashboard = () => {
                   <CardTitle>{cv.title}</CardTitle>
                   <CardDescription>
                     Dernière modification: {formatDate(cv.lastUpdated)}
+                    {downloadCounts[cv.id] && downloadCounts[cv.id].count > 0 && (
+                      <div className="mt-2 text-sm text-green-600">
+                        {downloadCounts[cv.id].count} téléchargements restants
+                      </div>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -319,7 +345,9 @@ const Dashboard = () => {
                     disabled={processingPayment}
                   >
                     <Download className="h-4 w-4" />
-                    {paymentVerified[cv.id] ? "Télécharger" : `Payer ${PAYMENT_AMOUNT} CFA`}
+                    {downloadCounts[cv.id]?.count > 0 
+                      ? `Télécharger (${downloadCounts[cv.id].count})` 
+                      : `Payer ${PAYMENT_AMOUNT} CFA`}
                   </Button>
                   <Button 
                     variant="outline" 
