@@ -132,9 +132,7 @@ const Dashboard = () => {
       }
     } else {
       setProcessingPayment(true);
-      
       localStorage.setItem('cv_being_paid', cvId);
-      
       window.location.href = "https://pay.djamo.com/a8zsl";
     }
   };
