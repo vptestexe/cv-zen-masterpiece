@@ -30,6 +30,8 @@ const saveCVs = (cvs) => {
   localStorage.setItem('saved_cvs', JSON.stringify(cvs));
 };
 
+const PAYMENT_AMOUNT = 100;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -37,6 +39,8 @@ const Dashboard = () => {
   const [userName, setUserName] = useState("");
   const { isAuthenticated, user, logout } = useAuth();
   const isMobile = useIsMobile();
+  const [paymentVerified, setPaymentVerified] = useState({});
+  const [processingPayment, setProcessingPayment] = useState(false);
   
   useEffect(() => {
     if (!isAuthenticated) {
@@ -79,37 +83,127 @@ const Dashboard = () => {
     }
   };
   
-  const [paymentVerified, setPaymentVerified] = useState(false);
-  
-  const handleDownload = (cvId) => {
-    // Redirect to Djamo payment
-    window.location.href = "https://pay.djamo.com/a8zsl";
-    
-    // Note: In a production environment, you would need to implement a proper payment verification system
-    // through a backend service that communicates with Djamo's API to verify the payment status
-    // For now, we're just showing how the flow would work
-  };
-  
-  const handlePaymentVerification = async () => {
-    try {
-      // This would be replaced with actual payment verification logic
-      const verified = true; // Simulated verification
-      if (verified) {
-        setPaymentVerified(true);
+  const handleDownload = async (cvId) => {
+    if (paymentVerified[cvId]) {
+      try {
+        const cv = userCVs.find(cv => cv.id === cvId);
+        if (!cv) {
+          toast({
+            title: "Erreur",
+            description: "CV introuvable",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (!isMobile) {
+          toast({
+            title: "Préparation du téléchargement",
+            description: "Génération du PDF en cours..."
+          });
+        }
+        
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        pdf.setFontSize(16);
+        pdf.text(cv.title, 20, 20);
+        pdf.setFontSize(12);
+        pdf.text(`Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}`, 20, 30);
+        
+        pdf.save(`cv-${cv.id}.pdf`);
+        
+        if (!isMobile) {
+          toast({
+            title: "Téléchargement réussi",
+            description: "Votre CV a été téléchargé avec succès"
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors du téléchargement:", error);
         toast({
-          title: "Paiement confirmé",
-          description: "Vous pouvez maintenant télécharger votre CV.",
+          title: "Erreur de téléchargement",
+          description: "Impossible de générer le PDF",
+          variant: "destructive"
         });
       }
-    } catch (error) {
-      console.error("Erreur de vérification:", error);
-      toast({
-        title: "Erreur de paiement",
-        description: "La vérification du paiement a échoué.",
-        variant: "destructive"
-      });
+    } else {
+      setProcessingPayment(true);
+      
+      localStorage.setItem('cv_being_paid', cvId);
+      
+      window.location.href = "https://pay.djamo.com/a8zsl";
     }
   };
+  
+  useEffect(() => {
+    const verifyPayment = async () => {
+      const cvBeingPaid = localStorage.getItem('cv_being_paid');
+      if (!cvBeingPaid || processingPayment) return;
+      
+      try {
+        setProcessingPayment(true);
+        
+        const simulateVerification = () => {
+          const paymentSuccessful = true;
+          const paymentAmount = PAYMENT_AMOUNT;
+          
+          if (paymentSuccessful && paymentAmount === PAYMENT_AMOUNT) {
+            setPaymentVerified(prev => ({
+              ...prev,
+              [cvBeingPaid]: true
+            }));
+            localStorage.removeItem('cv_being_paid');
+            toast({
+              title: "Paiement confirmé",
+              description: `Paiement de ${PAYMENT_AMOUNT} CFA reçu. Vous pouvez maintenant télécharger votre CV.`,
+            });
+          } else if (paymentSuccessful && paymentAmount !== PAYMENT_AMOUNT) {
+            toast({
+              title: "Montant incorrect",
+              description: `Le montant payé (${paymentAmount} CFA) ne correspond pas au montant requis (${PAYMENT_AMOUNT} CFA).`,
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Échec du paiement",
+              description: "Le paiement n'a pas pu être vérifié.",
+              variant: "destructive"
+            });
+          }
+          
+          setProcessingPayment(false);
+        };
+        
+        setTimeout(simulateVerification, 1000);
+      } catch (error) {
+        console.error("Erreur de vérification:", error);
+        toast({
+          title: "Erreur de vérification",
+          description: "Impossible de vérifier le paiement.",
+          variant: "destructive"
+        });
+        setProcessingPayment(false);
+      }
+    };
+    
+    const checkPaymentReturn = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get('payment_status');
+      
+      if (paymentStatus) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        verifyPayment();
+      }
+    };
+    
+    checkPaymentReturn();
+  }, [toast, processingPayment, isMobile]);
   
   const handleDelete = (cvId) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce CV ?")) {
@@ -224,9 +318,10 @@ const Dashboard = () => {
                     size="sm" 
                     className="gap-1 flex-1"
                     onClick={() => handleDownload(cv.id)}
+                    disabled={processingPayment}
                   >
                     <Download className="h-4 w-4" />
-                    {paymentVerified ? "Télécharger" : "Payer et Télécharger"}
+                    {paymentVerified[cv.id] ? "Télécharger" : `Payer ${PAYMENT_AMOUNT} CFA`}
                   </Button>
                   <Button 
                     variant="outline" 
