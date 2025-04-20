@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -80,11 +79,35 @@ const Dashboard = () => {
     }
   };
   
+  const [paymentVerified, setPaymentVerified] = useState(false);
+  
   const handleDownload = (cvId) => {
-    if (isMobile) {
-      window.location.href = "wave://pay?recipient=cvzenmasterpiece&amount=1000";
-    } else {
-      window.open("https://wave.com/qr/cvzenmasterpiece?amount=1000", "_blank");
+    // Redirect to Djamo payment
+    window.location.href = "https://pay.djamo.com/a8zsl";
+    
+    // Note: In a production environment, you would need to implement a proper payment verification system
+    // through a backend service that communicates with Djamo's API to verify the payment status
+    // For now, we're just showing how the flow would work
+  };
+  
+  const handlePaymentVerification = async () => {
+    try {
+      // This would be replaced with actual payment verification logic
+      const verified = true; // Simulated verification
+      if (verified) {
+        setPaymentVerified(true);
+        toast({
+          title: "Paiement confirmé",
+          description: "Vous pouvez maintenant télécharger votre CV.",
+        });
+      }
+    } catch (error) {
+      console.error("Erreur de vérification:", error);
+      toast({
+        title: "Erreur de paiement",
+        description: "La vérification du paiement a échoué.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -203,7 +226,7 @@ const Dashboard = () => {
                     onClick={() => handleDownload(cv.id)}
                   >
                     <Download className="h-4 w-4" />
-                    Télécharger
+                    {paymentVerified ? "Télécharger" : "Payer et Télécharger"}
                   </Button>
                   <Button 
                     variant="outline" 
