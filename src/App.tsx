@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import { useAuth, AuthProvider } from "./hooks/use-auth";
 import { toast } from "@/hooks/use-toast";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const queryClient = new QueryClient();
 
@@ -90,8 +90,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Wrapper pour TooltipProvider pour s'assurer qu'il est utilisé dans un composant React
 const TooltipWrapper = ({ children }: { children: React.ReactNode }) => {
-  // Importer TooltipProvider ici pour éviter son utilisation au niveau racine
-  const { TooltipProvider } = require("@/components/ui/tooltip");
   return <TooltipProvider>{children}</TooltipProvider>;
 };
 
