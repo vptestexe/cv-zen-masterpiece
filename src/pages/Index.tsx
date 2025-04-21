@@ -4,7 +4,7 @@ import { CVEditor } from "@/components/editor/CVEditor";
 import { CVPreview } from "@/components/preview/CVPreview";
 import { ThemePalette } from "@/components/ThemePalette";
 import { useToast } from "@/hooks/use-toast";
-import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle, Download } from "lucide-react";
+import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle, Download, FileWord } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDownloadCount, isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/utils/downloadManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const MAX_AUTO_SAVE_INTERVAL = 30000; // 30 secondes
 
@@ -249,7 +250,7 @@ const Index = () => {
     navigate("/dashboard");
   };
 
-  const handleDownloadCV = async () => {
+  const handleDownloadCV = async (format: 'pdf' | 'word' = 'pdf') => {
     if (!previewRef.current) return;
     
     if (currentCVId && !isFreeDownloadAvailable(currentCVId)) {
@@ -265,7 +266,7 @@ const Index = () => {
     if (!isMobile) {
       toast({
         title: "Préparation du téléchargement",
-        description: "Veuillez patienter pendant la création du PDF..."
+        description: `Veuillez patienter pendant la création du ${format === 'pdf' ? 'PDF' : 'document Word'}...`
       });
     }
     
@@ -280,29 +281,59 @@ const Index = () => {
       });
       
       const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-      
       const downloadId = uuidv4().substring(0, 8).toUpperCase();
-      pdf.setFontSize(8);
-      pdf.setTextColor(200, 200, 200);
-      pdf.text(`CV Zen Masterpiece - ID: ${downloadId}`, 10, 290);
       
-      pdf.save('mon-cv.pdf');
+      if (format === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        const imgWidth = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+        
+        pdf.setFontSize(8);
+        pdf.setTextColor(200, 200, 200);
+        pdf.text(`CV Zen Masterpiece - ID: ${downloadId}`, 10, 290);
+        
+        pdf.save('mon-cv.pdf');
+      } else {
+        const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Mon CV</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+              .watermark { color: #cccccc; font-size: 8pt; position: absolute; bottom: 10px; left: 10px; }
+              img { max-width: 100%; height: auto; }
+            </style>
+          </head>
+          <body>
+            <img src="${imgData}" alt="CV" style="width: 100%;" />
+            <div class="watermark">CV Zen Masterpiece - ID: ${downloadId}</div>
+          </body>
+          </html>
+        `;
+        
+        const blob = new Blob([htmlContent], { type: 'application/vnd.ms-word' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'mon-cv.doc';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
       
       if (!isMobile) {
         toast({
           title: "CV téléchargé",
-          description: "Votre CV a été téléchargé avec succès au format PDF."
+          description: `Votre CV a été téléchargé avec succès au format ${format === 'pdf' ? 'PDF' : 'Word'}.`
         });
       }
       
@@ -461,7 +492,7 @@ const Index = () => {
           </Button>
           
           <div className="flex gap-2 sm:gap-3">
-            <Button onClick={(e) => handleSaveCV()} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+            <Button onClick={() => handleSaveCV()} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
               <Save className="h-3 w-3 sm:h-4 sm:w-4" />
               Sauvegarder
             </Button>
@@ -469,15 +500,29 @@ const Index = () => {
               <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
               Réinitialiser
             </Button>
-            <Button 
-              variant="default" 
-              onClick={handleDownloadCV} 
-              className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm"
-              disabled={!freeDownloadAvailable}
-            >
-              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-              Télécharger
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="default" 
+                  className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm"
+                  disabled={!freeDownloadAvailable}
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Télécharger
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleDownloadCV('pdf')} disabled={!freeDownloadAvailable}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Format PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownloadCV('word')} disabled={!freeDownloadAvailable}>
+                  <FileWord className="h-4 w-4 mr-2" />
+                  Format Word
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </footer>

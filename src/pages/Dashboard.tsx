@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Download, Trash2, Plus, LogOut, FileText, AlertTriangle } from "lucide-react";
+import { Edit, Download, Trash2, Plus, LogOut, FileText, FileWord } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,8 +14,6 @@ import {
   hasDownloadsRemaining, 
   resetCVPaymentStatus,
   setInitialDownloadCount,
-  getTotalFreeDownloads,
-  isFreeDownloadAvailable,
   PAYMENT_AMOUNT,
   secureStorage
 } from "@/utils/downloadManager";
@@ -31,7 +28,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Progress } from "@/components/ui/progress";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
@@ -75,7 +77,6 @@ const Dashboard = () => {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
 
-  // Sécurité: Vérification de session expirée
   useEffect(() => {
     const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
     
@@ -89,7 +90,6 @@ const Dashboard = () => {
     
     const sessionTimer = setInterval(checkSession, 60000); // Vérifier chaque minute
     
-    // Réinitialiser le timer à chaque activité
     const resetTimer = () => {
       setLastActivity(Date.now());
     };
@@ -122,7 +122,6 @@ const Dashboard = () => {
     } else {
       setUserName(user?.name || "Utilisateur");
       
-      // Tenter de restaurer à partir du stockage sécurisé en cas de manipulation
       let savedCVs = getSavedCVs();
       const secureBackup = secureStorage.get('saved_cvs_backup', null);
       
@@ -138,11 +137,9 @@ const Dashboard = () => {
       
       setUserCVs(savedCVs);
       
-      // Initialize download counts for all CVs
       const counts = savedCVs.reduce((acc, cv) => {
-        // Initialize new CVs with free downloads if available
         if (!getDownloadCount(cv.id).count && !getDownloadCount(cv.id).lastPaymentDate) {
-          acc[cv.id] = setInitialDownloadCount(cv.id);
+          acc[cv.id] = setInitialDownloadCount(cv.id, 0);
         } else {
           acc[cv.id] = getDownloadCount(cv.id);
         }
@@ -150,10 +147,6 @@ const Dashboard = () => {
       }, {} as {[key: string]: { count: number, lastPaymentDate: string }});
       
       setDownloadCounts(counts);
-      
-      // Calculer la progression des téléchargements gratuits
-      const freeDownloads = getTotalFreeDownloads();
-      setDownloadLimitProgress(Math.min((freeDownloads / 2) * 100, 100));
       
       console.log("État initial des compteurs:", counts);
     }
@@ -182,9 +175,8 @@ const Dashboard = () => {
     }
   };
   
-  const handleDownload = async (cvId) => {
+  const handleDownload = async (cvId, format = 'pdf') => {
     if (!hasDownloadsRemaining(cvId)) {
-      // Marquer ce CV comme étant en attente de paiement
       setCurrentCvId(cvId);
       localStorage.setItem('cv_being_paid', cvId);
       setShowPaymentDialog(true);
@@ -206,39 +198,65 @@ const Dashboard = () => {
         if (!isMobile) {
           toast({
             title: "Préparation du téléchargement",
-            description: "Génération du PDF en cours..."
+            description: `Génération du ${format === 'pdf' ? 'PDF' : 'document Word'} en cours...`
           });
         }
 
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
-
-        pdf.setFontSize(16);
-        pdf.text(cv.title, 20, 20);
-        pdf.setFontSize(12);
-        pdf.text(`Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}`, 20, 30);
-
-        // Ajouter un filigrane avec numéro unique
         const downloadId = generateUniqueId().substring(0, 8).toUpperCase();
-        pdf.setFontSize(10);
-        pdf.setTextColor(200, 200, 200);
-        pdf.text(`CV Zen Masterpiece - ID: ${downloadId}`, 20, 285);
         
-        pdf.save(`cv-${cv.id}.pdf`);
+        if (format === 'pdf') {
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
 
-        // Update download count and UI
+          pdf.setFontSize(16);
+          pdf.text(cv.title, 20, 20);
+          pdf.setFontSize(12);
+          pdf.text(`Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}`, 20, 30);
+
+          pdf.setFontSize(10);
+          pdf.setTextColor(200, 200, 200);
+          pdf.text(`CV Zen Masterpiece - ID: ${downloadId}`, 20, 285);
+          
+          pdf.save(`cv-${cv.id}.pdf`);
+        } else {
+          const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <title>${cv.title}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                h1 { color: #333; }
+                .watermark { color: #cccccc; font-size: 8pt; margin-top: 40px; }
+              </style>
+            </head>
+            <body>
+              <h1>${cv.title}</h1>
+              <p>Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}</p>
+              <div class="watermark">CV Zen Masterpiece - ID: ${downloadId}</div>
+            </body>
+            </html>
+          `;
+          
+          const blob = new Blob([htmlContent], { type: 'application/vnd.ms-word' });
+          
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `cv-${cv.id}.doc`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
         const updatedCount = updateDownloadCount(cvId);
         setDownloadCounts(prev => ({
           ...prev,
           [cvId]: updatedCount
         }));
-        
-        // Mise à jour de la progression des téléchargements gratuits
-        const freeDownloads = getTotalFreeDownloads();
-        setDownloadLimitProgress(Math.min((freeDownloads / 2) * 100, 100));
 
         console.log(`Téléchargement effectué. Compteur mis à jour: ${updatedCount.count}`);
 
@@ -251,7 +269,7 @@ const Dashboard = () => {
       console.error("Erreur lors du téléchargement:", error);
       toast({
         title: "Erreur de téléchargement",
-        description: "Impossible de générer le PDF",
+        description: "Impossible de générer le document",
         variant: "destructive"
       });
     }
@@ -260,17 +278,12 @@ const Dashboard = () => {
   const handleRedirectToPayment = () => {
     setProcessingPayment(true);
     setShowPaymentDialog(false);
-    // Redirection vers Djamo ou autre service de paiement
-    // Pour la sécurité, utiliser un token de session unique
     const paymentToken = generateUniqueId();
     secureStorage.set('payment_token', {
       token: paymentToken,
       cvId: currentCvId,
       timestamp: Date.now()
     });
-    
-    // Dans un scénario réel, rediriger vers une URL de paiement sécurisée
-    // avec le token et le cvId comme paramètres
     window.location.href = `https://pay.djamo.com/a8zsl?token=${paymentToken}&amount=${PAYMENT_AMOUNT}`;
   };
   
@@ -289,18 +302,15 @@ const Dashboard = () => {
         setProcessingPayment(true);
         
         const simulateVerification = () => {
-          // Vérifier le token de paiement pour la sécurité
           const paymentSession = secureStorage.get('payment_token', null);
           
-          // Vérifier l'authenticité du paiement (simulé ici)
           const paymentSuccessful = paymentSession && 
             paymentSession.cvId === cvBeingPaid && 
-            (Date.now() - paymentSession.timestamp) < 3600000; // Moins d'une heure
+            (Date.now() - paymentSession.timestamp) < 3600000;
             
           const paymentAmount = PAYMENT_AMOUNT;
           
           if (paymentSuccessful && paymentAmount === PAYMENT_AMOUNT) {
-            // Nettoyer le token après utilisation
             secureStorage.remove('payment_token');
             
             setPaymentVerified(prev => ({
@@ -308,7 +318,6 @@ const Dashboard = () => {
               [cvBeingPaid]: true
             }));
             
-            // Reset download count to 5 when payment is verified
             const updatedCount = updateDownloadCount(cvBeingPaid, true);
             setDownloadCounts(prev => ({
               ...prev,
@@ -333,7 +342,6 @@ const Dashboard = () => {
           setProcessingPayment(false);
         };
         
-        // Simuler une vérification de paiement après un court délai
         setTimeout(simulateVerification, 1000);
       } catch (error) {
         console.error("Erreur de vérification:", error);
@@ -352,7 +360,6 @@ const Dashboard = () => {
       
       if (paymentStatus) {
         const cleanUrl = window.location.pathname;
-        // Utiliser history.replaceState pour éviter les entrées d'historique
         window.history.replaceState({}, document.title, cleanUrl);
         
         verifyPayment();
@@ -361,7 +368,6 @@ const Dashboard = () => {
     
     checkPaymentReturn();
     
-    // Vérifier si un paiement est en attente au chargement
     const cvBeingPaid = localStorage.getItem('cv_being_paid');
     if (cvBeingPaid && !processingPayment) {
       verifyPayment();
@@ -381,7 +387,6 @@ const Dashboard = () => {
     
     saveCVs(updatedCVs);
     
-    // Mise à jour de la progression des téléchargements gratuits
     const freeDownloads = getTotalFreeDownloads();
     setDownloadLimitProgress(Math.min((freeDownloads / 2) * 100, 100));
     
@@ -395,7 +400,6 @@ const Dashboard = () => {
   };
   
   const handleCreateNew = () => {
-    // Vérifier si l'utilisateur a déjà atteint sa limite de CV gratuits
     if (getTotalFreeDownloads() >= 2) {
       toast({
         title: "Limite atteinte",
@@ -416,7 +420,6 @@ const Dashboard = () => {
   };
   
   const handleLogout = () => {
-    // Nettoyer les données de session pour la sécurité
     resetCVPaymentStatus();
     secureStorage.remove('payment_token');
     
@@ -461,23 +464,6 @@ const Dashboard = () => {
             <Plus className="h-4 w-4" />
             Créer un nouveau CV
           </Button>
-        </div>
-        
-        {/* Affichage de la limite de CV gratuits */}
-        <div className="bg-white rounded-lg p-4 shadow mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className={`h-5 w-5 ${downloadLimitProgress >= 100 ? 'text-red-500' : 'text-amber-500'}`} />
-              <h3 className="font-semibold">Limite de CV gratuits</h3>
-            </div>
-            <div className="text-sm font-medium">
-              {getTotalFreeDownloads()}/2 CV gratuits utilisés
-            </div>
-          </div>
-          <Progress value={downloadLimitProgress} className="h-2" />
-          <p className="text-sm text-muted-foreground mt-2">
-            Vous pouvez créer jusqu'à 2 CV gratuitement. Au-delà, chaque CV nécessitera un paiement de {PAYMENT_AMOUNT} CFA pour être téléchargé.
-          </p>
         </div>
         
         {userCVs.length === 0 ? (
@@ -527,18 +513,39 @@ const Dashboard = () => {
                     <Edit className="h-4 w-4" />
                     Modifier
                   </Button>
-                  <Button 
-                    variant={downloadCounts[cv.id]?.count > 0 ? "outline" : "default"}
-                    size="sm" 
-                    className="gap-1 flex-1"
-                    onClick={() => handleDownload(cv.id)}
-                    disabled={processingPayment}
-                  >
-                    <Download className="h-4 w-4" />
-                    {downloadCounts[cv.id]?.count > 0 
-                      ? `Télécharger (${downloadCounts[cv.id].count})` 
-                      : "Recharger"}
-                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant={downloadCounts[cv.id]?.count > 0 ? "outline" : "default"}
+                        size="sm" 
+                        className="gap-1 flex-1"
+                        disabled={processingPayment}
+                      >
+                        <Download className="h-4 w-4" />
+                        {downloadCounts[cv.id]?.count > 0 
+                          ? `Télécharger (${downloadCounts[cv.id].count})` 
+                          : "Recharger"}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem 
+                        onClick={() => handleDownload(cv.id, 'pdf')}
+                        disabled={!downloadCounts[cv.id]?.count}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Format PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDownload(cv.id, 'word')}
+                        disabled={!downloadCounts[cv.id]?.count}
+                      >
+                        <FileWord className="h-4 w-4 mr-2" />
+                        Format Word
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
                   <Button 
                     variant="outline" 
                     size="sm" 
