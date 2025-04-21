@@ -1,7 +1,7 @@
 
-import { CV } from '@/types/cv';
+import { PersonalInfo, CV } from '@/types/cv';
 
-export interface PersonalInfoExtended extends CV['personalInfo'] {
+export interface PersonalInfoExtended extends PersonalInfo {
   nationality?: {
     code: string;
     name: string;

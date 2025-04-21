@@ -1,4 +1,3 @@
-
 export interface PersonalInfo {
   fullName: string;
   jobTitle: string;
@@ -9,6 +8,10 @@ export interface PersonalInfo {
   github?: string;
   portfolio?: string;
   profilePhoto?: string;
+  nationality?: {
+    code: string;
+    name: string;
+  };
 }
 
 export interface WorkExperience {
@@ -87,3 +90,16 @@ export interface CVTheme {
 }
 
 export type CVSection = 'personalInfo' | 'summary' | 'workExperiences' | 'educations' | 'skills' | 'languages' | 'projects' | 'interests' | 'references';
+
+export type CV = {
+  personalInfo: PersonalInfo;
+  summary: string;
+  workExperiences: WorkExperience[];
+  educations: Education[];
+  skills: Skill[];
+  languages: Language[];
+  projects: Project[];
+  interests: Interest[];
+  references: Reference[];
+  theme?: CVTheme;
+};

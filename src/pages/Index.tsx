@@ -1,11 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { useCVContext } from "@/contexts/CVContext";
 import { CVEditor } from "@/components/editor/CVEditor";
 import { CVPreview } from "@/components/preview/CVPreview";
 import { ThemePalette } from "@/components/ThemePalette";
 import { useToast } from "@/hooks/use-toast";
-import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle, Download } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -36,14 +35,12 @@ const Index = () => {
   const [previewResetKey, setPreviewResetKey] = useState(0);
   const [freeDownloadAvailable, setFreeDownloadAvailable] = useState(true);
   
-  // Détecter si l'utilisateur peut créer un nouveau CV gratuitement
   useEffect(() => {
     if (currentCVId) {
       setFreeDownloadAvailable(isFreeDownloadAvailable(currentCVId));
     }
   }, [currentCVId]);
   
-  // Essayer d'appliquer l'ID du CV depuis l'état de location ou les paramètres URL
   useEffect(() => {
     const stateWithId = location.state as { cvId?: string } | null;
     if (stateWithId?.cvId) {
@@ -61,7 +58,6 @@ const Index = () => {
     }
   }, [location]);
 
-  // Charger les données du CV depuis le stockage local
   const loadSavedCV = (cvId: string) => {
     try {
       const savedCVsJSON = localStorage.getItem('saved_cvs');
@@ -72,7 +68,6 @@ const Index = () => {
         if (savedCV) {
           console.log("Loading saved CV data:", savedCV);
           
-          // Si le CV a des données, les appliquer au contexte
           if (savedCV.data) {
             Object.entries(savedCV.data).forEach(([key, value]) => {
               if (key === 'personalInfo') {
@@ -88,7 +83,6 @@ const Index = () => {
             setInitialTheme(savedCV.theme);
           }
           
-          // Forcer la mise à jour de l'aperçu
           refreshPreview();
         }
       }
@@ -97,7 +91,6 @@ const Index = () => {
     }
   };
 
-  // S'assurer que l'utilisateur est authentifié
   useEffect(() => {
     const authToken = localStorage.getItem('auth_token');
     
@@ -113,14 +106,11 @@ const Index = () => {
     }
   }, [navigate, toast, isMobile]);
 
-  // Journaliser les changements de thème pour le débogage
   useEffect(() => {
     console.log("Current theme in Index:", cvTheme);
   }, [cvTheme]);
 
-  // Auto-sauvegarde du CV
   useEffect(() => {
-    // Configuration de l'auto-sauvegarde
     const setupAutoSave = () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -143,7 +133,6 @@ const Index = () => {
     };
   }, [cvData]);
 
-  // Sauvegarder les données du CV
   const handleSaveCV = (isAutoSave = false) => {
     if (!cvData.personalInfo.fullName) {
       if (!isMobile && !isAutoSave) {
@@ -237,11 +226,9 @@ const Index = () => {
     localStorage.setItem('saved_cvs', JSON.stringify(savedCVs));
     setLastSaved(new Date());
     
-    // Rafraîchir l'aperçu après sauvegarde
     refreshPreview();
   };
 
-  // Réinitialiser le CV
   const handleResetCV = () => {
     if (confirm("Êtes-vous sûr de vouloir réinitialiser votre CV ? Toutes les données saisies seront perdues.")) {
       resetCV();
@@ -254,21 +241,17 @@ const Index = () => {
         });
       }
       
-      // Rafraîchir l'aperçu après réinitialisation
       refreshPreview();
     }
   };
 
-  // Retourner au tableau de bord
   const handleBackToDashboard = () => {
     navigate("/dashboard");
   };
 
-  // Télécharger le CV au format PDF
   const handleDownloadCV = async () => {
     if (!previewRef.current) return;
     
-    // Vérifier si des téléchargements sont disponibles
     if (currentCVId && !isFreeDownloadAvailable(currentCVId)) {
       toast({
         title: "Téléchargement impossible",
@@ -309,7 +292,6 @@ const Index = () => {
       
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
       
-      // Ajouter un filigrane avec identifiant unique
       const downloadId = uuidv4().substring(0, 8).toUpperCase();
       pdf.setFontSize(8);
       pdf.setTextColor(200, 200, 200);
@@ -324,7 +306,6 @@ const Index = () => {
         });
       }
       
-      // Rediriger vers le dashboard pour mettre à jour le compteur
       navigate("/dashboard");
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
@@ -339,17 +320,14 @@ const Index = () => {
     }
   };
 
-  // Rafraîchir l'aperçu
   const refreshPreview = useCallback(() => {
     setPreviewResetKey(prev => prev + 1);
   }, []);
 
-  // Gérer le défilement
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Détecter le défilement pour afficher le bouton de retour en haut
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 200) {
@@ -363,7 +341,6 @@ const Index = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Formater la date de dernière sauvegarde
   const formatLastSaved = () => {
     if (!lastSaved) return null;
     
@@ -374,7 +351,6 @@ const Index = () => {
     });
   };
 
-  // Basculer l'aperçu
   const togglePreview = () => {
     if (isMobile) {
       setActiveTab(activeTab === "editor" ? "preview" : "editor");
@@ -452,7 +428,7 @@ const Index = () => {
         {(!isMobile && previewActive || isMobile && activeTab === "preview") && (
           <div className="w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300">
             {!freeDownloadAvailable && (
-              <Alert variant="warning" className="mb-4">
+              <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   Vous n'aurez pas de téléchargements gratuits pour ce CV. Un paiement de {PAYMENT_AMOUNT} CFA sera requis.
@@ -485,7 +461,7 @@ const Index = () => {
           </Button>
           
           <div className="flex gap-2 sm:gap-3">
-            <Button onClick={handleSaveCV} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+            <Button onClick={(e) => handleSaveCV()} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
               <Save className="h-3 w-3 sm:h-4 sm:w-4" />
               Sauvegarder
             </Button>
