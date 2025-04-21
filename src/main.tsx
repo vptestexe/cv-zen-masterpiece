@@ -15,4 +15,5 @@ if (import.meta.env.PROD) {
   document.body.appendChild(redirects);
 }
 
+// Render the app
 createRoot(document.getElementById("root")!).render(<App />);

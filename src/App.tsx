@@ -1,7 +1,6 @@
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate, useParams } from "react-router-dom";
 import { CVProvider } from "./contexts/CVContext";
@@ -89,10 +88,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Wrapper pour TooltipProvider pour s'assurer qu'il est utilisé dans un composant React
+const TooltipWrapper = ({ children }: { children: React.ReactNode }) => {
+  // Importer TooltipProvider ici pour éviter son utilisation au niveau racine
+  const { TooltipProvider } = require("@/components/ui/tooltip");
+  return <TooltipProvider>{children}</TooltipProvider>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <TooltipWrapper>
         <Toaster />
         <Sonner />
         <CVProvider>
@@ -120,8 +126,8 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </CVProvider>
-      </AuthProvider>
-    </TooltipProvider>
+      </TooltipWrapper>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
