@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Download, Trash2, Plus, LogOut, FileText } from "lucide-react";
+import { Edit, Download, Trash2, Plus, LogOut, FileText, AlertTriangle } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,7 +14,11 @@ import {
   updateDownloadCount, 
   hasDownloadsRemaining, 
   resetCVPaymentStatus,
-  setInitialDownloadCount
+  setInitialDownloadCount,
+  getTotalFreeDownloads,
+  isFreeDownloadAvailable,
+  PAYMENT_AMOUNT,
+  secureStorage
 } from "@/utils/downloadManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
@@ -27,9 +31,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
 
 const generateUniqueId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  return Date.now().toString(36) + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
 };
 
 const getSavedCVs = () => {
@@ -47,9 +52,10 @@ const getSavedCVs = () => {
 
 const saveCVs = (cvs) => {
   localStorage.setItem('saved_cvs', JSON.stringify(cvs));
+  
+  // Enregistrer une copie cryptée pour la sécurité
+  secureStorage.set('saved_cvs_backup', cvs);
 };
-
-const PAYMENT_AMOUNT = 100;
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -65,6 +71,42 @@ const Dashboard = () => {
   const [currentCvId, setCurrentCvId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [cvToDelete, setCvToDelete] = useState<string | null>(null);
+  const [downloadLimitProgress, setDownloadLimitProgress] = useState(0);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [lastActivity, setLastActivity] = useState(Date.now());
+
+  // Sécurité: Vérification de session expirée
+  useEffect(() => {
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    
+    const checkSession = () => {
+      const currentTime = Date.now();
+      if (currentTime - lastActivity > SESSION_TIMEOUT) {
+        setSessionExpired(true);
+        handleLogout();
+      }
+    };
+    
+    const sessionTimer = setInterval(checkSession, 60000); // Vérifier chaque minute
+    
+    // Réinitialiser le timer à chaque activité
+    const resetTimer = () => {
+      setLastActivity(Date.now());
+    };
+    
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('keypress', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+    window.addEventListener('mousemove', resetTimer);
+    
+    return () => {
+      clearInterval(sessionTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('keypress', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+      window.removeEventListener('mousemove', resetTimer);
+    };
+  }, [lastActivity]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -80,13 +122,26 @@ const Dashboard = () => {
     } else {
       setUserName(user?.name || "Utilisateur");
       
-      const savedCVs = getSavedCVs();
+      // Tenter de restaurer à partir du stockage sécurisé en cas de manipulation
+      let savedCVs = getSavedCVs();
+      const secureBackup = secureStorage.get('saved_cvs_backup', null);
+      
+      if (!savedCVs.length && secureBackup && secureBackup.length) {
+        savedCVs = secureBackup;
+        saveCVs(savedCVs);
+        toast({
+          title: "Récupération de données",
+          description: "Les données sauvegardées ont été restaurées avec succès.",
+          variant: "default"
+        });
+      }
+      
       setUserCVs(savedCVs);
       
       // Initialize download counts for all CVs
       const counts = savedCVs.reduce((acc, cv) => {
-        // Initialize new CVs with 5 downloads if they don't have a count yet
-        if (!getDownloadCount(cv.id).count) {
+        // Initialize new CVs with free downloads if available
+        if (!getDownloadCount(cv.id).count && !getDownloadCount(cv.id).lastPaymentDate) {
           acc[cv.id] = setInitialDownloadCount(cv.id);
         } else {
           acc[cv.id] = getDownloadCount(cv.id);
@@ -95,6 +150,11 @@ const Dashboard = () => {
       }, {} as {[key: string]: { count: number, lastPaymentDate: string }});
       
       setDownloadCounts(counts);
+      
+      // Calculer la progression des téléchargements gratuits
+      const freeDownloads = getTotalFreeDownloads();
+      setDownloadLimitProgress(Math.min((freeDownloads / 2) * 100, 100));
+      
       console.log("État initial des compteurs:", counts);
     }
   }, [isAuthenticated, navigate, toast, user, isMobile]);
@@ -161,6 +221,12 @@ const Dashboard = () => {
         pdf.setFontSize(12);
         pdf.text(`Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}`, 20, 30);
 
+        // Ajouter un filigrane avec numéro unique
+        const downloadId = generateUniqueId().substring(0, 8).toUpperCase();
+        pdf.setFontSize(10);
+        pdf.setTextColor(200, 200, 200);
+        pdf.text(`CV Zen Masterpiece - ID: ${downloadId}`, 20, 285);
+        
         pdf.save(`cv-${cv.id}.pdf`);
 
         // Update download count and UI
@@ -169,6 +235,10 @@ const Dashboard = () => {
           ...prev,
           [cvId]: updatedCount
         }));
+        
+        // Mise à jour de la progression des téléchargements gratuits
+        const freeDownloads = getTotalFreeDownloads();
+        setDownloadLimitProgress(Math.min((freeDownloads / 2) * 100, 100));
 
         console.log(`Téléchargement effectué. Compteur mis à jour: ${updatedCount.count}`);
 
@@ -190,8 +260,18 @@ const Dashboard = () => {
   const handleRedirectToPayment = () => {
     setProcessingPayment(true);
     setShowPaymentDialog(false);
-    // Redirection vers Djamo
-    window.location.href = "https://pay.djamo.com/a8zsl";
+    // Redirection vers Djamo ou autre service de paiement
+    // Pour la sécurité, utiliser un token de session unique
+    const paymentToken = generateUniqueId();
+    secureStorage.set('payment_token', {
+      token: paymentToken,
+      cvId: currentCvId,
+      timestamp: Date.now()
+    });
+    
+    // Dans un scénario réel, rediriger vers une URL de paiement sécurisée
+    // avec le token et le cvId comme paramètres
+    window.location.href = `https://pay.djamo.com/a8zsl?token=${paymentToken}&amount=${PAYMENT_AMOUNT}`;
   };
   
   const handlePaymentDialogClose = () => {
@@ -209,10 +289,20 @@ const Dashboard = () => {
         setProcessingPayment(true);
         
         const simulateVerification = () => {
-          const paymentSuccessful = true;
+          // Vérifier le token de paiement pour la sécurité
+          const paymentSession = secureStorage.get('payment_token', null);
+          
+          // Vérifier l'authenticité du paiement (simulé ici)
+          const paymentSuccessful = paymentSession && 
+            paymentSession.cvId === cvBeingPaid && 
+            (Date.now() - paymentSession.timestamp) < 3600000; // Moins d'une heure
+            
           const paymentAmount = PAYMENT_AMOUNT;
           
           if (paymentSuccessful && paymentAmount === PAYMENT_AMOUNT) {
+            // Nettoyer le token après utilisation
+            secureStorage.remove('payment_token');
+            
             setPaymentVerified(prev => ({
               ...prev,
               [cvBeingPaid]: true
@@ -243,6 +333,7 @@ const Dashboard = () => {
           setProcessingPayment(false);
         };
         
+        // Simuler une vérification de paiement après un court délai
         setTimeout(simulateVerification, 1000);
       } catch (error) {
         console.error("Erreur de vérification:", error);
@@ -261,6 +352,7 @@ const Dashboard = () => {
       
       if (paymentStatus) {
         const cleanUrl = window.location.pathname;
+        // Utiliser history.replaceState pour éviter les entrées d'historique
         window.history.replaceState({}, document.title, cleanUrl);
         
         verifyPayment();
@@ -289,6 +381,10 @@ const Dashboard = () => {
     
     saveCVs(updatedCVs);
     
+    // Mise à jour de la progression des téléchargements gratuits
+    const freeDownloads = getTotalFreeDownloads();
+    setDownloadLimitProgress(Math.min((freeDownloads / 2) * 100, 100));
+    
     toast({
       title: "CV supprimé",
       description: "Votre CV a été supprimé avec succès"
@@ -299,6 +395,16 @@ const Dashboard = () => {
   };
   
   const handleCreateNew = () => {
+    // Vérifier si l'utilisateur a déjà atteint sa limite de CV gratuits
+    if (getTotalFreeDownloads() >= 2) {
+      toast({
+        title: "Limite atteinte",
+        description: "Vous avez atteint votre limite de CV gratuits. Veuillez acheter des téléchargements pour un CV existant.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     navigate("/editor/classic");
     
     if (!isMobile) {
@@ -310,6 +416,10 @@ const Dashboard = () => {
   };
   
   const handleLogout = () => {
+    // Nettoyer les données de session pour la sécurité
+    resetCVPaymentStatus();
+    secureStorage.remove('payment_token');
+    
     logout();
     
     navigate("/");
@@ -342,7 +452,7 @@ const Dashboard = () => {
       </header>
       
       <main className="flex-1 container mx-auto py-8 px-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <div>
             <h2 className="text-3xl font-bold">Mon espace personnel</h2>
             <p className="text-muted-foreground">Gérez vos CV et créez-en de nouveaux</p>
@@ -351,6 +461,23 @@ const Dashboard = () => {
             <Plus className="h-4 w-4" />
             Créer un nouveau CV
           </Button>
+        </div>
+        
+        {/* Affichage de la limite de CV gratuits */}
+        <div className="bg-white rounded-lg p-4 shadow mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className={`h-5 w-5 ${downloadLimitProgress >= 100 ? 'text-red-500' : 'text-amber-500'}`} />
+              <h3 className="font-semibold">Limite de CV gratuits</h3>
+            </div>
+            <div className="text-sm font-medium">
+              {getTotalFreeDownloads()}/2 CV gratuits utilisés
+            </div>
+          </div>
+          <Progress value={downloadLimitProgress} className="h-2" />
+          <p className="text-sm text-muted-foreground mt-2">
+            Vous pouvez créer jusqu'à 2 CV gratuitement. Au-delà, chaque CV nécessitera un paiement de {PAYMENT_AMOUNT} CFA pour être téléchargé.
+          </p>
         </div>
         
         {userCVs.length === 0 ? (

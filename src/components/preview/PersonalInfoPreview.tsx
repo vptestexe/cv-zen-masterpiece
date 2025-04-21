@@ -1,7 +1,8 @@
 
 import { useCVContext } from "@/contexts/CVContext";
-import { AtSign, Briefcase, Github, Globe, Home, Linkedin, Phone } from "lucide-react";
+import { AtSign, Briefcase, Flag, Github, Globe, Home, Linkedin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getCountryByCode } from "@/utils/countries";
 
 interface PersonalInfoPreviewProps {
   titleClass: string;
@@ -21,6 +22,12 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
   const hasGithub = !!personalInfo.github;
   const hasPortfolio = !!personalInfo.portfolio;
   const hasPhoto = !!personalInfo.profilePhoto;
+  const hasNationality = !!personalInfo.nationality?.code;
+
+  // Get country information if nationality is set
+  const country = hasNationality && typeof personalInfo.nationality?.code === 'string' 
+    ? getCountryByCode(personalInfo.nationality.code) 
+    : null;
 
   // Determine layout based on photo position
   const photoPosition = cvTheme.photoPosition;
@@ -75,6 +82,19 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+          {hasNationality && country && (
+            <div className="flex items-center gap-2">
+              <Flag className="h-4 w-4 flex-shrink-0" style={{ color: cvTheme.primaryColor }} />
+              <div className="flex items-center">
+                <span 
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: country.color }}
+                ></span>
+                <span>{personalInfo.nationality.name}</span>
+              </div>
+            </div>
+          )}
+          
           {hasAddress && (
             <div className="flex items-center gap-2">
               <Home className="h-4 w-4 flex-shrink-0" style={{ color: cvTheme.primaryColor }} />

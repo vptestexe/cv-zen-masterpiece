@@ -2,10 +2,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCVContext } from "@/contexts/CVContext";
-import { AtSign, Briefcase, Globe, Home, Linkedin, Phone, Github, Upload, Crop, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import { AtSign, Briefcase, Flag, Globe, Home, Linkedin, Phone, Github, Upload, Crop, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countries } from "@/utils/countries";
 
 export function PersonalInfoForm() {
   const { cvData, updatePersonalInfo } = useCVContext();
@@ -14,6 +16,21 @@ export function PersonalInfoForm() {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  useEffect(() => {
+    if (personalInfo.nationality && typeof personalInfo.nationality === 'string') {
+      const matchingCountry = countries.find(c => 
+        c.name.toLowerCase() === (personalInfo.nationality as string).toLowerCase()
+      );
+      
+      if (matchingCountry) {
+        updatePersonalInfo('nationality', {
+          code: matchingCountry.code,
+          name: matchingCountry.name
+        });
+      }
+    }
+  }, []);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,32 +73,26 @@ export function PersonalInfoForm() {
   const applyPhotoAdjustments = (newScale: number, newRotation: number) => {
     if (!personalInfo.profilePhoto) return;
     
-    // Create an offscreen canvas to manipulate the image
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
     
     const img = new Image();
     img.onload = () => {
-      // Set canvas size to be a square that fits the image dimensions
       const size = Math.max(img.width, img.height);
       canvas.width = size;
       canvas.height = size;
       
-      // Clear canvas with transparent background
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Move to center, rotate, and scale
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((newRotation * Math.PI) / 180);
       ctx.scale(newScale, newScale);
       
-      // Draw image centered with transparency preserved
       ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
       ctx.restore();
       
-      // Convert to data URL and update state
       const dataUrl = canvas.toDataURL('image/png');
       updatePersonalInfo('profilePhoto', dataUrl);
     };
@@ -91,6 +102,16 @@ export function PersonalInfoForm() {
 
   const handleCropComplete = () => {
     setPhotoAdjustMode(false);
+  };
+
+  const handleNationalityChange = (code: string) => {
+    const country = countries.find(c => c.code === code);
+    if (country) {
+      updatePersonalInfo('nationality', {
+        code: country.code,
+        name: country.name
+      });
+    }
   };
 
   return (
@@ -119,18 +140,47 @@ export function PersonalInfoForm() {
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="address">Adresse</Label>
-        <div className="relative">
-          <Textarea
-            id="address"
-            value={personalInfo.address}
-            onChange={(e) => updatePersonalInfo('address', e.target.value)}
-            className="resize-none pl-10 pt-2"
-            placeholder="Paris, France"
-            rows={2}
-          />
-          <Home className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="nationality">Nationalité</Label>
+          <div className="relative">
+            <Select 
+              value={personalInfo.nationality?.code || ""} 
+              onValueChange={handleNationalityChange}
+            >
+              <SelectTrigger className="pl-10">
+                <SelectValue placeholder="Sélectionnez votre nationalité" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map((country) => (
+                  <SelectItem key={country.code} value={country.code}>
+                    <div className="flex items-center">
+                      <span 
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: country.color }}
+                      ></span>
+                      {country.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Flag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="address">Adresse</Label>
+          <div className="relative">
+            <Input
+              id="address"
+              value={personalInfo.address}
+              onChange={(e) => updatePersonalInfo('address', e.target.value)}
+              className="pl-10"
+              placeholder="Paris, France"
+            />
+            <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
         </div>
       </div>
 

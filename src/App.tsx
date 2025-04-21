@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,7 +14,29 @@ import { useAuth, AuthProvider } from "./hooks/use-auth";
 import { toast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const queryClient = new QueryClient();
+// Configurer le client de requête avec une politique d'invalidation pour la sécurité
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: true,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+      networkMode: 'online',
+    },
+  },
+});
+
+// Fonction pour détecter les attaques potentielles de XSS
+function detectXSS(input: string): boolean {
+  if (!input) return false;
+  const suspiciousPatterns = [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    /javascript:/gi,
+    /on\w+\s*=/gi,
+    /\bdata:/gi
+  ];
+  return suspiciousPatterns.some(pattern => pattern.test(input));
+}
 
 // Composant pour gérer les paramètres de template
 const EditorWithTemplate = () => {
@@ -35,6 +58,26 @@ const EditorWithTemplate = () => {
     if (!hasProcessedParams && !isLoading && isAuthenticated) {
       // Extraire les paramètres de template de l'URL
       const params = new URLSearchParams(location.search);
+      
+      // Sécurité: Vérifier les paramètres pour des attaques potentielles
+      let hasSuspiciousParams = false;
+      params.forEach((value) => {
+        if (detectXSS(value)) {
+          hasSuspiciousParams = true;
+          console.error("Paramètre URL suspect détecté");
+        }
+      });
+      
+      if (hasSuspiciousParams) {
+        navigate("/editor", { replace: true });
+        toast({
+          title: "Erreur de sécurité",
+          description: "Paramètres URL invalides détectés",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const color = params.get('color');
       const style = params.get('style');
       
@@ -74,13 +117,44 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
+  const [lastActivity, setLastActivity] = useState(Date.now());
   
   useEffect(() => {
     // Attendre que la vérification d'authentification soit terminée
     if (!isLoading && !isAuthenticated) {
       navigate("/login", { replace: true, state: { from: location.pathname } });
     }
-  }, [isAuthenticated, isLoading, navigate, location]);
+    
+    // Sécurité: Déconnexion après inactivité
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    
+    const checkSession = () => {
+      const currentTime = Date.now();
+      if (currentTime - lastActivity > SESSION_TIMEOUT) {
+        navigate("/login", { replace: true });
+      }
+    };
+    
+    const sessionTimer = setInterval(checkSession, 60000); // Vérifier chaque minute
+    
+    // Réinitialiser le timer à chaque activité
+    const resetTimer = () => {
+      setLastActivity(Date.now());
+    };
+    
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('keypress', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+    window.addEventListener('mousemove', resetTimer);
+    
+    return () => {
+      clearInterval(sessionTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('keypress', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+      window.removeEventListener('mousemove', resetTimer);
+    };
+  }, [isAuthenticated, isLoading, navigate, location, lastActivity]);
   
   // Si le chargement est en cours ou l'utilisateur n'est pas authentifié, ne rien afficher
   if (isLoading || !isAuthenticated) return null;
@@ -93,6 +167,23 @@ const TooltipWrapper = ({ children }: { children: React.ReactNode }) => {
   return <TooltipProvider>{children}</TooltipProvider>;
 };
 
+// Définir un header de sécurité CSP pour protéger contre les injections
+const SecurityHeaders = () => {
+  useEffect(() => {
+    // Cette fonction ne peut réellement définir des headers que sur le serveur,
+    // mais nous l'incluons à des fins de documentation et pour des tests locaux
+    if (import.meta.env.DEV) {
+      console.info("En production, il est recommandé d'ajouter des headers de sécurité côté serveur:");
+      console.info("1. Content-Security-Policy");
+      console.info("2. X-XSS-Protection");
+      console.info("3. X-Content-Type-Options");
+      console.info("4. Referrer-Policy");
+    }
+  }, []);
+  
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -101,6 +192,7 @@ const App = () => (
         <Sonner />
         <CVProvider>
           <BrowserRouter>
+            <SecurityHeaders />
             <Routes>
               {/* Page d'accueil */}
               <Route path="/" element={<Landing />} />

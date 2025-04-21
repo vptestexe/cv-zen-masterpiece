@@ -1,16 +1,22 @@
+
 import { Button } from "@/components/ui/button";
 import { useCVContext } from "@/contexts/CVContext";
 import { CVEditor } from "@/components/editor/CVEditor";
 import { CVPreview } from "@/components/preview/CVPreview";
 import { ThemePalette } from "@/components/ThemePalette";
 import { useToast } from "@/hooks/use-toast";
-import { Save, RefreshCw, ChevronUp, ArrowLeft } from "lucide-react";
+import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { v4 as uuidv4 } from 'uuid';
+import { getDownloadCount, isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/utils/downloadManager";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const MAX_AUTO_SAVE_INTERVAL = 30000; // 30 secondes
 
 const Index = () => {
   const { resetCV, cvData, cvTheme, setInitialTheme } = useCVContext();
@@ -22,8 +28,22 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
   const [scrolled, setScrolled] = useState(false);
   const [currentCVId, setCurrentCVId] = useState<string | null>(null);
+  const [previewActive, setPreviewActive] = useState(!isMobile);
+  const [showPreviewInfo, setShowPreviewInfo] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [previewResetKey, setPreviewResetKey] = useState(0);
+  const [freeDownloadAvailable, setFreeDownloadAvailable] = useState(true);
   
+  // Détecter si l'utilisateur peut créer un nouveau CV gratuitement
+  useEffect(() => {
+    if (currentCVId) {
+      setFreeDownloadAvailable(isFreeDownloadAvailable(currentCVId));
+    }
+  }, [currentCVId]);
+  
+  // Essayer d'appliquer l'ID du CV depuis l'état de location ou les paramètres URL
   useEffect(() => {
     const stateWithId = location.state as { cvId?: string } | null;
     if (stateWithId?.cvId) {
@@ -41,6 +61,7 @@ const Index = () => {
     }
   }, [location]);
 
+  // Charger les données du CV depuis le stockage local
   const loadSavedCV = (cvId: string) => {
     try {
       const savedCVsJSON = localStorage.getItem('saved_cvs');
@@ -48,9 +69,27 @@ const Index = () => {
         const savedCVs = JSON.parse(savedCVsJSON);
         const savedCV = savedCVs.find((cv: any) => cv.id === cvId);
         
-        if (savedCV && savedCV.theme) {
-          console.log("Loading saved theme:", savedCV.theme);
-          setInitialTheme(savedCV.theme);
+        if (savedCV) {
+          console.log("Loading saved CV data:", savedCV);
+          
+          // Si le CV a des données, les appliquer au contexte
+          if (savedCV.data) {
+            Object.entries(savedCV.data).forEach(([key, value]) => {
+              if (key === 'personalInfo') {
+                Object.entries(value as Record<string, any>).forEach(([infoKey, infoValue]) => {
+                  console.log(`Setting ${infoKey} to:`, infoValue);
+                });
+              }
+            });
+          }
+          
+          if (savedCV.theme) {
+            console.log("Loading saved theme:", savedCV.theme);
+            setInitialTheme(savedCV.theme);
+          }
+          
+          // Forcer la mise à jour de l'aperçu
+          refreshPreview();
         }
       }
     } catch (error) {
@@ -58,6 +97,7 @@ const Index = () => {
     }
   };
 
+  // S'assurer que l'utilisateur est authentifié
   useEffect(() => {
     const authToken = localStorage.getItem('auth_token');
     
@@ -73,13 +113,40 @@ const Index = () => {
     }
   }, [navigate, toast, isMobile]);
 
+  // Journaliser les changements de thème pour le débogage
   useEffect(() => {
     console.log("Current theme in Index:", cvTheme);
   }, [cvTheme]);
 
-  const handleSaveCV = () => {
+  // Auto-sauvegarde du CV
+  useEffect(() => {
+    // Configuration de l'auto-sauvegarde
+    const setupAutoSave = () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        if (cvData.personalInfo.fullName) {
+          handleSaveCV(true);
+        }
+        setupAutoSave();
+      }, MAX_AUTO_SAVE_INTERVAL);
+    };
+    
+    setupAutoSave();
+    
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [cvData]);
+
+  // Sauvegarder les données du CV
+  const handleSaveCV = (isAutoSave = false) => {
     if (!cvData.personalInfo.fullName) {
-      if (!isMobile) {
+      if (!isMobile && !isAutoSave) {
         toast({
           title: "Informations incomplètes",
           description: "Veuillez au moins renseigner votre nom complet",
@@ -117,7 +184,7 @@ const Index = () => {
           theme: cvTheme
         };
         
-        if (!isMobile) {
+        if (!isMobile && !isAutoSave) {
           toast({
             title: "CV mis à jour",
             description: "Votre CV a été mis à jour avec succès.",
@@ -136,7 +203,7 @@ const Index = () => {
         
         savedCVs.push(newCV);
         
-        if (!isMobile) {
+        if (!isMobile && !isAutoSave) {
           toast({
             title: "CV créé",
             description: "Un nouveau CV a été créé car celui en cours de modification n'existe plus.",
@@ -158,7 +225,7 @@ const Index = () => {
       savedCVs.push(newCV);
       setCurrentCVId(newCVId);
       
-      if (!isMobile) {
+      if (!isMobile && !isAutoSave) {
         toast({
           title: "CV sauvegardé",
           description: "Votre CV a été sauvegardé avec succès.",
@@ -168,8 +235,13 @@ const Index = () => {
     }
     
     localStorage.setItem('saved_cvs', JSON.stringify(savedCVs));
+    setLastSaved(new Date());
+    
+    // Rafraîchir l'aperçu après sauvegarde
+    refreshPreview();
   };
 
+  // Réinitialiser le CV
   const handleResetCV = () => {
     if (confirm("Êtes-vous sûr de vouloir réinitialiser votre CV ? Toutes les données saisies seront perdues.")) {
       resetCV();
@@ -181,15 +253,31 @@ const Index = () => {
           description: "Votre CV a été réinitialisé avec succès."
         });
       }
+      
+      // Rafraîchir l'aperçu après réinitialisation
+      refreshPreview();
     }
   };
 
+  // Retourner au tableau de bord
   const handleBackToDashboard = () => {
     navigate("/dashboard");
   };
 
+  // Télécharger le CV au format PDF
   const handleDownloadCV = async () => {
     if (!previewRef.current) return;
+    
+    // Vérifier si des téléchargements sont disponibles
+    if (currentCVId && !isFreeDownloadAvailable(currentCVId)) {
+      toast({
+        title: "Téléchargement impossible",
+        description: `Veuillez acheter des téléchargements pour ce CV (${PAYMENT_AMOUNT} CFA)`,
+        variant: "destructive"
+      });
+      navigate("/dashboard");
+      return;
+    }
     
     if (!isMobile) {
       toast({
@@ -220,6 +308,13 @@ const Index = () => {
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      
+      // Ajouter un filigrane avec identifiant unique
+      const downloadId = uuidv4().substring(0, 8).toUpperCase();
+      pdf.setFontSize(8);
+      pdf.setTextColor(200, 200, 200);
+      pdf.text(`CV Zen Masterpiece - ID: ${downloadId}`, 10, 290);
+      
       pdf.save('mon-cv.pdf');
       
       if (!isMobile) {
@@ -228,6 +323,9 @@ const Index = () => {
           description: "Votre CV a été téléchargé avec succès au format PDF."
         });
       }
+      
+      // Rediriger vers le dashboard pour mettre à jour le compteur
+      navigate("/dashboard");
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
       
@@ -241,10 +339,17 @@ const Index = () => {
     }
   };
 
+  // Rafraîchir l'aperçu
+  const refreshPreview = useCallback(() => {
+    setPreviewResetKey(prev => prev + 1);
+  }, []);
+
+  // Gérer le défilement
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Détecter le défilement pour afficher le bouton de retour en haut
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 200) {
@@ -257,6 +362,26 @@ const Index = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Formater la date de dernière sauvegarde
+  const formatLastSaved = () => {
+    if (!lastSaved) return null;
+    
+    return lastSaved.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  // Basculer l'aperçu
+  const togglePreview = () => {
+    if (isMobile) {
+      setActiveTab(activeTab === "editor" ? "preview" : "editor");
+    } else {
+      setPreviewActive(!previewActive);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
@@ -293,35 +418,72 @@ const Index = () => {
                 </Button>
               </div>
             )}
+            {!isMobile && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={togglePreview}
+                className="flex items-center gap-1"
+              >
+                {previewActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {previewActive ? "Masquer l'aperçu" : "Afficher l'aperçu"}
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
       <main className="flex-1 container mx-auto flex flex-col md:flex-row gap-6 p-4 sm:p-6">
         <div 
-          className={`w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
+          className={`w-full ${previewActive ? "md:w-1/2" : "md:w-full"} rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
             isMobile && activeTab !== "editor" ? "hidden" : "block"
           }`}
         >
           <CVEditor />
+          
+          {lastSaved && (
+            <div className="bg-white border-t p-2 text-xs text-muted-foreground text-center flex items-center justify-center">
+              <RefreshCw className="h-3 w-3 mr-1 text-green-500" />
+              Dernière sauvegarde à {formatLastSaved()}
+            </div>
+          )}
         </div>
 
-        <div 
-          className={`w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
-            isMobile && activeTab !== "preview" ? "hidden" : "block"
-          }`}
-        >
-          <div ref={previewRef}>
-            <CVPreview />
+        {(!isMobile && previewActive || isMobile && activeTab === "preview") && (
+          <div className="w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300">
+            {!freeDownloadAvailable && (
+              <Alert variant="warning" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Vous n'aurez pas de téléchargements gratuits pour ce CV. Un paiement de {PAYMENT_AMOUNT} CFA sera requis.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <div 
+              className="bg-white p-4 sm:p-6 shadow-sm rounded-lg"
+              ref={previewRef}
+              key={`preview-container-${previewResetKey}`}
+            >
+              <CVPreview />
+            </div>
+            
+            <div className="bg-white border-t p-2 text-xs flex justify-center">
+              <Button variant="link" size="sm" onClick={() => setShowPreviewInfo(true)}>
+                Comment améliorer mon aperçu ?
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       <footer className="bg-white border-t py-4 px-4 sm:px-6 sticky bottom-0 z-10">
         <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
-            © {new Date().getFullYear()} CV Zen Masterpiece - Un créateur de CV simple et élégant
-          </p>
+          <Button onClick={handleBackToDashboard} variant="outline" className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
+            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+            Retour
+          </Button>
+          
           <div className="flex gap-2 sm:gap-3">
             <Button onClick={handleSaveCV} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
               <Save className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -330,6 +492,15 @@ const Index = () => {
             <Button variant="outline" onClick={handleResetCV} className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm">
               <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
               Réinitialiser
+            </Button>
+            <Button 
+              variant="default" 
+              onClick={handleDownloadCV} 
+              className="gap-1 sm:gap-2 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm"
+              disabled={!freeDownloadAvailable}
+            >
+              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+              Télécharger
             </Button>
           </div>
         </div>
@@ -344,6 +515,38 @@ const Index = () => {
           <ChevronUp className="h-5 w-5" />
         </button>
       )}
+
+      <Dialog open={showPreviewInfo} onOpenChange={setShowPreviewInfo}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conseils pour l'aperçu</DialogTitle>
+            <DialogDescription>
+              Pour améliorer la qualité de l'aperçu de votre CV, voici quelques conseils :
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium mb-1">1. Si l'aperçu n'est pas à jour :</h3>
+              <p className="text-muted-foreground text-sm">
+                Cliquez sur "Sauvegarder" pour rafraîchir l'aperçu avec vos dernières modifications.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium mb-1">2. Pour les photos de profil :</h3>
+              <p className="text-muted-foreground text-sm">
+                Utilisez les outils d'ajustement de photo pour obtenir le cadrage parfait.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium mb-1">3. Téléchargement :</h3>
+              <p className="text-muted-foreground text-sm">
+                Le CV téléchargé peut légèrement différer de l'aperçu à l'écran, mais conservera toutes vos informations.
+              </p>
+            </div>
+            <Button onClick={() => setShowPreviewInfo(false)} className="w-full">J'ai compris</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ThemePalette />
     </div>
