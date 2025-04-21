@@ -9,8 +9,24 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getDownloadCount, updateDownloadCount, hasDownloadsRemaining, resetCVPaymentStatus } from "@/utils/downloadManager";
+import { 
+  getDownloadCount, 
+  updateDownloadCount, 
+  hasDownloadsRemaining, 
+  resetCVPaymentStatus,
+  setInitialDownloadCount
+} from "@/utils/downloadManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -47,6 +63,8 @@ const Dashboard = () => {
   const [downloadCounts, setDownloadCounts] = useState<{[key: string]: { count: number, lastPaymentDate: string }}>({});
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [currentCvId, setCurrentCvId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [cvToDelete, setCvToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -65,12 +83,19 @@ const Dashboard = () => {
       const savedCVs = getSavedCVs();
       setUserCVs(savedCVs);
       
-      // Load download counts for all CVs
+      // Initialize download counts for all CVs
       const counts = savedCVs.reduce((acc, cv) => {
-        acc[cv.id] = getDownloadCount(cv.id);
+        // Initialize new CVs with 5 downloads if they don't have a count yet
+        if (!getDownloadCount(cv.id).count) {
+          acc[cv.id] = setInitialDownloadCount(cv.id);
+        } else {
+          acc[cv.id] = getDownloadCount(cv.id);
+        }
         return acc;
       }, {} as {[key: string]: { count: number, lastPaymentDate: string }});
+      
       setDownloadCounts(counts);
+      console.log("État initial des compteurs:", counts);
     }
   }, [isAuthenticated, navigate, toast, user, isMobile]);
   
@@ -145,12 +170,12 @@ const Dashboard = () => {
           [cvId]: updatedCount
         }));
 
-        if (!isMobile) {
-          toast({
-            title: "Téléchargement réussi",
-            description: `Il vous reste ${updatedCount.count} téléchargements`
-          });
-        }
+        console.log(`Téléchargement effectué. Compteur mis à jour: ${updatedCount.count}`);
+
+        toast({
+          title: "Téléchargement réussi",
+          description: `Il vous reste ${updatedCount.count} téléchargements`
+        });
       }
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
@@ -200,6 +225,8 @@ const Dashboard = () => {
               [cvBeingPaid]: updatedCount
             }));
             
+            console.log(`Paiement vérifié pour CV ${cvBeingPaid}. Nouveau compteur: ${updatedCount.count}`);
+            
             localStorage.removeItem('cv_being_paid');
             toast({
               title: "Paiement confirmé",
@@ -241,22 +268,34 @@ const Dashboard = () => {
     };
     
     checkPaymentReturn();
+    
+    // Vérifier si un paiement est en attente au chargement
+    const cvBeingPaid = localStorage.getItem('cv_being_paid');
+    if (cvBeingPaid && !processingPayment) {
+      verifyPayment();
+    }
   }, [toast, processingPayment, isMobile]);
   
-  const handleDelete = (cvId) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer ce CV ?")) {
-      const updatedCVs = userCVs.filter(cv => cv.id !== cvId);
-      setUserCVs(updatedCVs);
-      
-      saveCVs(updatedCVs);
-      
-      if (!isMobile) {
-        toast({
-          title: "CV supprimé",
-          description: "Votre CV a été supprimé avec succès"
-        });
-      }
-    }
+  const confirmDelete = (cvId) => {
+    setCvToDelete(cvId);
+    setShowDeleteConfirm(true);
+  };
+  
+  const handleDelete = () => {
+    if (!cvToDelete) return;
+    
+    const updatedCVs = userCVs.filter(cv => cv.id !== cvToDelete);
+    setUserCVs(updatedCVs);
+    
+    saveCVs(updatedCVs);
+    
+    toast({
+      title: "CV supprimé",
+      description: "Votre CV a été supprimé avec succès"
+    });
+    
+    setShowDeleteConfirm(false);
+    setCvToDelete(null);
   };
   
   const handleCreateNew = () => {
@@ -335,12 +374,12 @@ const Dashboard = () => {
                   <CardDescription>
                     Dernière modification: {formatDate(cv.lastUpdated)}
                     {downloadCounts[cv.id] && downloadCounts[cv.id].count > 0 && (
-                      <div className="mt-2 text-sm text-green-600">
+                      <div className="mt-2 text-sm font-medium text-green-600">
                         {downloadCounts[cv.id].count} téléchargements restants
                       </div>
                     )}
                     {(!downloadCounts[cv.id] || downloadCounts[cv.id].count <= 0) && (
-                      <div className="mt-2 text-sm text-amber-600">
+                      <div className="mt-2 text-sm font-medium text-amber-600">
                         Aucun téléchargement disponible
                       </div>
                     )}
@@ -362,7 +401,7 @@ const Dashboard = () => {
                     Modifier
                   </Button>
                   <Button 
-                    variant="outline" 
+                    variant={downloadCounts[cv.id]?.count > 0 ? "outline" : "default"}
                     size="sm" 
                     className="gap-1 flex-1"
                     onClick={() => handleDownload(cv.id)}
@@ -377,7 +416,7 @@ const Dashboard = () => {
                     variant="outline" 
                     size="sm" 
                     className="text-destructive hover:text-destructive gap-1 flex-1"
-                    onClick={() => handleDelete(cv.id)}
+                    onClick={() => confirmDelete(cv.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                     Supprimer
@@ -407,6 +446,23 @@ const Dashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le CV sera définitivement supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCvToDelete(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <footer className="bg-muted py-6 mt-auto">
         <div className="container mx-auto px-4">
