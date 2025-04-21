@@ -41,3 +41,7 @@ export const hasDownloadsRemaining = (cvId: string): boolean => {
   const { count } = getDownloadCount(cvId);
   return count > 0;
 };
+
+export const resetCVPaymentStatus = () => {
+  localStorage.removeItem('cv_being_paid');
+};

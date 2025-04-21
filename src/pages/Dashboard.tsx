@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +9,8 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getDownloadCount, updateDownloadCount, hasDownloadsRemaining } from "@/utils/downloadManager";
+import { getDownloadCount, updateDownloadCount, hasDownloadsRemaining, resetCVPaymentStatus } from "@/utils/downloadManager";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -43,6 +45,8 @@ const Dashboard = () => {
   const [paymentVerified, setPaymentVerified] = useState({});
   const [processingPayment, setProcessingPayment] = useState(false);
   const [downloadCounts, setDownloadCounts] = useState<{[key: string]: { count: number, lastPaymentDate: string }}>({});
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [currentCvId, setCurrentCvId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -58,16 +62,17 @@ const Dashboard = () => {
     } else {
       setUserName(user?.name || "Utilisateur");
       
-      setUserCVs(getSavedCVs());
+      const savedCVs = getSavedCVs();
+      setUserCVs(savedCVs);
       
       // Load download counts for all CVs
-      const counts = userCVs.reduce((acc, cv) => {
+      const counts = savedCVs.reduce((acc, cv) => {
         acc[cv.id] = getDownloadCount(cv.id);
         return acc;
       }, {} as {[key: string]: { count: number, lastPaymentDate: string }});
       setDownloadCounts(counts);
     }
-  }, [isAuthenticated, navigate, toast, user, isMobile, userCVs]);
+  }, [isAuthenticated, navigate, toast, user, isMobile]);
   
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -93,10 +98,11 @@ const Dashboard = () => {
   };
   
   const handleDownload = async (cvId) => {
-    if (!hasDownloadsRemaining(cvId) && !paymentVerified[cvId]) {
-      setProcessingPayment(true);
+    if (!hasDownloadsRemaining(cvId)) {
+      // Marquer ce CV comme étant en attente de paiement
+      setCurrentCvId(cvId);
       localStorage.setItem('cv_being_paid', cvId);
-      window.location.href = "https://pay.djamo.com/a8zsl";
+      setShowPaymentDialog(true);
       return;
     }
 
@@ -154,6 +160,19 @@ const Dashboard = () => {
         variant: "destructive"
       });
     }
+  };
+  
+  const handleRedirectToPayment = () => {
+    setProcessingPayment(true);
+    setShowPaymentDialog(false);
+    // Redirection vers Djamo
+    window.location.href = "https://pay.djamo.com/a8zsl";
+  };
+  
+  const handlePaymentDialogClose = () => {
+    setShowPaymentDialog(false);
+    resetCVPaymentStatus();
+    setCurrentCvId(null);
   };
   
   useEffect(() => {
@@ -320,6 +339,11 @@ const Dashboard = () => {
                         {downloadCounts[cv.id].count} téléchargements restants
                       </div>
                     )}
+                    {(!downloadCounts[cv.id] || downloadCounts[cv.id].count <= 0) && (
+                      <div className="mt-2 text-sm text-amber-600">
+                        Aucun téléchargement disponible
+                      </div>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -347,7 +371,7 @@ const Dashboard = () => {
                     <Download className="h-4 w-4" />
                     {downloadCounts[cv.id]?.count > 0 
                       ? `Télécharger (${downloadCounts[cv.id].count})` 
-                      : `Payer ${PAYMENT_AMOUNT} CFA`}
+                      : "Recharger"}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -364,6 +388,25 @@ const Dashboard = () => {
           </div>
         )}
       </main>
+      
+      <Dialog open={showPaymentDialog} onOpenChange={handlePaymentDialogClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recharger votre compte</DialogTitle>
+            <DialogDescription>
+              Pour télécharger ce CV, vous devez payer {PAYMENT_AMOUNT} CFA. Cela vous permettra d'obtenir 5 téléchargements.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Vous serez redirigé vers la plateforme de paiement sécurisée Djamo pour finaliser votre transaction.
+            </p>
+            <Button onClick={handleRedirectToPayment} className="w-full">
+              Procéder au paiement ({PAYMENT_AMOUNT} CFA)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <footer className="bg-muted py-6 mt-auto">
         <div className="container mx-auto px-4">
