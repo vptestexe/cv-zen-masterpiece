@@ -15,7 +15,12 @@ import {
   resetCVPaymentStatus,
   setInitialDownloadCount,
   PAYMENT_AMOUNT,
-  secureStorage
+  secureStorage,
+  canCreateNewCV,
+  getTotalCVs,
+  removeDuplicateCVs,
+  FREE_DOWNLOADS_PER_CV,
+  MAX_FREE_CVS
 } from "@/utils/downloadManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
@@ -43,7 +48,8 @@ const getSavedCVs = () => {
   const savedCVsJSON = localStorage.getItem('saved_cvs');
   if (savedCVsJSON) {
     try {
-      return JSON.parse(savedCVsJSON);
+      const cvs = JSON.parse(savedCVsJSON);
+      return removeDuplicateCVs(cvs);
     } catch (e) {
       console.error("Erreur lors de la récupération des CV:", e);
       return [];
@@ -57,20 +63,6 @@ const saveCVs = (cvs) => {
   
   // Enregistrer une copie cryptée pour la sécurité
   secureStorage.set('saved_cvs_backup', cvs);
-};
-
-const getTotalFreeDownloads = (): number => {
-  const counts = localStorage.getItem('cv_download_counts');
-  if (counts) {
-    try {
-      const parsedCounts = JSON.parse(counts) as Record<string, { count: number, lastPaymentDate: string }>;
-      return Object.values(parsedCounts).reduce((total, cv) => total + (cv.count > 0 ? 1 : 0), 0);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des compteurs pour le total:", error);
-      return 0;
-    }
-  }
-  return 0;
 };
 
 const Dashboard = () => {
@@ -90,6 +82,8 @@ const Dashboard = () => {
   const [downloadLimitProgress, setDownloadLimitProgress] = useState(0);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicatesFound, setDuplicatesFound] = useState(0);
 
   useEffect(() => {
     const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -149,11 +143,21 @@ const Dashboard = () => {
         });
       }
       
-      setUserCVs(savedCVs);
+      const originalCount = savedCVs.length;
+      const uniqueCVs = removeDuplicateCVs(savedCVs);
+      const duplicatesRemoved = originalCount - uniqueCVs.length;
       
-      const counts = savedCVs.reduce((acc, cv) => {
+      if (duplicatesRemoved > 0) {
+        setDuplicatesFound(duplicatesRemoved);
+        setShowDuplicateAlert(true);
+        saveCVs(uniqueCVs);
+      }
+      
+      setUserCVs(uniqueCVs);
+      
+      const counts = uniqueCVs.reduce((acc, cv) => {
         if (!getDownloadCount(cv.id).count && !getDownloadCount(cv.id).lastPaymentDate) {
-          acc[cv.id] = setInitialDownloadCount(cv.id, 0);
+          acc[cv.id] = setInitialDownloadCount(cv.id);
         } else {
           acc[cv.id] = getDownloadCount(cv.id);
         }
@@ -414,14 +418,10 @@ const Dashboard = () => {
   };
   
   const handleCreateNew = () => {
-    const getTotalFreeDownloads = (): number => {
-      return userCVs.length;
-    };
-
-    if (getTotalFreeDownloads() >= 2) {
+    if (!canCreateNewCV()) {
       toast({
         title: "Limite atteinte",
-        description: "Vous avez atteint votre limite de CV gratuits. Veuillez acheter des téléchargements pour un CV existant.",
+        description: `Vous avez atteint votre limite de ${MAX_FREE_CVS} CV gratuits. Veuillez supprimer un CV existant ou acheter des téléchargements supplémentaires.`,
         variant: "destructive"
       });
       return;
@@ -457,6 +457,10 @@ const Dashboard = () => {
     return userCVs.length;
   };
   
+  const handleCloseDuplicateAlert = () => {
+    setShowDuplicateAlert(false);
+  };
+  
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-white border-b sticky top-0 z-20">
@@ -480,7 +484,12 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <div>
             <h2 className="text-3xl font-bold">Mon espace personnel</h2>
-            <p className="text-muted-foreground">Gérez vos CV et créez-en de nouveaux</p>
+            <p className="text-muted-foreground">
+              Gérez vos CV et créez-en de nouveaux 
+              <span className="ml-2 text-sm font-medium text-amber-600">
+                (limite de {MAX_FREE_CVS} CV gratuits)
+              </span>
+            </p>
           </div>
           <Button onClick={handleCreateNew} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -615,6 +624,23 @@ const Dashboard = () => {
             <AlertDialogCancel onClick={() => setCvToDelete(null)}>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>CVs en double détectés</AlertDialogTitle>
+            <AlertDialogDescription>
+              {duplicatesFound} CV(s) en double ont été automatiquement supprimés pour éviter la duplication. 
+              Vous pouvez créer jusqu'à {MAX_FREE_CVS} CV différents avec {FREE_DOWNLOADS_PER_CV} téléchargements gratuits chacun.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleCloseDuplicateAlert}>
+              Compris
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
