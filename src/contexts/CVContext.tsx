@@ -1,6 +1,7 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { CVData, CVTheme, WorkExperience, Education, Skill, Language, Project, Interest, Reference } from '@/types/cv';
+import { CVData, CVTheme, WorkExperience, Education, Skill, Language, Project, Interest, Reference, PersonalInfo } from '@/types/cv';
 import { useParams } from 'react-router-dom';
 
 interface CVContextProps {
