@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useCVContext } from "@/contexts/CVContext";
 import { CVEditor } from "@/components/editor/CVEditor";
@@ -15,7 +16,7 @@ import { getDownloadCount, isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/uti
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { downloadCvAsPdf, downloadCvAsWord } from "@/components/dashboard/DownloadManager";
+import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";
 import { useCVEditorActions } from "./hooks/useCVEditorActions";
 import { HeaderBar } from "./components/HeaderBar";
 import { FooterBar } from "./components/FooterBar";

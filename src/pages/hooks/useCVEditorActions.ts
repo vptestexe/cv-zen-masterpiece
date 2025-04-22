@@ -22,6 +22,10 @@ export function useCVEditorActions() {
   const [previewResetKey, setPreviewResetKey] = useState(0);
   const [freeDownloadAvailable, setFreeDownloadAvailable] = useState(true);
 
+  const refreshPreview = useCallback(() => {
+    setPreviewResetKey((prev) => prev + 1);
+  }, []);
+
   // Compose splitted hooks:
   const { handleDownloadCV } = useCVDownload({
     getCurrentCV: () => {
@@ -68,10 +72,6 @@ export function useCVEditorActions() {
     }
     // eslint-disable-next-line
   }, [location]);
-
-  const refreshPreview = useCallback(() => {
-    setPreviewResetKey((prev) => prev + 1);
-  }, []);
 
   return {
     currentCVId,

@@ -13,7 +13,7 @@ import DuplicateAlertDialog from "@/components/dashboard/DuplicateAlertDialog";
 import CVList from "@/components/dashboard/CVList";
 import { useInsertPayment } from "@/hooks/use-payments";
 import { generateUniqueId } from "@/utils/generateUniqueId";
-import { downloadCvAsPdf, downloadCvAsWord } from "@/components/dashboard/DownloadManager";
+import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
