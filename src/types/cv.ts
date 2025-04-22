@@ -1,4 +1,3 @@
-
 export interface PersonalInfo {
   fullName: string;
   jobTitle: string;

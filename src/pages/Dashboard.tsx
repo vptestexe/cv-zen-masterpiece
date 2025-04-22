@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Download, Trash2, Plus, LogOut, FileText, FileWord } from "lucide-react";
+import { Edit, Download, Trash2, Plus, LogOut, FileText } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useAuth } from "@/hooks/use-auth";
@@ -400,6 +400,10 @@ const Dashboard = () => {
   };
   
   const handleCreateNew = () => {
+    const getTotalFreeDownloads = (): number => {
+      return userCVs.length;
+    };
+
     if (getTotalFreeDownloads() >= 2) {
       toast({
         title: "Limite atteinte",
@@ -433,6 +437,10 @@ const Dashboard = () => {
         description: "À bientôt !"
       });
     }
+  };
+
+  const getTotalFreeDownloads = (): number => {
+    return userCVs.length;
   };
   
   return (
@@ -540,7 +548,7 @@ const Dashboard = () => {
                         onClick={() => handleDownload(cv.id, 'word')}
                         disabled={!downloadCounts[cv.id]?.count}
                       >
-                        <FileWord className="h-4 w-4 mr-2" />
+                        <FileText className="h-4 w-4 mr-2" />
                         Format Word
                       </DropdownMenuItem>
                     </DropdownMenuContent>

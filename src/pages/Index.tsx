@@ -4,7 +4,7 @@ import { CVEditor } from "@/components/editor/CVEditor";
 import { CVPreview } from "@/components/preview/CVPreview";
 import { ThemePalette } from "@/components/ThemePalette";
 import { useToast } from "@/hooks/use-toast";
-import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle, Download, FileWord } from "lucide-react";
+import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle, Download } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";

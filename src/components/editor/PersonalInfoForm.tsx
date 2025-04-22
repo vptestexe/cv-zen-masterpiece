@@ -20,7 +20,7 @@ export function PersonalInfoForm() {
   useEffect(() => {
     if (personalInfo.nationality && typeof personalInfo.nationality === 'string') {
       const matchingCountry = countries.find(c => 
-        c.name.toLowerCase() === (personalInfo.nationality as string).toLowerCase()
+        c.name.toLowerCase() === (personalInfo.nationality as unknown as string).toLowerCase()
       );
       
       if (matchingCountry) {

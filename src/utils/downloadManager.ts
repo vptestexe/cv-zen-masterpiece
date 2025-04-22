@@ -1,3 +1,4 @@
+
 interface DownloadCount {
   count: number;
   lastPaymentDate: string;
@@ -25,6 +26,16 @@ export const getDownloadCount = (cvId: string): DownloadCount => {
 };
 
 export const getTotalFreeDownloads = (): number => {
+  const counts = localStorage.getItem('cv_download_counts');
+  if (counts) {
+    try {
+      const parsedCounts: DownloadCounts = JSON.parse(counts);
+      return Object.values(parsedCounts).reduce((total, cv) => total + (cv.count > 0 ? 1 : 0), 0);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des compteurs pour le total:", error);
+      return 0;
+    }
+  }
   return 0;
 };
 
