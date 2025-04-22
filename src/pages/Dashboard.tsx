@@ -39,6 +39,12 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import CVCard from "@/components/dashboard/CVCard";
+import PaymentDialog from "@/components/dashboard/PaymentDialog";
+import DeleteConfirmDialog from "@/components/dashboard/DeleteConfirmDialog";
+import DuplicateAlertDialog from "@/components/dashboard/DuplicateAlertDialog";
+import DashboardFooter from "@/components/dashboard/DashboardFooter";
 
 const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
@@ -457,23 +463,8 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b sticky top-0 z-20">
-        <div className="container mx-auto py-4 px-4 sm:px-6 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">
-            <span className="font-playfair">CV Zen Masterpiece</span>
-          </h1>
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-sm text-muted-foreground mr-2">
-              Bonjour, {userName}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Déconnexion</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-      
+      <DashboardHeader userName={userName} onLogout={handleLogout} />
+
       <main className="flex-1 container mx-auto py-8 px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <div>
@@ -490,7 +481,6 @@ const Dashboard = () => {
             Créer un nouveau CV
           </Button>
         </div>
-        
         {userCVs.length === 0 ? (
           <Card className="w-full p-12 text-center">
             <CardContent className="flex flex-col items-center justify-center pt-6">
@@ -506,201 +496,36 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {userCVs.map((cv) => (
-              <Card key={cv.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle>{cv.title}</CardTitle>
-                  <CardDescription>
-                    Dernière modification: {formatDate(cv.lastUpdated)}
-                    {downloadCounts[cv.id] && downloadCounts[cv.id].count > 0 && (
-                      <div className="mt-2 text-sm font-medium text-green-600">
-                        {downloadCounts[cv.id].count} téléchargements restants
-                      </div>
-                    )}
-                    {(!downloadCounts[cv.id] || downloadCounts[cv.id].count <= 0) && (
-                      <div className="mt-2 text-sm font-medium text-amber-600">
-                        Aucun téléchargement disponible
-                      </div>
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-[3/4] bg-muted/20 rounded flex items-center justify-center">
-                    <FileText className="h-16 w-16 text-muted-foreground" />
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-1 flex-1"
-                    onClick={() => handleEdit(cv.id)}
-                  >
-                    <Edit className="h-4 w-4" />
-                    Modifier
-                  </Button>
-                  
-                  {downloadCounts[cv.id]?.count > 0 ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="outline"
-                          size="sm" 
-                          className="gap-1 flex-1"
-                          disabled={processingPayment}
-                        >
-                          <Download className="h-4 w-4" />
-                          Télécharger ({downloadCounts[cv.id].count})
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleDownload(cv.id, 'pdf')}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Format PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDownload(cv.id, 'word')}>
-                          <FileText className="h-4 w-4 mr-2" />
-                          Format Word
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="gap-1 flex-1"
-                      disabled={processingPayment}
-                      onClick={() => handleRechargeClick(cv.id)}
-                    >
-                      <Download className="h-4 w-4" />
-                      Recharger
-                    </Button>
-                  )}
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-destructive hover:text-destructive gap-1 flex-1"
-                    onClick={() => confirmDelete(cv.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Supprimer
-                  </Button>
-                </CardFooter>
-              </Card>
+              <CVCard
+                key={cv.id}
+                cv={cv}
+                downloadCount={downloadCounts[cv.id]}
+                processingPayment={processingPayment}
+                onEdit={handleEdit}
+                onDownload={handleDownload}
+                onRecharge={handleRechargeClick}
+                onDelete={confirmDelete}
+              />
             ))}
           </div>
         )}
       </main>
-      
-      {/* ----- Payment Dialog (Wave Edition) ----- */}
-      <Dialog open={showPaymentDialog} onOpenChange={handlePaymentDialogClose}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Paiement Wave requis</DialogTitle>
-            <DialogDescription>
-              Pour télécharger ce CV, veuillez payer <span className="font-bold">{PAYMENT_AMOUNT} CFA</span> pour obtenir 5 téléchargements. 
-              Suivez les instructions ci-dessous. 
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            {isMobile ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Veuillez payer Cvbuilder avec Wave en cliquant sur ce lien&nbsp;:
-                </p>
-                <a
-                  href="https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=100"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline font-semibold text-lg"
-                >
-                  Payer avec Wave
-                </a>
-                <p className="text-xs text-gray-500 mt-2">
-                  Après paiement, revenez sur le site et cliquez à nouveau sur le bouton pour vérifier et débloquer votre téléchargement.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Depuis un PC ou une tablette, scannez ce QR code avec votre application Wave pour payer.
-                </p>
-                <div className="flex justify-center mb-2">
-                  <img 
-                    src="/lovable-uploads/6d5928c8-e6d7-4966-8802-42ff454becaa.png" 
-                    alt="QR code Wave pour paiement CVbuilder" 
-                    className="w-48 h-64 object-contain rounded-md border shadow"
-                  />
-                </div>
-                <div className="flex flex-col items-center mt-2">
-                  <span className="font-semibold text-lg text-primary">
-                    1000 CFA
-                  </span>
-                  <a
-                    href="https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=100"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline mt-2 text-sm"
-                  >
-                    Ou cliquez ici pour payer en ligne
-                  </a>
-                </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Après paiement, revenez sur le site et cliquez à nouveau sur le bouton pour vérifier et débloquer votre téléchargement.
-                </p>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. Le CV sera définitivement supprimé.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCvToDelete(null)}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>CVs en double détectés</AlertDialogTitle>
-            <AlertDialogDescription>
-              {duplicatesFound} CV(s) en double ont été automatiquement supprimés pour éviter la duplication. 
-              Vous pouvez créer jusqu'à {MAX_FREE_CVS} CV différents avec {FREE_DOWNLOADS_PER_CV} téléchargements gratuits chacun.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleCloseDuplicateAlert}>
-              Compris
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      <footer className="bg-muted py-6 mt-auto">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} CV Zen Masterpiece - Tous droits réservés
-            </p>
-            <div className="flex gap-4 mt-4 md:mt-0">
-              <Button variant="ghost" size="sm">Aide</Button>
-              <Button variant="ghost" size="sm">Contact</Button>
-            </div>
-          </div>
-        </div>
-      </footer>
+
+      <PaymentDialog open={showPaymentDialog} onClose={handlePaymentDialogClose} />
+
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onDelete={handleDelete}
+      />
+
+      <DuplicateAlertDialog
+        open={showDuplicateAlert}
+        duplicatesFound={duplicatesFound}
+        onClose={handleCloseDuplicateAlert}
+      />
+
+      <DashboardFooter />
     </div>
   );
 };
