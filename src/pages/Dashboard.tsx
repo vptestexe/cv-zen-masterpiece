@@ -63,7 +63,7 @@ const getTotalFreeDownloads = (): number => {
   const counts = localStorage.getItem('cv_download_counts');
   if (counts) {
     try {
-      const parsedCounts = JSON.parse(counts);
+      const parsedCounts = JSON.parse(counts) as Record<string, { count: number, lastPaymentDate: string }>;
       return Object.values(parsedCounts).reduce((total, cv) => total + (cv.count > 0 ? 1 : 0), 0);
     } catch (error) {
       console.error("Erreur lors de la récupération des compteurs pour le total:", error);

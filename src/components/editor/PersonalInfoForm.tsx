@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { useState, useRef, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/utils/countries";
+import { PersonalInfoExtended } from "@/types/cv-extended";
 
 export function PersonalInfoForm() {
   const { cvData, updatePersonalInfo } = useCVContext();
@@ -27,7 +28,7 @@ export function PersonalInfoForm() {
       
       if (matchingCountry) {
         // Use the properly typed updatePersonalInfo function
-        updatePersonalInfo('nationality', {
+        updatePersonalInfo('nationality' as keyof PersonalInfoExtended, {
           code: matchingCountry.code,
           name: matchingCountry.name
         });
@@ -111,7 +112,7 @@ export function PersonalInfoForm() {
     const country = countries.find(c => c.code === code);
     if (country) {
       // Update nationality with proper object structure
-      updatePersonalInfo('nationality', {
+      updatePersonalInfo('nationality' as keyof PersonalInfoExtended, {
         code: country.code,
         name: country.name
       });
