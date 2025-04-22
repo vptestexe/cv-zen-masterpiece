@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +55,8 @@ const Dashboard = () => {
   const [cvToDelete, setCvToDelete] = useState<string | null>(null);
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
   const [duplicatesFound, setDuplicatesFound] = useState(0);
+  const [lastActivity, setLastActivity] = useState(Date.now());
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const { mutate: insertPayment } = useInsertPayment();
 
@@ -221,10 +224,10 @@ const Dashboard = () => {
 
       if (paymentSuccessful && paymentAmount === PAYMENT_AMOUNT) {
         setProcessingPayment(true);
-        if (user?.email && user?.id) {
+        if (user?.email) {
           insertPayment(
             {
-              userId: user.id,
+              userId: user.id || '',
               cvId: cvBeingPaid,
               amount: PAYMENT_AMOUNT,
               transactionId: paymentSession?.transactionId || null,
@@ -297,9 +300,6 @@ const Dashboard = () => {
     setUserCVs(updatedCVs);
     
     saveCVs(updatedCVs);
-    
-    const freeDownloads = getTotalFreeDownloads();
-    setDownloadLimitProgress(Math.min((freeDownloads / 2) * 100, 100));
     
     toast({
       title: "CV supprimé",
