@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,11 +20,13 @@ export function PersonalInfoForm() {
   
   useEffect(() => {
     if (personalInfo.nationality && typeof personalInfo.nationality === 'string') {
+      // Convert string nationality to object if needed
       const matchingCountry = countries.find(c => 
         c.name.toLowerCase() === (personalInfo.nationality as unknown as string).toLowerCase()
       );
       
       if (matchingCountry) {
+        // Use the properly typed updatePersonalInfo function
         updatePersonalInfo('nationality', {
           code: matchingCountry.code,
           name: matchingCountry.name
@@ -107,6 +110,7 @@ export function PersonalInfoForm() {
   const handleNationalityChange = (code: string) => {
     const country = countries.find(c => c.code === code);
     if (country) {
+      // Update nationality with proper object structure
       updatePersonalInfo('nationality', {
         code: country.code,
         name: country.name

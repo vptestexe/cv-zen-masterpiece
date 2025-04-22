@@ -59,6 +59,20 @@ const saveCVs = (cvs) => {
   secureStorage.set('saved_cvs_backup', cvs);
 };
 
+const getTotalFreeDownloads = (): number => {
+  const counts = localStorage.getItem('cv_download_counts');
+  if (counts) {
+    try {
+      const parsedCounts = JSON.parse(counts);
+      return Object.values(parsedCounts).reduce((total, cv) => total + (cv.count > 0 ? 1 : 0), 0);
+    } catch (error) {
+      console.error("Erreur lors de la récupération des compteurs pour le total:", error);
+      return 0;
+    }
+  }
+  return 0;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
