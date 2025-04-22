@@ -1,4 +1,3 @@
-
 import { useCVContext } from "@/contexts/CVContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -6,7 +5,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCallback, useState, useRef, useEffect } from "react";
 import { getDownloadCount, isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/utils/downloadManager";
 import { v4 as uuidv4 } from "uuid";
-import { downloadCvAsPdf, downloadCvAsWord } from "@/components/dashboard/DownloadManager";
+import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";
 
 export function useCVEditorActions() {
   const { resetCV, cvData, cvTheme, setInitialTheme } = useCVContext();
