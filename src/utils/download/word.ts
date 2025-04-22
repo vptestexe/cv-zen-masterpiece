@@ -6,7 +6,7 @@ export const downloadCvAsWord = (cv: any, downloadId: string) => {
       <div style="border-radius: 50%; overflow: hidden; border: 1px solid #eee; width: 112px; height: 112px; flex-shrink: 0; background: #fff;">
         <img src="${cv.data.personalInfo.profilePhoto}" 
               alt="Profile Photo" 
-              style="width: 112px; height: 112px; object-fit: cover; border-radius: 50%;" crossOrigin="anonymous" />
+              style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" crossOrigin="anonymous" />
       </div>
       <div style="flex: 1;">
         ${cv.data.personalInfo.fullName ? `<h1 style="font-weight:bold;font-size:22px;margin:0 0 6px 0;color:${cv.theme?.primaryColor || '#0170c4'}">${cv.data.personalInfo.fullName}</h1>` : ''}
@@ -39,13 +39,13 @@ export const downloadCvAsWord = (cv: any, downloadId: string) => {
       ${photoHtml}
       ${cv.data?.summary ? `
         <div style="margin-bottom: 20px;">
-          <h2>Profil</h2>
+          <h2>PROFIL</h2>
           <p>${cv.data.summary}</p>
         </div>
       ` : ''}
       ${cv.data?.workExperiences?.length > 0 ? `
         <div style="margin-bottom: 20px;">
-          <h2>Expériences Professionnelles</h2>
+          <h2>EXPÉRIENCES PROFESSIONNELLES</h2>
           ${cv.data.workExperiences.map((exp: any) => `
             <div style="margin-bottom: 15px;">
               <h3>${exp.position || ''} ${exp.company ? `chez ${exp.company}` : ''}</h3>
@@ -57,7 +57,7 @@ export const downloadCvAsWord = (cv: any, downloadId: string) => {
       ` : ''}
       ${cv.data?.educations?.length > 0 ? `
         <div style="margin-bottom: 20px;">
-          <h2>Formations</h2>
+          <h2>FORMATIONS</h2>
           ${cv.data.educations.map((edu: any) => `
             <div style="margin-bottom: 15px;">
               <h3>${edu.degree || ''} ${edu.institution ? `à ${edu.institution}` : ''}</h3>
@@ -69,7 +69,7 @@ export const downloadCvAsWord = (cv: any, downloadId: string) => {
       ` : ''}
       ${cv.data?.skills?.length > 0 ? `
         <div style="margin-bottom: 20px;">
-          <h2>Compétences</h2>
+          <h2>COMPÉTENCES</h2>
           <ul>
             ${cv.data.skills.map((skill: any) => `
               <li><strong>${skill.name}</strong> ${skill.level ? `(${skill.level}/5)` : ''}</li>
@@ -79,7 +79,7 @@ export const downloadCvAsWord = (cv: any, downloadId: string) => {
       ` : ''}
       ${cv.data?.languages?.length > 0 ? `
         <div style="margin-bottom: 20px;">
-          <h2>Langues</h2>
+          <h2>LANGUES</h2>
           <ul>
             ${cv.data.languages.map((lang: any) => `
               <li><strong>${lang.name}</strong> ${lang.level ? `(${lang.level})` : ''}</li>

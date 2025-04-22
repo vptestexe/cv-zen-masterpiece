@@ -1,3 +1,4 @@
+
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { generateUniqueId } from "@/utils/generateUniqueId";
@@ -18,7 +19,8 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         <div style="border-radius: 50%; overflow: hidden; border: 1px solid #eee; width: 112px; height: 112px; flex-shrink: 0; background: #fff;">
           <img src="${cv.data.personalInfo.profilePhoto}" 
                alt="Profile Photo" 
-               style="width: 112px; height: 112px; object-fit: cover; border-radius: 50%;" crossOrigin="anonymous" />
+               style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" 
+               crossOrigin="anonymous" />
         </div>
         <div style="flex: 1;">
           ${cv.data.personalInfo.fullName ? `<h1 style="font-weight:bold;font-size:22px;margin:0 0 6px 0;color:${cv.theme?.primaryColor || '#0170c4'}">${cv.data.personalInfo.fullName}</h1>` : ''}
@@ -39,13 +41,13 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         ${photoHtml}
         ${cv.data?.summary ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Profil</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">PROFIL</h2>
             <p>${cv.data.summary}</p>
           </div>
         ` : ''}
         ${cv.data?.workExperiences?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Expériences Professionnelles</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">EXPÉRIENCES PROFESSIONNELLES</h2>
             ${cv.data.workExperiences.map((exp: any) => `
               <div style="margin-bottom: 15px;">
                 <h3 style="font-size: 14px; margin-bottom: 5px;">${exp.position || ''} ${exp.company ? `chez ${exp.company}` : ''}</h3>
@@ -57,7 +59,7 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         ` : ''}
         ${cv.data?.educations?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Formations</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">FORMATIONS</h2>
             ${cv.data.educations.map((edu: any) => `
               <div style="margin-bottom: 15px;">
                 <h3 style="font-size: 14px; margin-bottom: 5px;">${edu.degree || ''} ${edu.institution ? `à ${edu.institution}` : ''}</h3>
@@ -69,7 +71,7 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         ` : ''}
         ${cv.data?.skills?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Compétences</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">COMPÉTENCES</h2>
             <ul>
               ${cv.data.skills.map((skill: any) => `
                 <li><strong>${skill.name}</strong> ${skill.level ? `(${skill.level}/5)` : ''}</li>
@@ -79,7 +81,7 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         ` : ''}
         ${cv.data?.languages?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Langues</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">LANGUES</h2>
             <ul>
               ${cv.data.languages.map((lang: any) => `
                 <li><strong>${lang.name}</strong> ${lang.level ? `(${lang.level})` : ''}</li>

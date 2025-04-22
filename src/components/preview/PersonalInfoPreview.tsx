@@ -26,19 +26,18 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
   const country = hasNationality && typeof personalInfo.nationality?.code === 'string' 
     ? getCountryByCode(personalInfo.nationality.code) 
     : null;
-  const photoPosition = "left"; // Pour la preview layout, photo always left
-  const photoSize = "h-28 w-28"; // Taille raisonnable (non compressé), carré
+  const photoSize = "h-28 w-28"; // Taille constante, carré
 
   // Layout horizontal : photo à gauche + infos à droite en flex row et items-top
   return (
     <div className="flex flex-row items-start gap-6 mb-6">
       {hasPhoto && (
-        <div className={cn("rounded-full overflow-hidden flex-shrink-0", photoSize, "border border-gray-200 bg-white")}>
+        <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-gray-200 bg-white", photoSize)}>
           <img
             src={personalInfo.profilePhoto}
             alt={personalInfo.fullName || "Profile"}
             className="h-full w-full object-cover"
-            style={{ minWidth: "112px", minHeight: "112px", objectFit: "cover" }}
+            style={{ objectFit: "cover" }}
             crossOrigin="anonymous"
             loading="lazy"
           />
