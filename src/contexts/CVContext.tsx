@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom';
 interface CVContextProps {
   cvData: CVData;
   cvTheme: CVTheme;
-  updatePersonalInfo: (field: string, value: string) => void;
+  updatePersonalInfo: (field: keyof PersonalInfo, value: string | { code: string; name: string }) => void;
   updateSummary: (summary: string) => void;
   addWorkExperience: () => void;
   updateWorkExperience: (id: string, field: string, value: string) => void;
@@ -744,13 +744,13 @@ export const CVProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [templateId]);
 
-  const updatePersonalInfo = (field: string, value: string) => {
-    setCVData(prev => ({
+  const updatePersonalInfo = (field: keyof PersonalInfo, value: string | { code: string; name: string }) => {
+    setCVData((prev) => ({
       ...prev,
       personalInfo: {
         ...prev.personalInfo,
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
