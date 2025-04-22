@@ -293,16 +293,10 @@ const Dashboard = () => {
     }
   };
   
-  const handleRedirectToPayment = () => {
-    setProcessingPayment(true);
-    setShowPaymentDialog(false);
-    const paymentToken = generateUniqueId();
-    secureStorage.set('payment_token', {
-      token: paymentToken,
-      cvId: currentCvId,
-      timestamp: Date.now()
-    });
-    window.location.href = `https://pay.djamo.com/a8zsl?token=${paymentToken}&amount=${PAYMENT_AMOUNT}`;
+  const handleRechargeClick = (cvId) => {
+    setCurrentCvId(cvId);
+    localStorage.setItem('cv_being_paid', cvId);
+    setShowPaymentDialog(true);
   };
   
   const handlePaymentDialogClose = () => {
@@ -545,37 +539,42 @@ const Dashboard = () => {
                     Modifier
                   </Button>
                   
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant={downloadCounts[cv.id]?.count > 0 ? "outline" : "default"}
-                        size="sm" 
-                        className="gap-1 flex-1"
-                        disabled={processingPayment}
-                      >
-                        <Download className="h-4 w-4" />
-                        {downloadCounts[cv.id]?.count > 0 
-                          ? `Télécharger (${downloadCounts[cv.id].count})` 
-                          : "Recharger"}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem 
-                        onClick={() => handleDownload(cv.id, 'pdf')}
-                        disabled={!downloadCounts[cv.id]?.count}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Format PDF
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDownload(cv.id, 'word')}
-                        disabled={!downloadCounts[cv.id]?.count}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Format Word
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {downloadCounts[cv.id]?.count > 0 ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline"
+                          size="sm" 
+                          className="gap-1 flex-1"
+                          disabled={processingPayment}
+                        >
+                          <Download className="h-4 w-4" />
+                          Télécharger ({downloadCounts[cv.id].count})
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleDownload(cv.id, 'pdf')}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Format PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(cv.id, 'word')}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Format Word
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="gap-1 flex-1"
+                      disabled={processingPayment}
+                      onClick={() => handleRechargeClick(cv.id)}
+                    >
+                      <Download className="h-4 w-4" />
+                      Recharger
+                    </Button>
+                  )}
                   
                   <Button 
                     variant="outline" 
