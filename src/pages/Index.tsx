@@ -15,6 +15,7 @@ import { getDownloadCount, isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/uti
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { downloadCvAsPdf, downloadCvAsWord } from "@/components/dashboard/DownloadManager";
 
 const MAX_AUTO_SAVE_INTERVAL = 30000; // 30 secondes
 
