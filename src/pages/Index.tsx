@@ -271,63 +271,24 @@ const Index = () => {
     }
     
     try {
-      const previewElement = previewRef.current;
+      const savedCVsJSON = localStorage.getItem('saved_cvs');
+      if (!savedCVsJSON || !currentCVId) {
+        throw new Error("CV data not found");
+      }
       
-      const canvas = await html2canvas(previewElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff"
-      });
+      const savedCVs = JSON.parse(savedCVsJSON);
+      const currentCV = savedCVs.find((cv: any) => cv.id === currentCVId);
       
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      if (!currentCV) {
+        throw new Error("Current CV not found");
+      }
+      
       const downloadId = uuidv4().substring(0, 8).toUpperCase();
       
       if (format === 'pdf') {
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        const imgWidth = 210;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-        
-        pdf.setFontSize(8);
-        pdf.setTextColor(200, 200, 200);
-        pdf.text(`CV Zen Masterpiece - ID: ${downloadId}`, 10, 290);
-        
-        pdf.save('mon-cv.pdf');
+        await downloadCvAsPdf(currentCV, downloadId);
       } else {
-        const htmlContent = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Mon CV</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-              .watermark { color: #cccccc; font-size: 8pt; position: absolute; bottom: 10px; left: 10px; }
-              img { max-width: 100%; height: auto; }
-            </style>
-          </head>
-          <body>
-            <img src="${imgData}" alt="CV" style="width: 100%;" />
-            <div class="watermark">CV Zen Masterpiece - ID: ${downloadId}</div>
-          </body>
-          </html>
-        `;
-        
-        const blob = new Blob([htmlContent], { type: 'application/vnd.ms-word' });
-        
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'mon-cv.doc';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadCvAsWord(currentCV, downloadId);
       }
       
       if (!isMobile) {

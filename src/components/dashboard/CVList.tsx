@@ -1,9 +1,19 @@
 
 import React from "react";
 import CVCard from "@/components/dashboard/CVCard";
+import { CVTheme } from "@/types/cv";
+
+interface CV {
+  id: string;
+  title: string;
+  lastUpdated: string;
+  template: string;
+  data: any;
+  theme: CVTheme;
+}
 
 interface CVListProps {
-  cvs: any[];
+  cvs: CV[];
   downloadCounts: { [key: string]: { count: number, lastPaymentDate: string } };
   processingPayment: boolean;
   onEdit: (id: string) => void;
