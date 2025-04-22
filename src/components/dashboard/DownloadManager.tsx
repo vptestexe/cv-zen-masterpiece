@@ -12,11 +12,22 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
   document.body.appendChild(container);
   
   try {
+    // Prepare photo HTML if exists
+    const photoHtml = cv.data?.personalInfo?.profilePhoto ? `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="${cv.data.personalInfo.profilePhoto}" 
+             alt="Profile Photo" 
+             style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" />
+      </div>
+    ` : '';
+    
     // Create the content in the same way as the preview
     container.innerHTML = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
         <h1 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 24px; margin-bottom: 5px;">${cv.title}</h1>
         <p style="margin-bottom: 20px;">Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}</p>
+        
+        ${photoHtml}
         
         ${cv.data?.personalInfo?.fullName ? `
           <div style="margin-bottom: 20px;">
@@ -127,6 +138,15 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
 
 export const downloadCvAsWord = (cv: any, downloadId: string) => {
   // Create HTML content for Word document
+  // Prepare photo HTML if exists
+  const photoHtml = cv.data?.personalInfo?.profilePhoto ? `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img src="${cv.data.personalInfo.profilePhoto}" 
+           alt="Profile Photo" 
+           style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" />
+    </div>
+  ` : '';
+  
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -144,6 +164,8 @@ export const downloadCvAsWord = (cv: any, downloadId: string) => {
     <body>
       <h1>${cv.title}</h1>
       <p>Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}</p>
+      
+      ${photoHtml}
       
       ${cv.data?.personalInfo?.fullName ? `
         <div style="margin-bottom: 20px;">

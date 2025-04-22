@@ -50,6 +50,7 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
               src={personalInfo.profilePhoto}
               alt={personalInfo.fullName || "Profile"}
               className="h-full w-full object-cover"
+              crossOrigin="anonymous"
             />
           </div>
         </div>
@@ -61,6 +62,7 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
             src={personalInfo.profilePhoto}
             alt={personalInfo.fullName || "Profile"}
             className="h-full w-full object-cover"
+            crossOrigin="anonymous"
           />
         </div>
       )}
