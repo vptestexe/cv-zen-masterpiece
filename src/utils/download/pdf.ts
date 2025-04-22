@@ -1,4 +1,3 @@
-
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { generateUniqueId } from "@/utils/generateUniqueId";
@@ -13,43 +12,43 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
   document.body.appendChild(container);
 
   try {
-    // Prepare photo HTML if exists
+    // Photo soignée (layout horizontal, non compressée)
     const photoHtml = cv.data?.personalInfo?.profilePhoto ? `
-      <div style="text-align: center; margin-bottom: 20px;">
-        <img src="${cv.data.personalInfo.profilePhoto}" 
-             alt="Profile Photo" 
-             style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" crossOrigin="anonymous" />
+      <div style="display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px;">
+        <div style="border-radius: 50%; overflow: hidden; border: 1px solid #eee; width: 112px; height: 112px; flex-shrink: 0; background: #fff;">
+          <img src="${cv.data.personalInfo.profilePhoto}" 
+               alt="Profile Photo" 
+               style="width: 112px; height: 112px; object-fit: cover; border-radius: 50%;" crossOrigin="anonymous" />
+        </div>
+        <div style="flex: 1;">
+          ${cv.data.personalInfo.fullName ? `<h1 style="font-weight:bold;font-size:22px;margin:0 0 6px 0;color:${cv.theme?.primaryColor || '#0170c4'}">${cv.data.personalInfo.fullName}</h1>` : ''}
+          ${cv.data.personalInfo.jobTitle ? `<span style="font-size:15px;display:block;margin-bottom:8px;"><b>${cv.data.personalInfo.jobTitle}</b></span>` : ''}
+          <div>
+          ${cv.data.personalInfo.nationality?.name ? `<p style="margin:0 0 2px 0;"><b>Nationalité:</b> ${cv.data.personalInfo.nationality.name}</p>` : ""}
+          ${cv.data.personalInfo.address ? `<p style="margin:0 0 2px 0;"><b>Adresse:</b> ${cv.data.personalInfo.address}</p>` : ""}
+          ${cv.data.personalInfo.phone ? `<p style="margin:0 0 2px 0;"><b>Téléphone:</b> ${cv.data.personalInfo.phone}</p>` : ""}
+          ${cv.data.personalInfo.email ? `<p style="margin:0 0 2px 0;"><b>Email:</b> ${cv.data.personalInfo.email}</p>` : ""}
+          </div>
+        </div>
       </div>
     ` : '';
 
-    // Create content as in preview
+    // Contenu SANS titre principal ni date modif, titres majuscules
     container.innerHTML = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-        <h1 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 24px; margin-bottom: 5px;">${cv.title}</h1>
-        <p style="margin-bottom: 20px;">Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}</p>
         ${photoHtml}
-        ${cv.data?.personalInfo?.fullName ? `
-          <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 18px; margin-bottom: 10px;">Informations personnelles</h2>
-            <p><strong>Nom complet:</strong> ${cv.data.personalInfo.fullName}</p>
-            ${cv.data.personalInfo.jobTitle ? `<p><strong>Poste:</strong> ${cv.data.personalInfo.jobTitle}</p>` : ''}
-            ${cv.data.personalInfo.email ? `<p><strong>Email:</strong> ${cv.data.personalInfo.email}</p>` : ''}
-            ${cv.data.personalInfo.phone ? `<p><strong>Téléphone:</strong> ${cv.data.personalInfo.phone}</p>` : ''}
-            ${cv.data.personalInfo.address ? `<p><strong>Adresse:</strong> ${cv.data.personalInfo.address}</p>` : ''}
-          </div>
-        ` : ''}
         ${cv.data?.summary ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 18px; margin-bottom: 10px;">Profil</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Profil</h2>
             <p>${cv.data.summary}</p>
           </div>
         ` : ''}
         ${cv.data?.workExperiences?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 18px; margin-bottom: 10px;">Expériences Professionnelles</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Expériences Professionnelles</h2>
             ${cv.data.workExperiences.map((exp: any) => `
               <div style="margin-bottom: 15px;">
-                <h3 style="font-size: 16px; margin-bottom: 5px;">${exp.position || ''} ${exp.company ? `chez ${exp.company}` : ''}</h3>
+                <h3 style="font-size: 14px; margin-bottom: 5px;">${exp.position || ''} ${exp.company ? `chez ${exp.company}` : ''}</h3>
                 <p>${exp.startDate || ''} - ${exp.endDate || 'Présent'} ${exp.location ? `| ${exp.location}` : ''}</p>
                 <p>${exp.description || ''}</p>
               </div>
@@ -58,10 +57,10 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         ` : ''}
         ${cv.data?.educations?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 18px; margin-bottom: 10px;">Formations</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Formations</h2>
             ${cv.data.educations.map((edu: any) => `
               <div style="margin-bottom: 15px;">
-                <h3 style="font-size: 16px; margin-bottom: 5px;">${edu.degree || ''} ${edu.institution ? `à ${edu.institution}` : ''}</h3>
+                <h3 style="font-size: 14px; margin-bottom: 5px;">${edu.degree || ''} ${edu.institution ? `à ${edu.institution}` : ''}</h3>
                 <p>${edu.startDate || ''} - ${edu.endDate || ''} ${edu.location ? `| ${edu.location}` : ''}</p>
                 <p>${edu.description || ''}</p>
               </div>
@@ -70,7 +69,7 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         ` : ''}
         ${cv.data?.skills?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 18px; margin-bottom: 10px;">Compétences</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Compétences</h2>
             <ul>
               ${cv.data.skills.map((skill: any) => `
                 <li><strong>${skill.name}</strong> ${skill.level ? `(${skill.level}/5)` : ''}</li>
@@ -80,7 +79,7 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
         ` : ''}
         ${cv.data?.languages?.length > 0 ? `
           <div style="margin-bottom: 20px;">
-            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 18px; margin-bottom: 10px;">Langues</h2>
+            <h2 style="color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform:uppercase;">Langues</h2>
             <ul>
               ${cv.data.languages.map((lang: any) => `
                 <li><strong>${lang.name}</strong> ${lang.level ? `(${lang.level})` : ''}</li>
@@ -94,7 +93,6 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
       </div>
     `;
 
-    // Convert to image using html2canvas
     const canvas = await html2canvas(container, {
       scale: 2,
       useCORS: true,
@@ -102,7 +100,6 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
       backgroundColor: "#ffffff"
     });
 
-    // Create PDF
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -122,7 +119,6 @@ export const downloadCvAsPdf = async (cv: any, downloadId: string) => {
 
     pdf.save(`cv-${cv.id}.pdf`);
   } finally {
-    // Clean up
     if (container && container.parentNode) {
       container.parentNode.removeChild(container);
     }

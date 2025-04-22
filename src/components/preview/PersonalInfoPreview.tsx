@@ -12,7 +12,7 @@ interface PersonalInfoPreviewProps {
 export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPreviewProps) {
   const { cvData, cvTheme } = useCVContext();
   const { personalInfo } = cvData;
-  
+
   const hasName = !!personalInfo.fullName;
   const hasJobTitle = !!personalInfo.jobTitle;
   const hasAddress = !!personalInfo.address;
@@ -23,61 +23,37 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
   const hasPortfolio = !!personalInfo.portfolio;
   const hasPhoto = !!personalInfo.profilePhoto;
   const hasNationality = !!personalInfo.nationality?.code;
-
-  // Get country information if nationality is set
   const country = hasNationality && typeof personalInfo.nationality?.code === 'string' 
     ? getCountryByCode(personalInfo.nationality.code) 
     : null;
+  const photoPosition = "left"; // Pour la preview layout, photo always left
+  const photoSize = "h-28 w-28"; // Taille raisonnable (non compressé), carré
 
-  // Determine layout based on photo position
-  const photoPosition = cvTheme.photoPosition;
-  const photoSize = cvTheme.photoSize === 'small' ? 'h-24 w-24' : 
-                   cvTheme.photoSize === 'large' ? 'h-36 w-36' : 'h-28 w-28';
-
-  // Determine if we should use a layout with photo
-  const usePhotoLayout = hasPhoto && (hasName || hasJobTitle);
-
+  // Layout horizontal : photo à gauche + infos à droite en flex row et items-top
   return (
-    <div className={cn(
-      "mb-6",
-      usePhotoLayout && photoPosition === "left" ? "flex gap-6 items-start" : "",
-      usePhotoLayout && photoPosition === "right" ? "flex flex-row-reverse gap-6 items-start" : ""
-    )}>
-      {usePhotoLayout && photoPosition === "top" && (
-        <div className="flex justify-center mb-4">
-          <div className={cn("rounded-full overflow-hidden", photoSize)}>
-            <img
-              src={personalInfo.profilePhoto}
-              alt={personalInfo.fullName || "Profile"}
-              className="h-full w-full object-cover"
-              crossOrigin="anonymous"
-            />
-          </div>
-        </div>
-      )}
-
-      {usePhotoLayout && (photoPosition === "left" || photoPosition === "right") && (
-        <div className={cn("rounded-full overflow-hidden flex-shrink-0", photoSize)}>
+    <div className="flex flex-row items-start gap-6 mb-6">
+      {hasPhoto && (
+        <div className={cn("rounded-full overflow-hidden flex-shrink-0", photoSize, "border border-gray-200 bg-white")}>
           <img
             src={personalInfo.profilePhoto}
             alt={personalInfo.fullName || "Profile"}
             className="h-full w-full object-cover"
+            style={{ minWidth: "112px", minHeight: "112px", objectFit: "cover" }}
             crossOrigin="anonymous"
+            loading="lazy"
           />
         </div>
       )}
 
-      <div className={cn(
-        usePhotoLayout && (photoPosition === "left" || photoPosition === "right") ? "flex-grow" : ""
-      )}>
+      <div className="flex flex-col gap-1 flex-grow">
         {hasName && (
-          <h1 className={cn("text-2xl font-bold", cvTheme.titleFont === "playfair" ? "font-playfair" : "font-sans")} style={{ color: cvTheme.primaryColor }}>
+          <h1 className={cn("text-2xl font-bold mb-1", cvTheme.titleFont === "playfair" ? "font-playfair" : "font-sans")} style={{ color: cvTheme.primaryColor }}>
             {personalInfo.fullName}
           </h1>
         )}
 
         {hasJobTitle && (
-          <div className="flex items-center gap-2 text-lg mt-1 mb-4">
+          <div className="flex items-center gap-2 text-lg mt-1 mb-2">
             <Briefcase className="h-4 w-4" style={{ color: cvTheme.primaryColor }} />
             <span>{personalInfo.jobTitle}</span>
           </div>

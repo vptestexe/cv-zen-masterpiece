@@ -1,4 +1,3 @@
-
 import { useCVContext } from "@/contexts/CVContext";
 import { PersonalInfoPreview } from "./PersonalInfoPreview";
 import { SummaryPreview } from "./SummaryPreview";
@@ -21,14 +20,10 @@ export function CVPreview() {
   const location = useLocation();
   const [themeUpdateCounter, setThemeUpdateCounter] = useState(0);
 
-  // Effet pour appliquer les styles de template
   useEffect(() => {
     const path = location.pathname;
     const templateId = path.split('/').pop();
-    
     if (templateId && templateId !== 'editor') {
-      console.log("Applying template:", templateId);
-      // Apply template-specific styles
       switch (templateId) {
         case 'classic':
           updateTheme('primaryColor', '#0170c4');
@@ -67,21 +62,16 @@ export function CVPreview() {
           updateTheme('textFont', 'playfair');
           break;
         default:
-          // Default style
           break;
       }
-      // Force re-render
       setThemeUpdateCounter(prev => prev + 1);
     }
   }, [location.pathname]);
-  
-  // Effet pour forcer le rendu quand le thème change
+
   useEffect(() => {
-    console.log("Theme updated:", cvTheme);
     setThemeUpdateCounter(prev => prev + 1);
   }, [cvTheme]);
 
-  // Apply theme with dynamic updates
   const previewStyle = {
     backgroundColor: cvTheme.backgroundColor || "white",
     color: "rgb(63 63 70)",
@@ -90,7 +80,6 @@ export function CVPreview() {
       : "'Roboto', sans-serif",
   };
 
-  // Check if a section has content
   const hasSummary = !!summary.trim();
   const hasExperiences = workExperiences.length > 0 && workExperiences.some(exp => exp.position || exp.company);
   const hasEducations = educations.length > 0 && educations.some(edu => edu.degree || edu.institution);
@@ -100,9 +89,8 @@ export function CVPreview() {
   const hasInterests = interests.length > 0 && interests.some(int => int.name);
   const hasReferences = references.length > 0 && references.some(ref => ref.name);
 
-  // Créer les classes de titre avec les styles dynamiques
   const titleClass = cn(
-    "text-lg font-semibold mb-3",
+    "text-lg font-semibold mb-3 uppercase",
     cvTheme.titleFont === "playfair" ? "font-playfair" : "font-sans",
     {
       "pb-1 border-b-2": cvTheme.titleStyle === "underline",
@@ -111,7 +99,6 @@ export function CVPreview() {
     }
   );
 
-  // Dynamic border color based on primary color
   const borderColor = cvTheme.primaryColor;
   const titleStyle = cvTheme.titleStyle === "underline" 
     ? { borderColor, color: cvTheme.primaryColor }
@@ -125,7 +112,7 @@ export function CVPreview() {
     <div 
       className="cv-preview" 
       style={previewStyle}
-      key={`preview-${themeUpdateCounter}`} // Forcer le rendu quand le thème change
+      key={`preview-${themeUpdateCounter}`}
     >
       <PersonalInfoPreview titleClass={titleClass} titleStyle={titleStyle} />
 

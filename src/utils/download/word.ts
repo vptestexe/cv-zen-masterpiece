@@ -1,11 +1,23 @@
 
 export const downloadCvAsWord = (cv: any, downloadId: string) => {
-  // Prepare photo HTML if exists
+  // Prépare la photo s'il y en a
   const photoHtml = cv.data?.personalInfo?.profilePhoto ? `
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img src="${cv.data.personalInfo.profilePhoto}" 
-           alt="Profile Photo" 
-           style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" crossOrigin="anonymous" />
+    <div style="display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px;">
+      <div style="border-radius: 50%; overflow: hidden; border: 1px solid #eee; width: 112px; height: 112px; flex-shrink: 0; background: #fff;">
+        <img src="${cv.data.personalInfo.profilePhoto}" 
+              alt="Profile Photo" 
+              style="width: 112px; height: 112px; object-fit: cover; border-radius: 50%;" crossOrigin="anonymous" />
+      </div>
+      <div style="flex: 1;">
+        ${cv.data.personalInfo.fullName ? `<h1 style="font-weight:bold;font-size:22px;margin:0 0 6px 0;color:${cv.theme?.primaryColor || '#0170c4'}">${cv.data.personalInfo.fullName}</h1>` : ''}
+        ${cv.data.personalInfo.jobTitle ? `<span style="font-size:15px;display:block;margin-bottom:8px;"><b>${cv.data.personalInfo.jobTitle}</b></span>` : ''}
+        <div>
+        ${cv.data.personalInfo.nationality?.name ? `<p style="margin:0 0 2px 0;"><b>Nationalité:</b> ${cv.data.personalInfo.nationality.name}</p>` : ""}
+        ${cv.data.personalInfo.address ? `<p style="margin:0 0 2px 0;"><b>Adresse:</b> ${cv.data.personalInfo.address}</p>` : ""}
+        ${cv.data.personalInfo.phone ? `<p style="margin:0 0 2px 0;"><b>Téléphone:</b> ${cv.data.personalInfo.phone}</p>` : ""}
+        ${cv.data.personalInfo.email ? `<p style="margin:0 0 2px 0;"><b>Email:</b> ${cv.data.personalInfo.email}</p>` : ""}
+        </div>
+      </div>
     </div>
   ` : '';
 
@@ -14,29 +26,17 @@ export const downloadCvAsWord = (cv: any, downloadId: string) => {
     <html>
     <head>
       <meta charset="utf-8">
-      <title>${cv.title}</title>
+      <title></title>
       <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-        h1 { color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 24px; margin-bottom: 5px; }
-        h2 { color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 18px; margin-bottom: 10px; }
-        h3 { font-size: 16px; margin-bottom: 5px; }
+        h1 { color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 22px; margin-bottom: 5px; }
+        h2 { color: ${cv.theme?.primaryColor || '#0170c4'}; font-size: 16px; margin-bottom: 10px; text-transform: uppercase; }
+        h3 { font-size: 14px; margin-bottom: 5px; }
         .watermark { color: #cccccc; font-size: 8pt; margin-top: 40px; }
       </style>
     </head>
     <body>
-      <h1>${cv.title}</h1>
-      <p>Dernière modification: ${new Date(cv.lastUpdated).toLocaleDateString()}</p>
       ${photoHtml}
-      ${cv.data?.personalInfo?.fullName ? `
-        <div style="margin-bottom: 20px;">
-          <h2>Informations personnelles</h2>
-          <p><strong>Nom complet:</strong> ${cv.data.personalInfo.fullName}</p>
-          ${cv.data.personalInfo.jobTitle ? `<p><strong>Poste:</strong> ${cv.data.personalInfo.jobTitle}</p>` : ''}
-          ${cv.data.personalInfo.email ? `<p><strong>Email:</strong> ${cv.data.personalInfo.email}</p>` : ''}
-          ${cv.data.personalInfo.phone ? `<p><strong>Téléphone:</strong> ${cv.data.personalInfo.phone}</p>` : ''}
-          ${cv.data.personalInfo.address ? `<p><strong>Adresse:</strong> ${cv.data.personalInfo.address}</p>` : ''}
-        </div>
-      ` : ''}
       ${cv.data?.summary ? `
         <div style="margin-bottom: 20px;">
           <h2>Profil</h2>
