@@ -4,23 +4,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import { LogIn, User, ArrowLeft, Home } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
-  const { login, isAuthenticated } = useAuth();
+  const { login, signUp, isAuthenticated } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   
-  // Vérifier si l'utilisateur est déjà authentifié
+  // Si l'utilisateur est déjà authentifié, rediriger vers le dashboard
   useEffect(() => {
     if (isAuthenticated) {
       const from = location.state?.from || "/dashboard";
@@ -28,40 +26,23 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate, location]);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Validation de base
-    if (!email || !password || (!isLogin && !name)) {
-      toast({
-        title: "Erreur de saisie",
-        description: "Veuillez remplir tous les champs obligatoires",
-        variant: "destructive"
-      });
+    try {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await signUp(email, password, name);
+      }
+      
+      // La redirection est gérée par l'effet useEffect ci-dessus
+    } catch (error) {
+      console.error("Authentication error:", error);
+    } finally {
       setIsLoading(false);
-      return;
     }
-    
-    // Simuler une authentification
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Utiliser la fonction login du hook useAuth
-      login(email, isLogin ? email.split('@')[0] : name);
-      
-      // Simulation de succès
-      toast({
-        title: isLogin ? "Connexion réussie" : "Compte créé avec succès",
-        description: isLogin 
-          ? "Bienvenue sur votre tableau de bord" 
-          : "Vous pouvez maintenant vous connecter à votre compte",
-      });
-      
-      // Si c'est une connexion, rediriger vers le dashboard ou la page précédente
-      const from = location.state?.from || "/dashboard";
-      navigate(from, { replace: true });
-    }, 1500);
   };
   
   const goToHome = () => {
