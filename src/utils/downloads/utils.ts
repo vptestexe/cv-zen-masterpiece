@@ -58,11 +58,11 @@ export const canCreateNewCV = (): boolean => {
 };
 
 export const hasDownloadsRemaining = (): boolean => {
-  return true;
+  return false; // Force payment for all downloads
 };
 
 export const isFreeDownloadAvailable = (): boolean => {
-  return true;
+  return false; // Force payment for all downloads
 };
 
 export const resetCVPaymentStatus = () => {

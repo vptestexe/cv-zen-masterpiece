@@ -1,4 +1,3 @@
-
 import { DownloadCount, DownloadCounts, FREE_DOWNLOADS_PER_CV, PAID_DOWNLOADS_PER_CV } from './types';
 
 export const getDownloadCount = (cvId: string): DownloadCount => {
@@ -6,13 +5,13 @@ export const getDownloadCount = (cvId: string): DownloadCount => {
   if (counts) {
     try {
       const parsedCounts: DownloadCounts = JSON.parse(counts);
-      return parsedCounts[cvId] || { count: FREE_DOWNLOADS_PER_CV, lastPaymentDate: '' };
+      return parsedCounts[cvId] || { count: 0, lastPaymentDate: '' };
     } catch (error) {
       console.error("Erreur lors de la récupération des compteurs:", error);
-      return { count: FREE_DOWNLOADS_PER_CV, lastPaymentDate: '' };
+      return { count: 0, lastPaymentDate: '' };
     }
   }
-  return { count: FREE_DOWNLOADS_PER_CV, lastPaymentDate: '' };
+  return { count: 0, lastPaymentDate: '' };
 };
 
 export const getTotalFreeDownloads = (): number => {
@@ -45,7 +44,7 @@ export const updateDownloadCount = (cvId: string, paymentVerified: boolean = fal
     parsedCounts[cvId] = { count: PAID_DOWNLOADS_PER_CV, lastPaymentDate: new Date().toISOString() };
   } else {
     if (!parsedCounts[cvId]) {
-      parsedCounts[cvId] = { count: FREE_DOWNLOADS_PER_CV, lastPaymentDate: '' };
+      parsedCounts[cvId] = { count: 0, lastPaymentDate: '' };
     }
     
     const current = parsedCounts[cvId];
@@ -72,7 +71,7 @@ export const setInitialDownloadCount = (cvId: string): DownloadCount => {
   
   if (!parsedCounts[cvId]) {
     parsedCounts[cvId] = { 
-      count: FREE_DOWNLOADS_PER_CV,
+      count: 0,
       lastPaymentDate: ''
     };
     
