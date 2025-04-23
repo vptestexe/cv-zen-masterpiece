@@ -12,6 +12,9 @@ export const useInsertPayment = () => {
       amount: number,
       transactionId?: string,
     }) => {
+      console.log("Tentative de vérification paiement pour:", { userId, cvId, amount });
+      
+      // Première tentative: vérification par rpc
       const { data, error } = await supabase.rpc('verify_payment', {
         p_user_id: userId,
         p_cv_id: cvId,
@@ -26,10 +29,28 @@ export const useInsertPayment = () => {
 
       // Si la vérification réussit, on retourne les données
       if (data) {
+        console.log("Paiement validé via RPC:", data);
         return data;
-      } else {
-        throw new Error("Paiement non validé");
       }
+      
+      // Plan B: Vérifier directement dans la table des paiements
+      const { data: existingPayments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('cv_id', cvId)
+        .eq('amount', amount)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (paymentsError) {
+        console.error("Erreur recherche paiements:", paymentsError);
+      } else if (existingPayments && existingPayments.length > 0) {
+        console.log("Paiement trouvé dans la base:", existingPayments[0]);
+        return existingPayments[0];
+      }
+      
+      throw new Error("Paiement non validé");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
