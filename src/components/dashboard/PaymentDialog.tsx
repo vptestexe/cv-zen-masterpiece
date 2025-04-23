@@ -18,13 +18,6 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
   const [cvId, setCvId] = useState<string | null>(null);
   const [infoMissing, setInfoMissing] = useState(false);
   
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      fullName: "",
-    }
-  });
-
   // Récupérer les informations nécessaires lors de l'ouverture du dialogue
   useEffect(() => {
     if (open) {
