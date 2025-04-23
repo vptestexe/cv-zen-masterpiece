@@ -1,6 +1,5 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { PAYMENT_AMOUNT } from "@/utils/downloadManager";
 import { usePaymentDialog } from "@/hooks/usePaymentDialog";
 import PaymentButtons from "./PaymentButtons";
 
@@ -10,30 +9,25 @@ interface PaymentDialogProps {
 }
 
 const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
-  const { isProcessing, infoMissing, handlePayment, handleTestPayment } = usePaymentDialog(onClose);
+  const { handlePayment } = usePaymentDialog(onClose);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Paiement pour téléchargement</DialogTitle>
+          <DialogTitle>Téléchargement de CV</DialogTitle>
           <DialogDescription>
-            Payez {PAYMENT_AMOUNT} F CFA via RayCash/PayLink pour activer le téléchargement de votre CV.
-            {infoMissing && (
-              <div className="mt-2 text-red-500 text-sm">
-                Attention: Informations utilisateur ou CV manquantes. Veuillez retourner au dashboard et réessayer.
-              </div>
-            )}
+            Cliquez sur le bouton ci-dessous pour télécharger votre CV.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
-          <PaymentButtons
-            infoMissing={infoMissing}
-            isProcessing={isProcessing}
-            onClose={onClose}
-            onPayment={handlePayment}
-            onTestPayment={handleTestPayment}
-          />
+          <button
+            onClick={handlePayment}
+            className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+            type="button"
+          >
+            Télécharger gratuitement
+          </button>
         </div>
       </DialogContent>
     </Dialog>
