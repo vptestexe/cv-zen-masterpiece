@@ -12,15 +12,24 @@ export const useInsertPayment = () => {
       amount: number,
       transactionId?: string,
     }) => {
-      // Call the verify_payment function
       const { data, error } = await supabase.rpc('verify_payment', {
         p_user_id: userId,
         p_cv_id: cvId,
         p_amount: amount,
         p_transaction_id: transactionId || null,
       });
-      if (error) throw error;
-      return data;
+
+      if (error) {
+        console.error("Erreur vérification paiement:", error);
+        throw error;
+      }
+
+      // Si la vérification réussit, on retourne les données
+      if (data) {
+        return data;
+      } else {
+        throw new Error("Paiement non validé");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
