@@ -59,6 +59,10 @@ export const hasDownloadsRemaining = (cvId: string): boolean => {
   return false;
 };
 
+export const isFreeDownloadAvailable = (cvId: string): boolean => {
+  return hasDownloadsRemaining(cvId);
+};
+
 export const resetCVPaymentStatus = () => {
   localStorage.removeItem('cv_being_paid');
 };
