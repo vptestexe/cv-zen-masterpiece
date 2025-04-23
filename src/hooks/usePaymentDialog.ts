@@ -40,54 +40,74 @@ export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
       // Add a delay to simulate payment verification
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Attempt to verify the payment with Supabase
-      const { data, error } = await supabase.rpc('verify_payment', {
-        p_user_id: userId,
-        p_cv_id: cvId,
-        p_amount: 1000,
-        p_transaction_id: `WAVE_${Date.now()}`
-      });
-
-      if (error) {
-        console.error("Payment verification error:", error);
-        setVerificationStatus('error');
-        setIsProcessing(false);
-        return;
+      // Check for Wave payment return parameters in URL first
+      const urlParams = new URLSearchParams(window.location.search);
+      const waveSuccess = urlParams.get('wave_success');
+      const waveOrderRef = urlParams.get('order_ref');
+      
+      let paymentVerified = false;
+      
+      // If Wave success parameter is present in URL, consider it a successful payment
+      if (waveSuccess === 'true' && cvId === localStorage.getItem('cv_being_paid')) {
+        paymentVerified = true;
+        console.log("Wave payment verified via URL parameters");
+        
+        // Clean URL parameters
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } else {
+        // Attempt to verify the payment with Supabase
+        const { data, error } = await supabase.rpc('verify_payment', {
+          p_user_id: userId,
+          p_cv_id: cvId,
+          p_amount: 1000,
+          p_transaction_id: `WAVE_${Date.now()}`
+        });
+        
+        if (error) {
+          console.error("Payment verification error:", error);
+          throw error;
+        }
+        
+        paymentVerified = !!data;
+        console.log("Payment verification result:", data);
       }
       
-      console.log("Payment verification result:", data);
-      
-      // Update local download count
-      updateDownloadCount(cvId, true);
-      
-      // Clear payment tracking
-      localStorage.removeItem('cv_being_paid');
-      
-      setVerificationStatus('success');
-      
-      // Find the CV in localStorage
-      const savedCVsJSON = localStorage.getItem("saved_cvs");
-      if (savedCVsJSON) {
-        const savedCVs = JSON.parse(savedCVsJSON);
-        const cv = savedCVs.find((cv: any) => cv.id === cvId);
+      if (paymentVerified) {
+        // Update local download count
+        updateDownloadCount(cvId, true);
         
-        if (cv) {
-          // Generate a random download ID
-          const downloadId = Math.random().toString(36).substring(2, 10).toUpperCase();
+        // Clear payment tracking
+        localStorage.removeItem('cv_being_paid');
+        
+        setVerificationStatus('success');
+        
+        // Find the CV in localStorage
+        const savedCVsJSON = localStorage.getItem("saved_cvs");
+        if (savedCVsJSON) {
+          const savedCVs = JSON.parse(savedCVsJSON);
+          const cv = savedCVs.find((cv: any) => cv.id === cvId);
           
-          // Short delay before download to ensure the success message is displayed
-          setTimeout(async () => {
-            // Trigger the download
-            await downloadCvAsPdf(cv, downloadId);
+          if (cv) {
+            // Generate a random download ID
+            const downloadId = Math.random().toString(36).substring(2, 10).toUpperCase();
             
-            // Close the dialog after download starts
-            setTimeout(() => {
-              setIsProcessing(false);
-              onClose();
-              navigate("/dashboard");
-            }, 1500);
-          }, 1000);
+            // Short delay before download to ensure the success message is displayed
+            setTimeout(async () => {
+              // Trigger the download
+              await downloadCvAsPdf(cv, downloadId);
+              
+              // Close the dialog after download starts
+              setTimeout(() => {
+                setIsProcessing(false);
+                onClose();
+                navigate("/dashboard");
+              }, 1500);
+            }, 1000);
+          }
         }
+      } else {
+        throw new Error("Payment not verified");
       }
     } catch (error) {
       console.error("Error during payment verification:", error);

@@ -70,6 +70,10 @@ export const usePaymentVerification = (
             title: "Paiement confirmé",
             description: `La vérification est terminée. Vous disposez maintenant de ${PAID_DOWNLOADS_PER_CV} téléchargements pour ce CV.`,
           });
+          
+          // Open payment dialog to show success and download options
+          state.setCurrentCvId(cvBeingPaid);
+          state.setShowPaymentDialog(true);
         } catch (error) {
           console.error("Payment verification error:", error);
           state.setProcessingPayment(false);

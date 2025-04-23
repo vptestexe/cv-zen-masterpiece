@@ -22,12 +22,8 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
   const { toast } = useToast();
   const WAVE_PAYMENT_URL = "https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=1000";
   
-  // Start verification when dialog is opened
-  useEffect(() => {
-    if (open && cvId) {
-      handlePayment();
-    }
-  }, [open, cvId]);
+  // Remove automatic payment verification when dialog opens
+  // We'll wait for the user to initiate payment instead
 
   // Show toast when verification is complete
   useEffect(() => {
@@ -44,6 +40,22 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       });
     }
   }, [verificationStatus, toast]);
+
+  const handleMobilePayment = () => {
+    // Track the CV being paid for
+    if (cvId) {
+      localStorage.setItem('cv_being_paid', cvId);
+      
+      // Open Wave payment page
+      window.location.href = WAVE_PAYMENT_URL;
+    }
+  };
+
+  const handleVerifyPayment = () => {
+    if (cvId) {
+      handlePayment();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -87,14 +99,26 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                     <p className="text-sm text-muted-foreground">
                       Scannez le code QR avec l'application Wave
                     </p>
+                    <Button 
+                      className="mt-4 w-full"
+                      onClick={handleVerifyPayment}
+                    >
+                      J'ai payé, vérifier mon paiement
+                    </Button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center space-y-4">
                     <Button 
                       className="w-full bg-[#00b6f0] hover:bg-[#00a0d6]"
-                      onClick={() => window.location.href = WAVE_PAYMENT_URL}
+                      onClick={handleMobilePayment}
                     >
                       Payer avec Wave
+                    </Button>
+                    <Button 
+                      className="w-full"
+                      onClick={handleVerifyPayment}
+                    >
+                      J'ai payé, vérifier mon paiement
                     </Button>
                   </div>
                 )}
