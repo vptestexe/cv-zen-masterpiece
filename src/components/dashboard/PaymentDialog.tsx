@@ -3,8 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useInsertPayment } from "@/hooks/use-payments";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
 import { PAYMENT_AMOUNT } from "@/utils/downloadManager";
 
 interface PaymentDialogProps {
@@ -46,10 +44,8 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
   }, [open]);
 
   const handleRayCashPayment = (e: React.MouseEvent) => {
-    // Prévenir le comportement par défaut pour éviter le rechargement de page
     e.preventDefault();
     
-    // Vérifier de nouveau les informations au moment de la confirmation
     const currentCvId = cvId || localStorage.getItem('cv_being_paid');
     const currentUserId = userId || localStorage.getItem('current_user_id');
     
@@ -66,20 +62,27 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
 
     setIsProcessing(true);
     
-    // Créer l'URL de paiement RayCash/PayLink
-    const orderRef = `cv-${currentCvId.substring(0,8)}`;
-    const paymentDescription = `Téléchargement de CV - ${orderRef}`;
-    
-    // URL fictive à remplacer par la vraie URL RayCash/PayLink
-    const rayCashUrl = `https://pay.raycash.com/checkout?`
-      + `amount=${PAYMENT_AMOUNT}`
-      + `&reference=${orderRef}`
-      + `&description=${encodeURIComponent(paymentDescription)}`
-      + `&return_url=${encodeURIComponent(window.location.origin)}/dashboard?payment_status=success`
-      + `&cancel_url=${encodeURIComponent(window.location.origin)}/dashboard?payment_status=cancel`;
-    
-    // Stocker les informations de la tentative de paiement en local
     try {
+      // Créer l'URL de paiement RayCash/PayLink avec les bons URLs de callback
+      const orderRef = `cv-${currentCvId.substring(0,8)}`;
+      const paymentDescription = `Téléchargement de CV - ${orderRef}`;
+      
+      // URL de base de l'application
+      const baseUrl = window.location.origin;
+      
+      // URLs de callback pour RayCash/PayLink
+      const successUrl = `${baseUrl}/dashboard?payment_status=success`;
+      const cancelUrl = `${baseUrl}/dashboard?payment_status=cancel`;
+      
+      // Construction de l'URL RayCash/PayLink
+      const rayCashUrl = `https://pay.raycash.com/checkout?`
+        + `amount=${PAYMENT_AMOUNT}`
+        + `&reference=${orderRef}`
+        + `&description=${encodeURIComponent(paymentDescription)}`
+        + `&return_url=${encodeURIComponent(successUrl)}`
+        + `&cancel_url=${encodeURIComponent(cancelUrl)}`;
+      
+      // Stocker les informations de la tentative de paiement
       const paymentAttempt = {
         cvId: currentCvId,
         userId: currentUserId,
