@@ -9,10 +9,11 @@ import { PAID_DOWNLOADS_PER_CV } from "@/utils/downloads/types";
 interface PaymentDialogProps {
   open: boolean;
   onClose: () => void;
+  cvId?: string | null;
 }
 
-const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
-  const { handlePayment, isProcessing } = usePaymentDialog(onClose);
+const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
+  const { handlePayment, isProcessing } = usePaymentDialog(onClose, cvId);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

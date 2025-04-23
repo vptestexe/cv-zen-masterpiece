@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,8 @@ const Dashboard = () => {
 
       <PaymentDialog 
         open={state.showPaymentDialog} 
-        onClose={handlePaymentDialogClose} 
+        onClose={handlePaymentDialogClose}
+        cvId={state.currentCvId}
       />
       <DeleteConfirmDialog
         open={state.showDeleteConfirm}
