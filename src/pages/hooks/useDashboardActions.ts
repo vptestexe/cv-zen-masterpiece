@@ -141,20 +141,30 @@ export function useDashboardActions(state: any) {
 
   const handleLogout = () => {
     try {
+      // Clean up local storage and secure storage first
       resetCVPaymentStatus();
       secureStorage.remove('payment_token');
-      state.logout();
-      navigate("/");
+      localStorage.removeItem('auth_token');
       
-      if (!state.isMobile) {
-        toast({
-          title: "Déconnexion réussie",
-          description: "À bientôt !"
+      // Then attempt the logout (which might fail if no session exists)
+      state.logout()
+        .catch((error: any) => {
+          console.warn("Logout API call failed, but local state was cleaned:", error);
+        })
+        .finally(() => {
+          // Always navigate away regardless of API success
+          navigate("/login");
+          
+          if (!state.isMobile) {
+            toast({
+              title: "Déconnexion réussie",
+              description: "À bientôt !"
+            });
+          }
         });
-      }
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
-      // En cas d'échec de déconnexion avec Supabase, forcer la déconnexion locale
+      console.error("Error during logout cleanup:", error);
+      // Force logout by cleaning local state and redirecting
       localStorage.removeItem('auth_token');
       navigate("/login");
     }

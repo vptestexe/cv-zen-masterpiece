@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth state changed:", event, session ? "session exists" : "no session");
         setSession(session);
         if (session?.user) {
           setUser({
@@ -40,9 +41,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "",
           });
           setIsAuthenticated(true);
+          
+          // Store auth token in localStorage for better session persistence
+          localStorage.setItem('auth_token', session.access_token);
         } else {
           setUser(null);
           setIsAuthenticated(false);
+          
+          // Clear auth token from localStorage when session ends
+          localStorage.removeItem('auth_token');
         }
         setIsLoading(false);
       }
@@ -50,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check:", session ? "session exists" : "no session");
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -57,6 +65,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "",
         });
         setIsAuthenticated(true);
+        localStorage.setItem('auth_token', session.access_token);
+      } else {
+        // Clear auth token if no session exists
+        localStorage.removeItem('auth_token');
       }
       setIsLoading(false);
     });
@@ -125,23 +137,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
+      // First check if there's an active session to avoid errors
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      // Only attempt to sign out if there's a valid session
+      if (sessionData.session) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          throw error;
+        }
+      } else {
+        // If no session exists, just clean up the local state
+        console.log("No active session found, cleaning up local state only");
       }
-
+      
+      // Always clean up local state regardless of session status
+      setUser(null);
+      setIsAuthenticated(false);
+      setSession(null);
+      localStorage.removeItem('auth_token');
+      
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt !",
       });
 
     } catch (error: any) {
+      console.error("Logout error:", error);
+      
+      // Even if there's an error, attempt to clean up local state
+      setUser(null);
+      setIsAuthenticated(false);
+      setSession(null);
+      localStorage.removeItem('auth_token');
+      
       toast({
         title: "Erreur de déconnexion",
         description: error.message || "Une erreur est survenue lors de la déconnexion",
         variant: "destructive",
       });
-      throw error;
     }
   };
 
