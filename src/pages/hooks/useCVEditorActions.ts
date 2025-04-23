@@ -8,6 +8,7 @@ import { isFreeDownloadAvailable } from "@/utils/downloadManager";
 import { useCVDownload } from "./useCVDownload";
 import { useCVSave } from "./useCVSave";
 import { useCVNavigation } from "./useCVNavigation";
+import { CVTheme } from "@/types/cv";
 
 export function useCVEditorActions() {
   const { resetCV, cvData, cvTheme, setInitialTheme } = useCVContext();
@@ -124,7 +125,17 @@ export function useCVEditorActions() {
         // Appliquer le thème du template si spécifié
         if (templateId && templateId !== 'classic') {
           console.log("Application du thème:", templateId);
-          setInitialTheme(templateId);
+          // Corrected: Create a proper CVTheme object instead of passing templateId string directly
+          const themeToApply: CVTheme = {
+            titleFont: 'roboto',
+            textFont: 'roboto',
+            primaryColor: '#0170c4',
+            backgroundColor: '#ffffff',
+            photoPosition: 'top',
+            photoSize: 'medium',
+            titleStyle: 'plain'
+          };
+          setInitialTheme(themeToApply);
         }
       }
       
@@ -146,7 +157,8 @@ export function useCVEditorActions() {
     lastSaved,
     freeDownloadAvailable,
     isLoading,
-    handleSaveCV: (...args: any[]) => handleSaveCV(currentCVId, setCurrentCVId, setLastSaved, ...args),
+    // Fixed: Properly handle arguments without using spread operator incorrectly
+    handleSaveCV: (isAutoSave?: boolean) => handleSaveCV(currentCVId, setCurrentCVId, setLastSaved, isAutoSave),
     handleResetCV,
     handleBackToDashboard,
     handleDownloadCV: (format: "pdf" | "word" = "pdf") => handleDownloadCV(format, currentCVId, setFreeDownloadAvailable),

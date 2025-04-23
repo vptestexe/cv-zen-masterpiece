@@ -13,7 +13,7 @@ export function useCVSave({ cvData, cvTheme, templateId, setInitialTheme, refres
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const handleSaveCV = (currentCVId: string | null, setCurrentCVId: (id: string) => void, isAutoSave = false) => {
+  const handleSaveCV = (currentCVId: string | null, setCurrentCVId: (id: string) => void, setLastSaved: (date: Date) => void, isAutoSave = false) => {
     if (!cvData.personalInfo.fullName) {
       if (!isMobile && !isAutoSave) {
         toast({
@@ -40,6 +40,8 @@ export function useCVSave({ cvData, cvTheme, templateId, setInitialTheme, refres
       ? `${cvData.personalInfo.fullName} - ${cvData.personalInfo.jobTitle}`
       : `CV de ${cvData.personalInfo.fullName}`;
 
+    const currentTime = new Date();
+    
     if (currentCVId) {
       const cvIndex = savedCVs.findIndex((cv: any) => cv.id === currentCVId);
       if (cvIndex !== -1) {
@@ -47,7 +49,7 @@ export function useCVSave({ cvData, cvTheme, templateId, setInitialTheme, refres
           ...savedCVs[cvIndex],
           title: cvTitle,
           template: templateId || savedCVs[cvIndex].template || "classic",
-          lastUpdated: new Date().toISOString(),
+          lastUpdated: currentTime.toISOString(),
           data: cvData,
           theme: cvTheme,
         };
@@ -62,7 +64,7 @@ export function useCVSave({ cvData, cvTheme, templateId, setInitialTheme, refres
           id: currentCVId,
           title: cvTitle,
           template: templateId || "classic",
-          lastUpdated: new Date().toISOString(),
+          lastUpdated: currentTime.toISOString(),
           data: cvData,
           theme: cvTheme,
         };
@@ -80,7 +82,7 @@ export function useCVSave({ cvData, cvTheme, templateId, setInitialTheme, refres
         id: newCVId,
         title: cvTitle,
         template: templateId || "classic",
-        lastUpdated: new Date().toISOString(),
+        lastUpdated: currentTime.toISOString(),
         data: cvData,
         theme: cvTheme,
       };
@@ -95,7 +97,7 @@ export function useCVSave({ cvData, cvTheme, templateId, setInitialTheme, refres
     }
 
     localStorage.setItem("saved_cvs", JSON.stringify(savedCVs));
-
+    setLastSaved(currentTime);
     refreshPreview();
   };
 
