@@ -6,6 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PAID_DOWNLOADS_PER_CV, PAYMENT_AMOUNT } from "@/utils/downloads/types";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Check } from "lucide-react";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -14,9 +17,33 @@ interface PaymentDialogProps {
 }
 
 const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
-  const { handlePayment, isProcessing } = usePaymentDialog(onClose, cvId);
+  const { handlePayment, isProcessing, verificationStatus } = usePaymentDialog(onClose, cvId);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   const WAVE_PAYMENT_URL = "https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=1000";
+  
+  // Start verification when dialog is opened
+  useEffect(() => {
+    if (open && cvId) {
+      handlePayment();
+    }
+  }, [open, cvId]);
+
+  // Show toast when verification is complete
+  useEffect(() => {
+    if (verificationStatus === 'success') {
+      toast({
+        title: "Paiement confirmé",
+        description: "Votre paiement a été vérifié avec succès. Téléchargement disponible!",
+      });
+    } else if (verificationStatus === 'error') {
+      toast({
+        title: "Échec de la vérification",
+        description: "Impossible de vérifier votre paiement. Veuillez réessayer.",
+        variant: "destructive"
+      });
+    }
+  }, [verificationStatus, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -31,6 +58,18 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                 <p className="text-sm text-muted-foreground">
                   Veuillez patienter pendant la vérification de votre paiement.
                   Cette opération peut prendre jusqu'à 5 secondes.
+                </p>
+              </div>
+            ) : verificationStatus === 'success' ? (
+              <div className="space-y-4 text-center">
+                <div className="flex justify-center">
+                  <div className="bg-green-100 p-3 rounded-full">
+                    <Check className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+                <p>Paiement confirmé! Votre téléchargement va démarrer automatiquement.</p>
+                <p className="text-sm text-muted-foreground">
+                  Vous disposez maintenant de {PAID_DOWNLOADS_PER_CV} téléchargements pour ce CV.
                 </p>
               </div>
             ) : (

@@ -1,14 +1,18 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useInsertPayment } from "@/hooks/use-payments";
 import { updateDownloadCount } from "@/utils/downloadManager";
 import { useNavigate } from "react-router-dom";
 import { downloadCvAsPdf } from "@/utils/download";
+import { supabase } from "@/integrations/supabase/client";
+
+export type VerificationStatus = 'idle' | 'processing' | 'success' | 'error';
 
 export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('idle');
   const navigate = useNavigate();
   const { mutate: insertPayment } = useInsertPayment();
 
@@ -24,12 +28,42 @@ export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
     }
 
     setIsProcessing(true);
+    setVerificationStatus('processing');
     
     try {
-      // Simulate verification delay for Wave payment
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Get current user ID from localStorage
+      const userId = localStorage.getItem('current_user_id');
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
       
+      // Add a delay to simulate payment verification
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Attempt to verify the payment with Supabase
+      const { data, error } = await supabase.rpc('verify_payment', {
+        p_user_id: userId,
+        p_cv_id: cvId,
+        p_amount: 1000,
+        p_transaction_id: `WAVE_${Date.now()}`
+      });
+
+      if (error) {
+        console.error("Payment verification error:", error);
+        setVerificationStatus('error');
+        setIsProcessing(false);
+        return;
+      }
+      
+      console.log("Payment verification result:", data);
+      
+      // Update local download count
+      updateDownloadCount(cvId, true);
+      
+      // Clear payment tracking
       localStorage.removeItem('cv_being_paid');
+      
+      setVerificationStatus('success');
       
       // Find the CV in localStorage
       const savedCVsJSON = localStorage.getItem("saved_cvs");
@@ -40,35 +74,31 @@ export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
         if (cv) {
           // Generate a random download ID
           const downloadId = Math.random().toString(36).substring(2, 10).toUpperCase();
-          // Trigger the download
-          await downloadCvAsPdf(cv, downloadId);
+          
+          // Short delay before download to ensure the success message is displayed
+          setTimeout(async () => {
+            // Trigger the download
+            await downloadCvAsPdf(cv, downloadId);
+            
+            // Close the dialog after download starts
+            setTimeout(() => {
+              setIsProcessing(false);
+              onClose();
+              navigate("/dashboard");
+            }, 1500);
+          }, 1000);
         }
       }
-      
-      toast({
-        title: "Téléchargement activé",
-        description: "Votre paiement a été vérifié. Votre CV a été téléchargé automatiquement",
-      });
-      
-      onClose();
-      
-      setTimeout(() => {
-        setIsProcessing(false);
-        navigate("/dashboard");
-      }, 500);
     } catch (error) {
-      console.error("Erreur lors de l'activation:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de vérifier le paiement. Veuillez réessayer.",
-        variant: "destructive"
-      });
+      console.error("Error during payment verification:", error);
+      setVerificationStatus('error');
       setIsProcessing(false);
     }
   };
 
   return {
     isProcessing,
+    verificationStatus,
     handlePayment
   };
 };

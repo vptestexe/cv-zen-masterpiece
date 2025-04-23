@@ -68,7 +68,22 @@ export const isFreeDownloadAvailable = (): boolean => {
 export const resetCVPaymentStatus = () => {
   try {
     localStorage.removeItem('cv_being_paid');
+    localStorage.removeItem('payment_attempt');
   } catch (error) {
     console.error("Erreur lors de la réinitialisation du statut de paiement:", error);
+  }
+};
+
+// Track payment attempt details
+export const trackPaymentAttempt = (cvId: string, userId: string) => {
+  try {
+    localStorage.setItem('payment_attempt', JSON.stringify({
+      cvId,
+      userId,
+      timestamp: Date.now(),
+      orderRef: `WAVE_${Date.now().toString(36)}`
+    }));
+  } catch (error) {
+    console.error("Erreur lors du suivi de la tentative de paiement:", error);
   }
 };

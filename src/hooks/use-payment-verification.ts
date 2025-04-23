@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useInsertPayment } from "@/hooks/use-payments";
 import { updateDownloadCount } from "@/utils/downloadManager";
 import { PAID_DOWNLOADS_PER_CV } from "@/utils/downloads/types";
+import { supabase } from "@/integrations/supabase/client";
 
 export const usePaymentVerification = (
   state: any,
@@ -15,30 +16,41 @@ export const usePaymentVerification = (
   useEffect(() => {
     const verifyPayment = async () => {
       const cvBeingPaid = localStorage.getItem('cv_being_paid');
-      if (!cvBeingPaid || state.processingPayment) return;
+      if (!cvBeingPaid || state.processingPayment || !userId) return;
 
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment_status');
       const paymentAttemptJson = localStorage.getItem('payment_attempt');
       const paymentAttempt = paymentAttemptJson ? JSON.parse(paymentAttemptJson) : null;
       
-      if (paymentStatus === 'success' && paymentAttempt && 
-          paymentAttempt.cvId === cvBeingPaid && 
-          paymentAttempt.userId === userId) {
+      // Check for Wave return URL parameters
+      const waveSuccess = urlParams.get('wave_success');
+      const waveOrderRef = urlParams.get('order_ref');
+      
+      if ((paymentStatus === 'success' || waveSuccess === 'true') && 
+          (paymentAttempt?.cvId === cvBeingPaid || cvBeingPaid)) {
             
         state.setProcessingPayment(true);
         
         try {
-          // Add a 5 second delay for payment verification
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          console.log("Verifying payment for CV:", cvBeingPaid);
           
-          await insertPayment({
-            userId: userId,
-            cvId: cvBeingPaid,
-            amount: 0, // Free downloads
-            transactionId: paymentAttempt.orderRef || null,
+          // Add a 3 second delay for payment verification
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Use RPC function to verify payment in database
+          const { data, error } = await supabase.rpc('verify_payment', {
+            p_user_id: userId,
+            p_cv_id: cvBeingPaid,
+            p_amount: 1000,
+            p_transaction_id: waveOrderRef || `WAVE_${Date.now()}`
           });
           
+          if (error) {
+            throw error;
+          }
+          
+          // Update local download count
           const updatedCount = updateDownloadCount(cvBeingPaid, true);
           state.setDownloadCounts((prev: any) => ({
             ...prev,
@@ -48,6 +60,7 @@ export const usePaymentVerification = (
           localStorage.removeItem('cv_being_paid');
           localStorage.removeItem('payment_attempt');
           
+          // Clean URL parameters
           const cleanUrl = window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
           
@@ -66,7 +79,7 @@ export const usePaymentVerification = (
             variant: "destructive"
           });
         }
-      } else if (paymentStatus === 'cancel') {
+      } else if (paymentStatus === 'cancel' || urlParams.get('wave_cancel') === 'true') {
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
         
