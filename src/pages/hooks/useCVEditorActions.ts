@@ -1,4 +1,3 @@
-
 import { useCVContext } from "@/contexts/CVContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -58,16 +57,11 @@ export function useCVEditorActions() {
     refreshPreview,
   });
 
-  // Vérification des téléchargements disponibles
+  // Since all downloads are free, we can simplify this 
   useEffect(() => {
     if (currentCVId) {
-      try {
-        const isAvailable = isFreeDownloadAvailable(currentCVId);
-        setFreeDownloadAvailable(isAvailable);
-      } catch (error) {
-        console.error("Erreur lors de la vérification des téléchargements disponibles:", error);
-        setFreeDownloadAvailable(false);
-      }
+      // All downloads are now free
+      setFreeDownloadAvailable(true);
     }
   }, [currentCVId]);
 

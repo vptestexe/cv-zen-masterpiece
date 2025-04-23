@@ -1,4 +1,3 @@
-
 import { useToast } from "@/hooks/use-toast";
 import { isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/utils/downloadManager";
 import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";

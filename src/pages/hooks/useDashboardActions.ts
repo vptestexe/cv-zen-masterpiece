@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useInsertPayment } from "@/hooks/use-payments";
@@ -37,13 +36,9 @@ export function useDashboardActions(state: any) {
   };
 
   const handleDownload = async (cvId: string, format = "pdf") => {
-    if (!hasDownloadsRemaining(cvId)) {
-      state.setCurrentCvId(cvId);
-      localStorage.setItem("cv_being_paid", cvId);
-      state.setShowPaymentDialog(true);
-      return;
-    }
-
+    // Since downloads are free, we don't need to check for remaining downloads
+    // But we'll keep the structure similar for backward compatibility
+    
     try {
       const cv = state.userCVs.find((cv: any) => cv.id === cvId);
       if (!cv) {
@@ -59,6 +54,7 @@ export function useDashboardActions(state: any) {
       if (format === "pdf") await downloadCvAsPdf(cv, downloadId);
       else downloadCvAsWord(cv, downloadId);
 
+      // We still update the download count for statistics, but it's free
       const updatedCount = updateDownloadCount(cvId);
       state.setDownloadCounts(prev => ({
         ...prev,
@@ -67,7 +63,7 @@ export function useDashboardActions(state: any) {
 
       toast({
         title: "Téléchargement réussi",
-        description: `Il vous reste ${updatedCount.count} téléchargements`
+        description: `CV téléchargé avec succès`
       });
     } catch (error) {
       toast({
