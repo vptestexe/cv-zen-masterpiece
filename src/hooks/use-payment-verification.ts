@@ -28,6 +28,9 @@ export const usePaymentVerification = (
         state.setProcessingPayment(true);
         
         try {
+          // Add a 5 second delay for payment verification
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          
           await insertPayment({
             userId: userId,
             cvId: cvBeingPaid,
@@ -51,14 +54,14 @@ export const usePaymentVerification = (
           
           toast({
             title: "Paiement confirmé",
-            description: "Vous disposez maintenant de 5 téléchargements pour ce CV.",
+            description: "La vérification est terminée. Vous disposez maintenant de 5 téléchargements pour ce CV.",
           });
         } catch (error) {
           console.error("Payment verification error:", error);
           state.setProcessingPayment(false);
           toast({
             title: "Erreur enregistrement paiement",
-            description: "Impossible d'enregistrer le paiement en base",
+            description: "Impossible de vérifier le paiement dans la base de données",
             variant: "destructive"
           });
         }

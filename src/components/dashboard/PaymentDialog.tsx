@@ -2,6 +2,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { usePaymentDialog } from "@/hooks/usePaymentDialog";
 import PaymentButtons from "./PaymentButtons";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -9,7 +11,7 @@ interface PaymentDialogProps {
 }
 
 const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
-  const { handlePayment } = usePaymentDialog(onClose);
+  const { handlePayment, isProcessing } = usePaymentDialog(onClose);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -17,17 +19,33 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
         <DialogHeader>
           <DialogTitle>Téléchargement de CV</DialogTitle>
           <DialogDescription>
-            Cliquez sur le bouton ci-dessous pour télécharger votre CV.
+            {isProcessing ? (
+              <div className="space-y-4">
+                <p>Vérification du paiement en cours...</p>
+                <Progress value={100} className="w-full" />
+                <p className="text-sm text-muted-foreground">
+                  Veuillez patienter pendant la vérification de votre paiement.
+                  Cette opération peut prendre jusqu'à 5 secondes.
+                </p>
+              </div>
+            ) : (
+              "Cliquez sur le bouton ci-dessous pour télécharger votre CV."
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
-          <button
-            onClick={handlePayment}
-            className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
-            type="button"
-          >
-            Télécharger gratuitement
-          </button>
+          {isProcessing ? (
+            <Skeleton className="w-full h-10" />
+          ) : (
+            <button
+              onClick={handlePayment}
+              className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+              type="button"
+              disabled={isProcessing}
+            >
+              Télécharger gratuitement
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
