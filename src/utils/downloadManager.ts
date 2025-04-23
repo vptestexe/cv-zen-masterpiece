@@ -1,3 +1,4 @@
+
 interface DownloadCount {
   count: number;
   lastPaymentDate: string;
@@ -199,4 +200,26 @@ export const secureStorage = {
   remove: (key: string): void => {
     localStorage.removeItem(`secure_${key}`);
   }
+};
+
+// Fonction pour sauvegarder les CVs dans le localStorage
+export const saveCVs = (cvs: any[]): void => {
+  localStorage.setItem('saved_cvs', JSON.stringify(cvs));
+  
+  // Création d'une sauvegarde sécurisée
+  secureStorage.set('saved_cvs_backup', cvs);
+};
+
+// Fonction pour récupérer les CVs sauvegardés
+export const getSavedCVs = (): any[] => {
+  const savedCVsJSON = localStorage.getItem('saved_cvs');
+  if (savedCVsJSON) {
+    try {
+      return JSON.parse(savedCVsJSON);
+    } catch (e) {
+      console.error("Erreur lors de la récupération des CV:", e);
+      return [];
+    }
+  }
+  return [];
 };

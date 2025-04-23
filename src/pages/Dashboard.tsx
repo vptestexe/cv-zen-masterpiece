@@ -12,6 +12,7 @@ import CVList from "@/components/dashboard/CVList";
 import { useDashboardState } from "./hooks/useDashboardState";
 import { useDashboardActions } from "./hooks/useDashboardActions";
 import { useDashboardEffects } from "./hooks/useDashboardEffects";
+import { MAX_FREE_CVS } from "@/utils/downloadManager";
 
 const Dashboard = () => {
   const state = useDashboardState();
