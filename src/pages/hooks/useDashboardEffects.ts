@@ -61,6 +61,19 @@ export function useDashboardEffects(state: any) {
     } else {
       state.setUserName(state.user?.name || "Utilisateur");
       
+      // Clear any previously saved CVs when a new user logs in
+      const userId = state.user?.id;
+      const lastLoggedInUser = localStorage.getItem('last_logged_in_user');
+      
+      if (userId !== lastLoggedInUser) {
+        // If this is a different user or a new user, we reset the CVs
+        localStorage.removeItem('saved_cvs');
+        localStorage.removeItem('cv_download_counts');
+        secureStorage.remove('saved_cvs_backup');
+        // Store current user as last logged in
+        localStorage.setItem('last_logged_in_user', userId || '');
+      }
+      
       let savedCVs = getSavedCVs();
       const secureBackup = secureStorage.get('saved_cvs_backup', null);
       
