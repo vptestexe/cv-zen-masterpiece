@@ -24,7 +24,8 @@ export function useDashboardActions(state: any) {
   const handleEdit = (cvId: string) => {
     const cv = state.userCVs.find((cv: any) => cv.id === cvId);
     if (cv) {
-      navigate(`/editor/${cv.template}`, { state: { cvId } });
+      // Utiliser un objet état plutôt que query params pour plus de fiabilité
+      navigate(`/editor/${cv.template || 'classic'}`, { state: { cvId } });
       if (!state.isMobile) {
         toast({
           title: "Modification du CV",
@@ -87,17 +88,15 @@ export function useDashboardActions(state: any) {
     }
     
     try {
-      // Utiliser setTimeout pour laisser le temps au navigateur de traiter l'opération
-      setTimeout(() => {
-        navigate("/editor/classic");
-        
-        if (!state.isMobile) {
-          toast({
-            title: "Création d'un nouveau CV",
-            description: "Choisissez un modèle pour commencer"
-          });
-        }
-      }, 100);
+      // Naviguer directement sans utiliser setTimeout pour éviter les problèmes de timing
+      navigate("/editor/classic");
+      
+      if (!state.isMobile) {
+        toast({
+          title: "Création d'un nouveau CV",
+          description: "Vous pouvez maintenant créer votre CV"
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de la navigation:", error);
       toast({

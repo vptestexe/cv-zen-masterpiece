@@ -74,16 +74,19 @@ export function useCVEditorActions() {
     if (initialized.current) return;
     
     try {
+      console.log("Tentative de chargement du CV, location:", location);
       const stateWithId = location.state as { cvId?: string } | null;
       let cvIdToLoad = null;
       
       if (stateWithId?.cvId) {
         cvIdToLoad = stateWithId.cvId;
+        console.log("CV ID trouvé dans location.state:", cvIdToLoad);
       } else {
         const params = new URLSearchParams(location.search);
         const cvIdParam = params.get("cvId");
         if (cvIdParam) {
           cvIdToLoad = cvIdParam;
+          console.log("CV ID trouvé dans l'URL:", cvIdToLoad);
         }
       }
       
@@ -92,9 +95,13 @@ export function useCVEditorActions() {
         setCurrentCVId(cvIdToLoad);
         loadSavedCV(cvIdToLoad);
         initialized.current = true;
+      } else {
+        console.log("Aucun CV à charger, création d'un nouveau CV");
+        initialized.current = true;
       }
     } catch (error) {
       console.error("Erreur lors du chargement initial du CV:", error);
+      initialized.current = true; // Marquer comme initialisé même en cas d'erreur pour éviter les boucles infinies
     }
   }, [location, loadSavedCV]);
 

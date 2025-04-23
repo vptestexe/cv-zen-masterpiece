@@ -31,6 +31,10 @@ const Index = () => {
   const [scrolled, setScrolled] = useState(false);
   const [previewActive, setPreviewActive] = useState(!useIsMobile());
   const [showPreviewInfo, setShowPreviewInfo] = useState(false);
+  const [isPageLoaded, setIsPageLoaded] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Actions and logic refactored to custom hook
   const {
@@ -44,48 +48,54 @@ const Index = () => {
     refreshPreview,
   } = useCVEditorActions();
 
-  const isMobile = useIsMobile();
   const { cvData } = useCVContext();
 
+  // Vérifier l'authentification dès que possible
   useEffect(() => {
-    const authToken = localStorage.getItem('auth_token');
-    
-    if (!authToken) {
-      if (!isMobile) {
-        useToast().toast({
-          title: "Connexion requise",
-          description: "Veuillez vous connecter pour créer ou modifier un CV",
-          variant: "destructive"
-        });
-      }
-      useNavigate()("/login");
-    }
-  }, [useNavigate, useToast, isMobile]);
-
-  useEffect(() => {
-    const setupAutoSave = () => {
-      const autoSaveTimeoutRef = { current: null as NodeJS.Timeout | null };
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-      
-      autoSaveTimeoutRef.current = setTimeout(() => {
-        if (cvData.personalInfo.fullName) {
-          handleSaveCV(true);
+    const checkAuth = () => {
+      try {
+        const authToken = localStorage.getItem('auth_token');
+        
+        if (!authToken) {
+          if (!isMobile) {
+            toast({
+              title: "Connexion requise",
+              description: "Veuillez vous connecter pour créer ou modifier un CV",
+              variant: "destructive"
+            });
+          }
+          navigate("/login");
+          return false;
         }
-        setupAutoSave();
-      }, MAX_AUTO_SAVE_INTERVAL);
+        return true;
+      } catch (error) {
+        console.error("Erreur lors de la vérification de l'authentification:", error);
+        return false;
+      }
     };
-    
-    setupAutoSave();
+
+    const isAuth = checkAuth();
+    if (isAuth) {
+      setIsPageLoaded(true);
+    }
+  }, [navigate, toast, isMobile]);
+
+  // Configuration de sauvegarde automatique
+  useEffect(() => {
+    if (!isPageLoaded) return;
+
+    const autoSaveTimeoutRef = setTimeout(() => {
+      if (cvData?.personalInfo?.fullName) {
+        handleSaveCV(true);
+      }
+    }, MAX_AUTO_SAVE_INTERVAL);
     
     return () => {
-      const autoSaveTimeoutRef = { current: null as NodeJS.Timeout | null };
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
+      clearTimeout(autoSaveTimeoutRef);
     };
-  }, [cvData, handleSaveCV]);
+  }, [cvData, handleSaveCV, isPageLoaded]);
+
+  // Gestion du défilement
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 200);
@@ -114,6 +124,18 @@ const Index = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Si la page n'est pas encore chargée ou l'authentification est en cours
+  if (!isPageLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-lg font-semibold text-gray-700">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
