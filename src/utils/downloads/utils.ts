@@ -59,7 +59,9 @@ export const hasDownloadsRemaining = (cvId: string): boolean => {
   return false;
 };
 
+// Renamed function with same functionality to force recognition of changes
 export const isFreeDownloadAvailable = (cvId: string): boolean => {
+  // Return result of hasDownloadsRemaining
   return hasDownloadsRemaining(cvId);
 };
 
