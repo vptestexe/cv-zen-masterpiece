@@ -26,13 +26,37 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
   const country = hasNationality && typeof personalInfo.nationality?.code === 'string' 
     ? getCountryByCode(personalInfo.nationality.code) 
     : null;
-  const photoSize = "h-28 w-28"; // Taille constante, carré
 
-  // Layout horizontal : photo à gauche + infos à droite en flex row et items-top
+  // Ajustement de la taille de la photo en fonction du paramètre photoSize
+  const photoSizeMap = {
+    small: "h-20 w-20",
+    medium: "h-28 w-28",
+    large: "h-36 w-36"
+  };
+  const photoSize = photoSizeMap[cvTheme.photoSize] || photoSizeMap.medium;
+
+  // Définition du layout en fonction de la position de la photo
+  const containerClass = cn(
+    "flex gap-6 mb-6",
+    {
+      "flex-col items-center text-center": cvTheme.photoPosition === "top",
+      "flex-row items-start": cvTheme.photoPosition === "left" || cvTheme.photoPosition === "right",
+      "flex-row-reverse": cvTheme.photoPosition === "right"
+    }
+  );
+
+  const infoContainerClass = cn(
+    "flex flex-col gap-1",
+    {
+      "items-center": cvTheme.photoPosition === "top",
+      "flex-grow": cvTheme.photoPosition !== "top"
+    }
+  );
+
   return (
-    <div className="flex flex-row items-start gap-6 mb-6">
+    <div className={containerClass}>
       {hasPhoto && (
-        <div className={cn("rounded-full overflow-hidden flex-shrink-0 border border-gray-200 bg-white", photoSize)}>
+        <div className={cn("rounded-full overflow-hidden border border-gray-200 bg-white flex-shrink-0", photoSize)}>
           <img
             src={personalInfo.profilePhoto}
             alt={personalInfo.fullName || "Profile"}
@@ -44,7 +68,7 @@ export function PersonalInfoPreview({ titleClass, titleStyle }: PersonalInfoPrev
         </div>
       )}
 
-      <div className="flex flex-col gap-1 flex-grow">
+      <div className={infoContainerClass}>
         {hasName && (
           <h1 className={cn("text-2xl font-bold mb-1", cvTheme.titleFont === "playfair" ? "font-playfair" : "font-sans")} style={{ color: cvTheme.primaryColor }}>
             {personalInfo.fullName}
