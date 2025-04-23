@@ -1,3 +1,4 @@
+
 import { useCVContext } from "@/contexts/CVContext";
 import { PersonalInfoPreview } from "./PersonalInfoPreview";
 import { SummaryPreview } from "./SummaryPreview";
@@ -11,66 +12,72 @@ import { ReferencesPreview } from "./ReferencesPreview";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export function CVPreview() {
   const { cvData, cvTheme, updateTheme } = useCVContext();
   const { summary, workExperiences, educations, skills, languages, projects, interests, references } = cvData;
   const isMobile = useIsMobile();
   const location = useLocation();
-  const [themeUpdateCounter, setThemeUpdateCounter] = useState(0);
+  const [themeApplied, setThemeApplied] = useState(false);
+  const initialRenderRef = useRef(true);
 
+  // Appliquer le thème une seule fois lors du chargement initial
   useEffect(() => {
-    const path = location.pathname;
-    const templateId = path.split('/').pop();
-    if (templateId && templateId !== 'editor') {
-      switch (templateId) {
-        case 'classic':
-          updateTheme('primaryColor', '#0170c4');
-          updateTheme('titleStyle', 'underline');
-          updateTheme('titleFont', 'playfair');
-          updateTheme('textFont', 'roboto');
-          break;
-        case 'modern':
-          updateTheme('primaryColor', '#7E69AB');
-          updateTheme('titleStyle', 'background');
-          updateTheme('titleFont', 'roboto');
-          updateTheme('textFont', 'roboto');
-          break;
-        case 'creative':
-          updateTheme('primaryColor', '#F97316');
-          updateTheme('titleStyle', 'border');
-          updateTheme('titleFont', 'playfair');
-          updateTheme('textFont', 'playfair');
-          break;
-        case 'professional':
-          updateTheme('primaryColor', '#403E43');
-          updateTheme('titleStyle', 'underline');
-          updateTheme('titleFont', 'roboto');
-          updateTheme('textFont', 'roboto');
-          break;
-        case 'minimalist':
-          updateTheme('primaryColor', '#222222');
-          updateTheme('titleStyle', 'plain');
-          updateTheme('titleFont', 'roboto');
-          updateTheme('textFont', 'roboto');
-          break;
-        case 'elegant':
-          updateTheme('primaryColor', '#D946EF');
-          updateTheme('titleStyle', 'background');
-          updateTheme('titleFont', 'playfair');
-          updateTheme('textFont', 'playfair');
-          break;
-        default:
-          break;
+    if (!themeApplied) {
+      const path = location.pathname;
+      const templateId = path.split('/').pop();
+      
+      if (templateId && templateId !== 'editor') {
+        try {
+          console.log("Applying template:", templateId);
+          switch (templateId) {
+            case 'classic':
+              updateTheme('primaryColor', '#0170c4');
+              updateTheme('titleStyle', 'underline');
+              updateTheme('titleFont', 'playfair');
+              updateTheme('textFont', 'roboto');
+              break;
+            case 'modern':
+              updateTheme('primaryColor', '#7E69AB');
+              updateTheme('titleStyle', 'background');
+              updateTheme('titleFont', 'roboto');
+              updateTheme('textFont', 'roboto');
+              break;
+            case 'creative':
+              updateTheme('primaryColor', '#F97316');
+              updateTheme('titleStyle', 'border');
+              updateTheme('titleFont', 'playfair');
+              updateTheme('textFont', 'playfair');
+              break;
+            case 'professional':
+              updateTheme('primaryColor', '#403E43');
+              updateTheme('titleStyle', 'underline');
+              updateTheme('titleFont', 'roboto');
+              updateTheme('textFont', 'roboto');
+              break;
+            case 'minimalist':
+              updateTheme('primaryColor', '#222222');
+              updateTheme('titleStyle', 'plain');
+              updateTheme('titleFont', 'roboto');
+              updateTheme('textFont', 'roboto');
+              break;
+            case 'elegant':
+              updateTheme('primaryColor', '#D946EF');
+              updateTheme('titleStyle', 'background');
+              updateTheme('titleFont', 'playfair');
+              updateTheme('textFont', 'playfair');
+              break;
+            default:
+              break;
+          }
+        } catch (error) {
+          console.error("Erreur lors de l'application du thème:", error);
+        }
+        setThemeApplied(true);
       }
-      setThemeUpdateCounter(prev => prev + 1);
     }
-  }, [location.pathname]);
-
-  useEffect(() => {
-    setThemeUpdateCounter(prev => prev + 1);
-  }, [cvTheme]);
+  }, [location.pathname, themeApplied, updateTheme]);
 
   const previewStyle = {
     backgroundColor: cvTheme.backgroundColor || "white",
@@ -109,11 +116,7 @@ export function CVPreview() {
     : { color: cvTheme.primaryColor };
 
   return (
-    <div 
-      className="cv-preview" 
-      style={previewStyle}
-      key={`preview-${themeUpdateCounter}`}
-    >
+    <div className="cv-preview" style={previewStyle}>
       <PersonalInfoPreview titleClass={titleClass} titleStyle={titleStyle} />
 
       {hasSummary && (
@@ -164,7 +167,7 @@ export function CVPreview() {
         <div className="mb-6">
           <h2 className={titleClass} style={titleStyle}>Centres d'Intérêt</h2>
           <InterestsPreview />
-        </div>
+          </div>
       )}
 
       {hasReferences && (

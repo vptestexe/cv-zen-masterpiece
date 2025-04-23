@@ -53,17 +53,20 @@ export const hasDownloadsRemaining = (cvId: string): boolean => {
       const parsedCounts = JSON.parse(counts);
       return parsedCounts[cvId]?.count > 0;
     } catch (error) {
+      console.error("Erreur lors de la vérification des téléchargements restants:", error);
       return false;
     }
   }
   return false;
 };
 
-// Fonction avec modification mineure pour forcer la détection du changement
+// Fonction simplifiée pour plus de fiabilité cross-browser
 export const isFreeDownloadAvailable = (cvId: string): boolean => {
-  // Implémentation modifiée pour forcer la détection
-  const result = hasDownloadsRemaining(cvId);
-  return result;
+  if (!cvId) {
+    console.warn("isFreeDownloadAvailable appelé sans ID de CV");
+    return false;
+  }
+  return hasDownloadsRemaining(cvId);
 };
 
 export const resetCVPaymentStatus = () => {

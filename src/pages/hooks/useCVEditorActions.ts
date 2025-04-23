@@ -3,8 +3,8 @@ import { useCVContext } from "@/contexts/CVContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useCallback, useState, useEffect } from "react";
-import { isFreeDownloadAvailable } from "@/utils/downloadManager";
+import { useCallback, useState, useEffect, useRef } from "react";
+import { isFreeDownloadAvailable } from "@/utils/downloads/utils";
 import { useCVDownload } from "./useCVDownload";
 import { useCVSave } from "./useCVSave";
 import { useCVNavigation } from "./useCVNavigation";
@@ -21,6 +21,7 @@ export function useCVEditorActions() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [previewResetKey, setPreviewResetKey] = useState(0);
   const [freeDownloadAvailable, setFreeDownloadAvailable] = useState(true);
+  const initialized = useRef(false);
 
   const refreshPreview = useCallback(() => {
     setPreviewResetKey((prev) => prev + 1);
@@ -29,11 +30,15 @@ export function useCVEditorActions() {
   // Compose splitted hooks:
   const { handleDownloadCV } = useCVDownload({
     getCurrentCV: () => {
-      const savedCVsJSON = localStorage.getItem("saved_cvs");
-      if (!savedCVsJSON || !currentCVId) return null;
-      const savedCVs = JSON.parse(savedCVsJSON);
-      const found = savedCVs.find((cv: any) => cv.id === currentCVId);
-      return found;
+      try {
+        const savedCVsJSON = localStorage.getItem("saved_cvs");
+        if (!savedCVsJSON || !currentCVId) return null;
+        const savedCVs = JSON.parse(savedCVsJSON);
+        return savedCVs.find((cv: any) => cv.id === currentCVId) || null;
+      } catch (e) {
+        console.error("Erreur lors de la récupération du CV:", e);
+        return null;
+      }
     },
     refreshPreview,
   });
@@ -51,27 +56,47 @@ export function useCVEditorActions() {
     refreshPreview,
   });
 
+  // Vérification des téléchargements disponibles
   useEffect(() => {
     if (currentCVId) {
-      setFreeDownloadAvailable(isFreeDownloadAvailable(currentCVId));
+      try {
+        const isAvailable = isFreeDownloadAvailable(currentCVId);
+        setFreeDownloadAvailable(isAvailable);
+      } catch (error) {
+        console.error("Erreur lors de la vérification des téléchargements disponibles:", error);
+        setFreeDownloadAvailable(false);
+      }
     }
   }, [currentCVId]);
 
+  // Chargement du CV depuis l'URL
   useEffect(() => {
-    const stateWithId = location.state as { cvId?: string } | null;
-    if (stateWithId?.cvId) {
-      setCurrentCVId(stateWithId.cvId);
-      loadSavedCV(stateWithId.cvId);
-    } else {
-      const params = new URLSearchParams(location.search);
-      const cvId = params.get("cvId");
-      if (cvId) {
-        setCurrentCVId(cvId);
-        loadSavedCV(cvId);
+    if (initialized.current) return;
+    
+    try {
+      const stateWithId = location.state as { cvId?: string } | null;
+      let cvIdToLoad = null;
+      
+      if (stateWithId?.cvId) {
+        cvIdToLoad = stateWithId.cvId;
+      } else {
+        const params = new URLSearchParams(location.search);
+        const cvIdParam = params.get("cvId");
+        if (cvIdParam) {
+          cvIdToLoad = cvIdParam;
+        }
       }
+      
+      if (cvIdToLoad) {
+        console.log("Chargement du CV:", cvIdToLoad);
+        setCurrentCVId(cvIdToLoad);
+        loadSavedCV(cvIdToLoad);
+        initialized.current = true;
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement initial du CV:", error);
     }
-    // eslint-disable-next-line
-  }, [location]);
+  }, [location, loadSavedCV]);
 
   return {
     currentCVId,
