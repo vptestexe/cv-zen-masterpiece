@@ -61,6 +61,11 @@ export function useDashboardEffects(state: any) {
     } else {
       state.setUserName(state.user?.name || "Utilisateur");
       
+      // Store current user ID in localStorage for payment processing
+      if (state.user?.id) {
+        localStorage.setItem('current_user_id', state.user.id);
+      }
+      
       // Clear any previously saved CVs when a new user logs in
       const userId = state.user?.id;
       const lastLoggedInUser = localStorage.getItem('last_logged_in_user');

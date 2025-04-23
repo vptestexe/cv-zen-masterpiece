@@ -15,6 +15,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [cvId, setCvId] = useState<string | null>(null);
+  const [infoMissing, setInfoMissing] = useState(false);
 
   // Récupérer les informations nécessaires lors de l'ouverture du dialogue
   useEffect(() => {
@@ -24,6 +25,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
       
       setCvId(storedCvId);
       setUserId(storedUserId);
+      setInfoMissing(!storedCvId || !storedUserId);
       
       // Afficher des logs pour le débogage
       console.log("Dialog opened with:", { 
@@ -87,21 +89,30 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
           <DialogTitle>Activer le téléchargement</DialogTitle>
           <DialogDescription>
             Cliquez sur le bouton ci-dessous pour activer le téléchargement de votre CV.
-            {(!cvId || !userId) && (
+            {infoMissing && (
               <div className="mt-2 text-red-500 text-sm">
                 Attention: Informations utilisateur ou CV manquantes. Veuillez retourner au dashboard et réessayer.
               </div>
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex justify-center py-4">
-          <button
-            onClick={handleConfirm}
-            disabled={isProcessing}
-            className="py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
-          >
-            {isProcessing ? "Activation..." : "Activer le téléchargement"}
-          </button>
+        <div className="flex flex-col gap-4 py-4">
+          {infoMissing ? (
+            <button
+              onClick={onClose}
+              className="py-2 px-4 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors font-medium"
+            >
+              Retourner au dashboard
+            </button>
+          ) : (
+            <button
+              onClick={handleConfirm}
+              disabled={isProcessing || infoMissing}
+              className="py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
+            >
+              {isProcessing ? "Activation..." : "Activer le téléchargement"}
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

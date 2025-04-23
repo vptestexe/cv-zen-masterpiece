@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect } from "react";
 import { Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,14 +18,26 @@ const Dashboard = () => {
   const actions = useDashboardActions(state);
   useDashboardEffects(state);
 
+  useEffect(() => {
+    if (state.user?.id) {
+      localStorage.setItem('current_user_id', state.user.id);
+    }
+  }, [state.user]);
+
   const handlePaymentDialogClose = () => {
     state.setShowPaymentDialog(false);
     state.setCurrentCvId(null);
+    localStorage.removeItem('cv_being_paid');
   };
 
   const handleRechargeClick = (cvId: string) => {
     state.setCurrentCvId(cvId);
     localStorage.setItem("cv_being_paid", cvId);
+    
+    if (state.user?.id) {
+      localStorage.setItem('current_user_id', state.user.id);
+    }
+    
     state.setShowPaymentDialog(true);
   };
 
