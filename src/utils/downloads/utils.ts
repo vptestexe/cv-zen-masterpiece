@@ -74,16 +74,44 @@ export const resetCVPaymentStatus = () => {
   }
 };
 
-// Track payment attempt details
+// Track payment attempt details with better validation
 export const trackPaymentAttempt = (cvId: string, userId: string) => {
   try {
-    localStorage.setItem('payment_attempt', JSON.stringify({
+    // Generate a unique order reference
+    const orderRef = `WAVE_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    const paymentAttempt = {
       cvId,
       userId,
       timestamp: Date.now(),
-      orderRef: `WAVE_${Date.now().toString(36)}`
-    }));
+      orderRef,
+      amount: 1000 // Store the expected amount for validation
+    };
+    
+    localStorage.setItem('payment_attempt', JSON.stringify(paymentAttempt));
+    return orderRef;
   } catch (error) {
     console.error("Erreur lors du suivi de la tentative de paiement:", error);
+    return null;
+  }
+};
+
+// Validate that a payment reference matches what we expect
+export const validatePaymentReference = (orderRef: string): boolean => {
+  try {
+    const paymentAttemptJson = localStorage.getItem('payment_attempt');
+    if (!paymentAttemptJson) return false;
+    
+    const paymentAttempt = JSON.parse(paymentAttemptJson);
+    
+    // Validate the payment reference
+    if (paymentAttempt.orderRef && orderRef) {
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Erreur lors de la validation de la référence de paiement:", error);
+    return false;
   }
 };

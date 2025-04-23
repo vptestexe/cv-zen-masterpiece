@@ -15,86 +15,92 @@ export const usePaymentVerification = (
 
   useEffect(() => {
     const verifyPayment = async () => {
-      const cvBeingPaid = localStorage.getItem('cv_being_paid');
-      if (!cvBeingPaid || state.processingPayment || !userId) return;
-
+      // Get URLs parameters
       const urlParams = new URLSearchParams(window.location.search);
-      const paymentStatus = urlParams.get('payment_status');
-      const paymentAttemptJson = localStorage.getItem('payment_attempt');
-      const paymentAttempt = paymentAttemptJson ? JSON.parse(paymentAttemptJson) : null;
-      
-      // Check for Wave return URL parameters
       const waveSuccess = urlParams.get('wave_success');
       const waveOrderRef = urlParams.get('order_ref');
       
-      if ((paymentStatus === 'success' || waveSuccess === 'true') && 
-          (paymentAttempt?.cvId === cvBeingPaid || cvBeingPaid)) {
-            
+      // Check if there's a CV being paid and we have success parameters
+      const cvBeingPaid = localStorage.getItem('cv_being_paid');
+      const paymentAttemptJson = localStorage.getItem('payment_attempt');
+      
+      // Only proceed if we have all required information
+      if (!cvBeingPaid || !userId || state.processingPayment || 
+          !waveSuccess || waveSuccess !== 'true' || !waveOrderRef) {
+        return;
+      }
+      
+      try {
+        // Mark as processing to prevent duplicate verifications
         state.setProcessingPayment(true);
         
-        try {
-          console.log("Verifying payment for CV:", cvBeingPaid);
-          
-          // Add a 3 second delay for payment verification
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          // Use RPC function to verify payment in database
-          const { data, error } = await supabase.rpc('verify_payment', {
-            p_user_id: userId,
-            p_cv_id: cvBeingPaid,
-            p_amount: 1000,
-            p_transaction_id: waveOrderRef || `WAVE_${Date.now()}`
+        console.log("Verifying Wave payment for CV:", cvBeingPaid, "with order reference:", waveOrderRef);
+        
+        const paymentAttempt = paymentAttemptJson ? JSON.parse(paymentAttemptJson) : null;
+        
+        // Validate that this payment attempt matches our stored attempt
+        if (!paymentAttempt || paymentAttempt.cvId !== cvBeingPaid) {
+          console.error("Payment attempt mismatch", { 
+            stored: paymentAttempt?.cvId, 
+            current: cvBeingPaid 
           });
-          
-          if (error) {
-            throw error;
-          }
-          
-          // Update local download count
-          const updatedCount = updateDownloadCount(cvBeingPaid, true);
-          state.setDownloadCounts((prev: any) => ({
-            ...prev,
-            [cvBeingPaid]: updatedCount
-          }));
-          
-          localStorage.removeItem('cv_being_paid');
-          localStorage.removeItem('payment_attempt');
-          
-          // Clean URL parameters
-          const cleanUrl = window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
-          
-          state.setProcessingPayment(false);
-          
-          toast({
-            title: "Paiement confirmé",
-            description: `La vérification est terminée. Vous disposez maintenant de ${PAID_DOWNLOADS_PER_CV} téléchargements pour ce CV.`,
-          });
-          
-          // Open payment dialog to show success and download options
-          state.setCurrentCvId(cvBeingPaid);
-          state.setShowPaymentDialog(true);
-        } catch (error) {
-          console.error("Payment verification error:", error);
-          state.setProcessingPayment(false);
-          toast({
-            title: "Erreur enregistrement paiement",
-            description: "Impossible de vérifier le paiement dans la base de données",
-            variant: "destructive"
-          });
+          throw new Error("Payment verification failed: Invalid payment attempt");
         }
-      } else if (paymentStatus === 'cancel' || urlParams.get('wave_cancel') === 'true') {
+        
+        // Add a short delay for payment verification to mimic server processing
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Use RPC function to verify payment in database
+        const { data, error } = await supabase.rpc('verify_payment', {
+          p_user_id: userId,
+          p_cv_id: cvBeingPaid,
+          p_amount: 1000,
+          p_transaction_id: waveOrderRef
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Update local download count
+        const updatedCount = updateDownloadCount(cvBeingPaid, true);
+        state.setDownloadCounts((prev: any) => ({
+          ...prev,
+          [cvBeingPaid]: updatedCount
+        }));
+        
+        // Clean URL parameters and local storage
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
         
+        localStorage.removeItem('cv_being_paid');
+        localStorage.removeItem('payment_attempt');
+        
+        state.setProcessingPayment(false);
+        
         toast({
-          title: "Paiement annulé",
-          description: "Vous avez annulé le processus de paiement",
-          variant: "default"
+          title: "Paiement confirmé",
+          description: `La vérification est terminée. Vous disposez maintenant de ${PAID_DOWNLOADS_PER_CV} téléchargements pour ce CV.`,
         });
+        
+        // Open payment dialog to show success and download options
+        state.setCurrentCvId(cvBeingPaid);
+        state.setShowPaymentDialog(true);
+      } catch (error) {
+        console.error("Payment verification error:", error);
+        state.setProcessingPayment(false);
+        toast({
+          title: "Erreur de vérification",
+          description: "Impossible de vérifier le paiement. Veuillez réessayer.",
+          variant: "destructive"
+        });
+        
+        // Reset the payment attempt state
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
       }
     };
     
     verifyPayment();
-  }, [state.processingPayment, userId, toast, insertPayment]);
+  }, [state, userId, toast, insertPayment]);
 };

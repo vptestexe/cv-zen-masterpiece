@@ -13,10 +13,64 @@ export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('idle');
+  const [isWaveRedirect, setIsWaveRedirect] = useState(false);
   const navigate = useNavigate();
   const { mutate: insertPayment } = useInsertPayment();
 
-  const handlePayment = async () => {
+  // Check if this is a Wave redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const waveSuccess = urlParams.get('wave_success');
+    const waveOrderRef = urlParams.get('order_ref');
+    
+    if ((waveSuccess === 'true' && waveOrderRef) || urlParams.get('wave_cancel') === 'true') {
+      setIsWaveRedirect(true);
+    }
+  }, []);
+
+  const handleMobilePayment = () => {
+    if (!cvId) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'identifier le CV à télécharger",
+        variant: "destructive"
+      });
+      onClose();
+      return;
+    }
+    
+    // Track the CV being paid for
+    localStorage.setItem('cv_being_paid', cvId);
+    
+    // Get current user ID
+    const userId = localStorage.getItem('current_user_id');
+    
+    if (!userId) {
+      toast({
+        title: "Erreur",
+        description: "Utilisateur non identifié",
+        variant: "destructive"
+      });
+      onClose();
+      return;
+    }
+    
+    // Store payment attempt details
+    localStorage.setItem('payment_attempt', JSON.stringify({
+      cvId,
+      userId,
+      timestamp: Date.now(),
+      orderRef: `WAVE_${Date.now()}`
+    }));
+    
+    // Define Wave payment URL with required parameters
+    const WAVE_PAYMENT_URL = "https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=1000";
+    
+    // Open Wave payment page
+    window.location.href = WAVE_PAYMENT_URL;
+  };
+
+  const handleVerifyPayment = async () => {
     if (!cvId) {
       toast({
         title: "Erreur",
@@ -37,31 +91,21 @@ export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
         throw new Error('User ID not found');
       }
       
-      // Add a delay to simulate payment verification
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Check for Wave payment return parameters in URL first
+      // Check for Wave payment return parameters in URL
       const urlParams = new URLSearchParams(window.location.search);
       const waveSuccess = urlParams.get('wave_success');
       const waveOrderRef = urlParams.get('order_ref');
       
-      let paymentVerified = false;
-      
-      // If Wave success parameter is present in URL, consider it a successful payment
-      if (waveSuccess === 'true' && cvId === localStorage.getItem('cv_being_paid')) {
-        paymentVerified = true;
-        console.log("Wave payment verified via URL parameters");
+      // Verify payment only if Wave success parameter is present
+      if (waveSuccess === 'true' && waveOrderRef && cvId === localStorage.getItem('cv_being_paid')) {
+        console.log("Verifying Wave payment via URL parameters");
         
-        // Clean URL parameters
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-      } else {
-        // Attempt to verify the payment with Supabase
+        // Verify with Supabase
         const { data, error } = await supabase.rpc('verify_payment', {
           p_user_id: userId,
           p_cv_id: cvId,
           p_amount: 1000,
-          p_transaction_id: `WAVE_${Date.now()}`
+          p_transaction_id: waveOrderRef
         });
         
         if (error) {
@@ -69,20 +113,18 @@ export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
           throw error;
         }
         
-        paymentVerified = !!data;
-        console.log("Payment verification result:", data);
-      }
-      
-      if (paymentVerified) {
-        // Update local download count
+        // Update download count and clean up
         updateDownloadCount(cvId, true);
-        
-        // Clear payment tracking
         localStorage.removeItem('cv_being_paid');
+        localStorage.removeItem('payment_attempt');
+        
+        // Clean URL parameters
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
         
         setVerificationStatus('success');
         
-        // Find the CV in localStorage
+        // Find the CV in localStorage for download
         const savedCVsJSON = localStorage.getItem("saved_cvs");
         if (savedCVsJSON) {
           const savedCVs = JSON.parse(savedCVsJSON);
@@ -107,18 +149,28 @@ export const usePaymentDialog = (onClose: () => void, cvId?: string | null) => {
           }
         }
       } else {
-        throw new Error("Payment not verified");
+        // If no Wave parameters are present, inform user to complete payment first
+        throw new Error("Aucune confirmation de paiement Wave détectée");
       }
     } catch (error) {
       console.error("Error during payment verification:", error);
       setVerificationStatus('error');
       setIsProcessing(false);
+      
+      // Show specific error message
+      toast({
+        title: "Échec de la vérification",
+        description: error instanceof Error ? error.message : "Veuillez d'abord effectuer le paiement avant de vérifier",
+        variant: "destructive"
+      });
     }
   };
 
   return {
     isProcessing,
     verificationStatus,
-    handlePayment
+    isWaveRedirect,
+    handlePayment: handleMobilePayment,
+    handleVerifyPayment
   };
 };

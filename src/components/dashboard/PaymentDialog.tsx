@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Check } from "lucide-react";
+import { Check, QrCode, CreditCard, Smartphone } from "lucide-react";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -17,14 +17,10 @@ interface PaymentDialogProps {
 }
 
 const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
-  const { handlePayment, isProcessing, verificationStatus } = usePaymentDialog(onClose, cvId);
+  const { handlePayment, handleVerifyPayment, isProcessing, verificationStatus, isWaveRedirect } = usePaymentDialog(onClose, cvId);
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const WAVE_PAYMENT_URL = "https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=1000";
   
-  // Remove automatic payment verification when dialog opens
-  // We'll wait for the user to initiate payment instead
-
   // Show toast when verification is complete
   useEffect(() => {
     if (verificationStatus === 'success') {
@@ -40,22 +36,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       });
     }
   }, [verificationStatus, toast]);
-
-  const handleMobilePayment = () => {
-    // Track the CV being paid for
-    if (cvId) {
-      localStorage.setItem('cv_being_paid', cvId);
-      
-      // Open Wave payment page
-      window.location.href = WAVE_PAYMENT_URL;
-    }
-  };
-
-  const handleVerifyPayment = () => {
-    if (cvId) {
-      handlePayment();
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -91,35 +71,54 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                 </p>
                 {!isMobile ? (
                   <div className="flex flex-col items-center space-y-4">
-                    <img 
-                      src="/lovable-uploads/1c070811-a6f0-4e04-be67-11bc4226d5f9.png" 
-                      alt="Code QR Wave" 
-                      className="w-64 h-64 object-contain"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Scannez le code QR avec l'application Wave
-                    </p>
-                    <Button 
-                      className="mt-4 w-full"
-                      onClick={handleVerifyPayment}
-                    >
-                      J'ai payé, vérifier mon paiement
-                    </Button>
+                    <div className="border border-gray-200 p-4 rounded-lg bg-white">
+                      <img 
+                        src="/lovable-uploads/1c070811-a6f0-4e04-be67-11bc4226d5f9.png" 
+                        alt="Code QR Wave" 
+                        className="w-64 h-64 object-contain"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <QrCode className="h-4 w-4" />
+                      <p>Scannez le code QR avec l'application Wave</p>
+                    </div>
+                    {isWaveRedirect ? (
+                      <Button 
+                        className="mt-4 w-full"
+                        onClick={handleVerifyPayment}
+                      >
+                        J'ai payé, vérifier mon paiement
+                      </Button>
+                    ) : (
+                      <p className="text-sm text-center text-muted-foreground mt-2">
+                        Après avoir scanné et payé, revenez ici et cliquez sur "Vérifier mon paiement"
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center space-y-4">
                     <Button 
-                      className="w-full bg-[#00b6f0] hover:bg-[#00a0d6]"
-                      onClick={handleMobilePayment}
+                      className="w-full bg-[#00b6f0] hover:bg-[#00a0d6] gap-2"
+                      onClick={handlePayment}
                     >
+                      <Smartphone className="h-4 w-4" />
                       Payer avec Wave
                     </Button>
-                    <Button 
-                      className="w-full"
-                      onClick={handleVerifyPayment}
-                    >
-                      J'ai payé, vérifier mon paiement
-                    </Button>
+                    {isWaveRedirect && (
+                      <Button 
+                        className="w-full gap-2"
+                        onClick={handleVerifyPayment}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        J'ai payé, vérifier mon paiement
+                      </Button>
+                    )}
+                  </div>
+                )}
+                
+                {verificationStatus === 'error' && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                    <p>La vérification du paiement a échoué. Veuillez vous assurer que vous avez bien effectué le paiement avant de cliquer sur "Vérifier mon paiement".</p>
                   </div>
                 )}
               </div>
