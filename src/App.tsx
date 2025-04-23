@@ -14,17 +14,58 @@ import { useAuth, AuthProvider } from "./hooks/use-auth";
 import { toast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-// Configurer le client de requête avec une politique d'invalidation pour la sécurité
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: true,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
-      networkMode: 'online',
+// Create a QueryClient instance directly inside the component
+// This ensures it's created after React is fully initialized
+const App = () => {
+  // Create the query client inside the component
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: true,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        retry: 1,
+        networkMode: 'online',
+      },
     },
-  },
-});
+  });
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <CVProvider>
+            <BrowserRouter>
+              <SecurityHeaders />
+              <Routes>
+                {/* Page d'accueil */}
+                <Route path="/" element={<Landing />} />
+                
+                {/* Authentification */}
+                <Route path="/login" element={<Login />} />
+                
+                {/* Dashboard utilisateur (protégé) */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Éditeur de CV (protégé) */}
+                <Route path="/editor" element={<EditorWithTemplate />} />
+                <Route path="/editor/:templateId" element={<EditorWithTemplate />} />
+                
+                {/* Route 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </CVProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 // Fonction pour détecter les attaques potentielles de XSS
 function detectXSS(input: string): boolean {
@@ -183,42 +224,5 @@ const SecurityHeaders = () => {
   
   return null;
 };
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipWrapper>
-        <Toaster />
-        <Sonner />
-        <CVProvider>
-          <BrowserRouter>
-            <SecurityHeaders />
-            <Routes>
-              {/* Page d'accueil */}
-              <Route path="/" element={<Landing />} />
-              
-              {/* Authentification */}
-              <Route path="/login" element={<Login />} />
-              
-              {/* Dashboard utilisateur (protégé) */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              
-              {/* Éditeur de CV (protégé) */}
-              <Route path="/editor" element={<EditorWithTemplate />} />
-              <Route path="/editor/:templateId" element={<EditorWithTemplate />} />
-              
-              {/* Route 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </CVProvider>
-      </TooltipWrapper>
-    </AuthProvider>
-  </QueryClientProvider>
-);
 
 export default App;
