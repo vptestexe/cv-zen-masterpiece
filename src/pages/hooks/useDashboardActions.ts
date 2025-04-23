@@ -10,7 +10,8 @@ import {
   MAX_FREE_CVS,
   saveCVs,
   secureStorage,
-  PAYMENT_AMOUNT
+  PAYMENT_AMOUNT,
+  resetCVPaymentStatus
 } from "@/utils/downloadManager";
 import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";
 import { generateUniqueId } from "@/utils/generateUniqueId";
