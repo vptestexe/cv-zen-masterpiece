@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useInsertPayment } from "@/hooks/use-payments";
 import { 
@@ -122,69 +121,82 @@ export function useDashboardEffects(state: any) {
       const cvBeingPaid = localStorage.getItem('cv_being_paid');
       if (!cvBeingPaid || state.processingPayment) return;
 
-      const paymentSession = secureStorage.get('payment_token', null);
-      const paymentSuccessful = paymentSession &&
-        paymentSession.cvId === cvBeingPaid &&
-        (Date.now() - paymentSession.timestamp) < 3600000;
-      const paymentAmount = PAYMENT_AMOUNT;
-
-      if (paymentSuccessful && paymentAmount === PAYMENT_AMOUNT) {
-        state.setProcessingPayment(true);
-        if (state.user?.email) {
-          try {
-            await insertPayment(
-              {
-                userId: state.user.id || '',
-                cvId: cvBeingPaid,
-                amount: PAYMENT_AMOUNT,
-                transactionId: paymentSession?.transactionId || null,
-              }
-            );
-            
-            const updatedCount = updateDownloadCount(cvBeingPaid, true);
-            state.setDownloadCounts((prev: any) => ({
-              ...prev,
-              [cvBeingPaid]: updatedCount
-            }));
-            
-            localStorage.removeItem('cv_being_paid');
-            state.setProcessingPayment(false);
-            
-            state.toast({
-              title: "Paiement confirmé",
-              description: "Vous disposez maintenant de 5 téléchargements pour ce CV.",
-            });
-            
-            window.location.reload();
-          } catch (error) {
-            console.error("Payment verification error:", error);
-            state.setProcessingPayment(false);
-            state.toast({
-              title: "Erreur enregistrement paiement",
-              description: "Impossible d'enregistrer le paiement en base",
-              variant: "destructive"
-            });
-          }
-        }
-      }
-    };
-
-    const checkPaymentReturn = () => {
+      // Vérifier si on revient d'un paiement RayCash/PayLink
       const urlParams = new URLSearchParams(window.location.search);
       const paymentStatus = urlParams.get('payment_status');
       
-      if (paymentStatus) {
+      // Récupérer les informations de la tentative de paiement
+      const paymentAttemptJson = localStorage.getItem('payment_attempt');
+      const paymentAttempt = paymentAttemptJson ? JSON.parse(paymentAttemptJson) : null;
+      
+      console.log("Vérification du paiement:", { 
+        paymentStatus, 
+        paymentAttempt, 
+        cvBeingPaid,
+        userId: state.user?.id
+      });
+      
+      // Si on revient avec un statut de succès et que les informations correspondent
+      if (paymentStatus === 'success' && paymentAttempt && 
+          paymentAttempt.cvId === cvBeingPaid && 
+          paymentAttempt.userId === state.user?.id) {
+            
+        state.setProcessingPayment(true);
+        
+        try {
+          // Enregistrer le paiement en base de données
+          await insertPayment({
+            userId: state.user.id,
+            cvId: cvBeingPaid,
+            amount: PAYMENT_AMOUNT,
+            transactionId: paymentAttempt.orderRef || null,
+          });
+          
+          // Mettre à jour le compteur de téléchargements
+          const updatedCount = updateDownloadCount(cvBeingPaid, true);
+          state.setDownloadCounts((prev: any) => ({
+            ...prev,
+            [cvBeingPaid]: updatedCount
+          }));
+          
+          // Nettoyer les données temporaires
+          localStorage.removeItem('cv_being_paid');
+          localStorage.removeItem('payment_attempt');
+          
+          // Nettoyer l'URL
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          
+          state.setProcessingPayment(false);
+          
+          state.toast({
+            title: "Paiement confirmé",
+            description: "Vous disposez maintenant de 5 téléchargements pour ce CV.",
+          });
+        } catch (error) {
+          console.error("Payment verification error:", error);
+          state.setProcessingPayment(false);
+          state.toast({
+            title: "Erreur enregistrement paiement",
+            description: "Impossible d'enregistrer le paiement en base",
+            variant: "destructive"
+          });
+        }
+      } else if (paymentStatus === 'cancel') {
+        // Nettoyer l'URL en cas d'annulation
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
-        verifyPayment();
+        
+        state.toast({
+          title: "Paiement annulé",
+          description: "Vous avez annulé le processus de paiement",
+          variant: "default"
+        });
       }
     };
     
-    checkPaymentReturn();
+    // Vérifier le statut du paiement au chargement de la page
+    verifyPayment();
     
-    const cvBeingPaid = localStorage.getItem('cv_being_paid');
-    if (cvBeingPaid && !state.processingPayment) {
-      verifyPayment();
-    }
   }, [state.processingPayment, state.user]);
 }

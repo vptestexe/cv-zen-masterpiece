@@ -3,6 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useInsertPayment } from "@/hooks/use-payments";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { PAYMENT_AMOUNT } from "@/utils/downloadManager";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -16,6 +19,13 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [cvId, setCvId] = useState<string | null>(null);
   const [infoMissing, setInfoMissing] = useState(false);
+  
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      fullName: "",
+    }
+  });
 
   // Récupérer les informations nécessaires lors de l'ouverture du dialogue
   useEffect(() => {
@@ -35,7 +45,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
     }
   }, [open]);
 
-  const handleConfirm = async (e: React.MouseEvent) => {
+  const handleRayCashPayment = (e: React.MouseEvent) => {
     // Prévenir le comportement par défaut pour éviter le rechargement de page
     e.preventDefault();
     
@@ -43,7 +53,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
     const currentCvId = cvId || localStorage.getItem('cv_being_paid');
     const currentUserId = userId || localStorage.getItem('current_user_id');
     
-    console.log("Confirming with:", { cvId: currentCvId, userId: currentUserId });
+    console.log("Redirecting to RayCash with:", { cvId: currentCvId, userId: currentUserId });
     
     if (!currentCvId || !currentUserId) {
       toast({
@@ -56,11 +66,68 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
 
     setIsProcessing(true);
     
+    // Créer l'URL de paiement RayCash/PayLink
+    const orderRef = `cv-${currentCvId.substring(0,8)}`;
+    const paymentDescription = `Téléchargement de CV - ${orderRef}`;
+    
+    // URL fictive à remplacer par la vraie URL RayCash/PayLink
+    const rayCashUrl = `https://pay.raycash.com/checkout?`
+      + `amount=${PAYMENT_AMOUNT}`
+      + `&reference=${orderRef}`
+      + `&description=${encodeURIComponent(paymentDescription)}`
+      + `&return_url=${encodeURIComponent(window.location.origin)}/dashboard?payment_status=success`
+      + `&cancel_url=${encodeURIComponent(window.location.origin)}/dashboard?payment_status=cancel`;
+    
+    // Stocker les informations de la tentative de paiement en local
+    try {
+      const paymentAttempt = {
+        cvId: currentCvId,
+        userId: currentUserId,
+        timestamp: Date.now(),
+        amount: PAYMENT_AMOUNT,
+        orderRef
+      };
+      localStorage.setItem('payment_attempt', JSON.stringify(paymentAttempt));
+      
+      // Rediriger vers la page de paiement
+      window.location.href = rayCashUrl;
+    } catch (error) {
+      console.error("Erreur lors de la préparation du paiement:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de préparer le paiement",
+        variant: "destructive"
+      });
+      setIsProcessing(false);
+    }
+  };
+
+  const handleTestSuccess = async (e: React.MouseEvent) => {
+    // Prévenir le comportement par défaut pour éviter le rechargement de page
+    e.preventDefault();
+    
+    // Vérifier de nouveau les informations au moment de la confirmation
+    const currentCvId = cvId || localStorage.getItem('cv_being_paid');
+    const currentUserId = userId || localStorage.getItem('current_user_id');
+    
+    console.log("Testing success with:", { cvId: currentCvId, userId: currentUserId });
+    
+    if (!currentCvId || !currentUserId) {
+      toast({
+        title: "Erreur",
+        description: "Informations manquantes pour le test",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    
     try {
       await insertPayment({
         userId: currentUserId,
         cvId: currentCvId,
-        amount: 0,
+        amount: PAYMENT_AMOUNT,
       });
       
       localStorage.removeItem('cv_being_paid');
@@ -90,9 +157,9 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Activer le téléchargement</DialogTitle>
+          <DialogTitle>Paiement pour téléchargement</DialogTitle>
           <DialogDescription>
-            Cliquez sur le bouton ci-dessous pour activer le téléchargement de votre CV.
+            Payez {PAYMENT_AMOUNT} F CFA via RayCash/PayLink pour activer le téléchargement de votre CV.
             {infoMissing && (
               <div className="mt-2 text-red-500 text-sm">
                 Attention: Informations utilisateur ou CV manquantes. Veuillez retourner au dashboard et réessayer.
@@ -110,14 +177,26 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
               Retourner au dashboard
             </button>
           ) : (
-            <button
-              onClick={handleConfirm}
-              disabled={isProcessing || infoMissing}
-              className="py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
-              type="button"
-            >
-              {isProcessing ? "Activation..." : "Activer le téléchargement"}
-            </button>
+            <>
+              <button
+                onClick={handleRayCashPayment}
+                disabled={isProcessing || infoMissing}
+                className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                type="button"
+              >
+                {isProcessing ? "Traitement en cours..." : "Payer avec RayCash/PayLink"}
+              </button>
+              
+              {/* Bouton de test - À supprimer en production */}
+              <button
+                onClick={handleTestSuccess}
+                disabled={isProcessing || infoMissing}
+                className="mt-2 py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 text-sm"
+                type="button"
+              >
+                Test: Simuler un paiement réussi
+              </button>
+            </>
           )}
         </div>
       </DialogContent>
