@@ -141,19 +141,25 @@ export function useDashboardActions(state: any) {
 
   const handleLogout = () => {
     try {
-      // Clean up local storage and secure storage first
+      // Nettoyer d'abord toutes les données locales
       resetCVPaymentStatus();
       secureStorage.remove('payment_token');
       localStorage.removeItem('auth_token');
       
-      // Then attempt the logout (which might fail if no session exists)
+      // Marquer la tentative de déconnexion dans le localStorage pour éviter les boucles de redirection
+      localStorage.setItem('logout_in_progress', 'true');
+      
+      // Appeler la fonction de déconnexion et gérer la navigation
       state.logout()
         .catch((error: any) => {
           console.warn("Logout API call failed, but local state was cleaned:", error);
         })
         .finally(() => {
-          // Always navigate away regardless of API success
-          navigate("/login");
+          // Toujours naviguer vers la page de connexion, quel que soit le résultat de l'API
+          setTimeout(() => {
+            localStorage.removeItem('logout_in_progress');
+            navigate("/login");
+          }, 100);
           
           if (!state.isMobile) {
             toast({
@@ -164,8 +170,9 @@ export function useDashboardActions(state: any) {
         });
     } catch (error) {
       console.error("Error during logout cleanup:", error);
-      // Force logout by cleaning local state and redirecting
+      // Forcer la déconnexion en nettoyant l'état local et en redirigeant
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('logout_in_progress');
       navigate("/login");
     }
   };

@@ -137,26 +137,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      // First check if there's an active session to avoid errors
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      // Only attempt to sign out if there's a valid session
-      if (sessionData.session) {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          throw error;
-        }
-      } else {
-        // If no session exists, just clean up the local state
-        console.log("No active session found, cleaning up local state only");
-      }
-      
-      // Always clean up local state regardless of session status
+      // Nettoyer d'abord toutes les données locales de session pour éviter les problèmes
+      // même si la déconnexion API échoue
       setUser(null);
       setIsAuthenticated(false);
       setSession(null);
       localStorage.removeItem('auth_token');
       
+      try {
+        // Vérifier si une session existe avant de tenter la déconnexion
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (sessionData.session) {
+          // Utiliser signOut avec {scope: 'local'} pour éviter les erreurs 403
+          await supabase.auth.signOut({ scope: 'local' });
+          console.log("Logout API call successful");
+        } else {
+          console.log("No active session found, skipping API signOut call");
+        }
+      } catch (apiError) {
+        // Ne pas propager l'erreur API, car les données locales sont déjà nettoyées
+        console.warn("Logout API call failed, but local state was cleaned:", apiError);
+      }
+      
+      // Notification de succès
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt !",
@@ -165,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error: any) {
       console.error("Logout error:", error);
       
-      // Even if there's an error, attempt to clean up local state
+      // S'assurer que l'état local est toujours nettoyé en cas d'erreur
       setUser(null);
       setIsAuthenticated(false);
       setSession(null);
