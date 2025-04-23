@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast";
 import { isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/utils/downloadManager";
 import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";
@@ -15,7 +16,7 @@ export function useCVDownload({ getCurrentCV, refreshPreview }: {
   const isMobile = useIsMobile();
 
   const handleDownloadCV = async (format: "pdf" | "word", currentCVId: string | null, setFreeDownloadAvailable: (b: boolean) => void) => {
-    if (currentCVId && !isFreeDownloadAvailable(currentCVId)) {
+    if (currentCVId && !isFreeDownloadAvailable()) {
       toast({
         title: "Téléchargement impossible",
         description: `Veuillez acheter des téléchargements pour ce CV (${PAYMENT_AMOUNT} CFA)`,
@@ -51,7 +52,7 @@ export function useCVDownload({ getCurrentCV, refreshPreview }: {
           description: `Votre CV a été téléchargé avec succès au format ${format === "pdf" ? "PDF" : "Word"}.`,
         });
       }
-      setFreeDownloadAvailable(isFreeDownloadAvailable(currentCVId!));
+      setFreeDownloadAvailable(isFreeDownloadAvailable());
       navigate("/dashboard");
     } catch (error) {
       console.error("Erreur lors du téléchargement:", error);
