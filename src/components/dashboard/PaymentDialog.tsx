@@ -35,7 +35,10 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
     }
   }, [open]);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (e: React.MouseEvent) => {
+    // Prévenir le comportement par défaut pour éviter le rechargement de page
+    e.preventDefault();
+    
     // Vérifier de nouveau les informations au moment de la confirmation
     const currentCvId = cvId || localStorage.getItem('cv_being_paid');
     const currentUserId = userId || localStorage.getItem('current_user_id');
@@ -68,8 +71,10 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
         description: "Vous pouvez maintenant télécharger votre CV",
       });
       
-      // Recharger la page pour mettre à jour l'état des téléchargements
-      window.location.reload();
+      // Utiliser une fonction timeout pour éviter les problèmes de timing
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 500);
     } catch (error) {
       console.error("Erreur lors de l'activation:", error);
       toast({
@@ -77,7 +82,6 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
         description: "Impossible d'activer le téléchargement",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -101,6 +105,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
             <button
               onClick={onClose}
               className="py-2 px-4 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors font-medium"
+              type="button"
             >
               Retourner au dashboard
             </button>
@@ -109,6 +114,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
               onClick={handleConfirm}
               disabled={isProcessing || infoMissing}
               className="py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
+              type="button"
             >
               {isProcessing ? "Activation..." : "Activer le téléchargement"}
             </button>
