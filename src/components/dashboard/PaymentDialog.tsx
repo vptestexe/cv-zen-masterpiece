@@ -1,6 +1,6 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useInsertPayment } from "@/hooks/use-payments";
 
@@ -13,15 +13,37 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
   const { toast } = useToast();
   const { mutate: insertPayment } = useInsertPayment();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [cvId, setCvId] = useState<string | null>(null);
+
+  // Récupérer les informations nécessaires lors de l'ouverture du dialogue
+  useEffect(() => {
+    if (open) {
+      const storedCvId = localStorage.getItem('cv_being_paid');
+      const storedUserId = localStorage.getItem('current_user_id');
+      
+      setCvId(storedCvId);
+      setUserId(storedUserId);
+      
+      // Afficher des logs pour le débogage
+      console.log("Dialog opened with:", { 
+        cvId: storedCvId, 
+        userId: storedUserId 
+      });
+    }
+  }, [open]);
 
   const handleConfirm = async () => {
-    const cvId = localStorage.getItem('cv_being_paid');
-    const userId = localStorage.getItem('current_user_id');
+    // Vérifier de nouveau les informations au moment de la confirmation
+    const currentCvId = cvId || localStorage.getItem('cv_being_paid');
+    const currentUserId = userId || localStorage.getItem('current_user_id');
     
-    if (!cvId || !userId) {
+    console.log("Confirming with:", { cvId: currentCvId, userId: currentUserId });
+    
+    if (!currentCvId || !currentUserId) {
       toast({
         title: "Erreur",
-        description: "Informations manquantes",
+        description: "Informations manquantes pour le téléchargement",
         variant: "destructive"
       });
       return;
@@ -31,8 +53,8 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
     
     try {
       await insertPayment({
-        userId,
-        cvId,
+        userId: currentUserId,
+        cvId: currentCvId,
         amount: 0,
       });
       
@@ -44,6 +66,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
         description: "Vous pouvez maintenant télécharger votre CV",
       });
       
+      // Recharger la page pour mettre à jour l'état des téléchargements
       window.location.reload();
     } catch (error) {
       console.error("Erreur lors de l'activation:", error);
@@ -64,6 +87,11 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
           <DialogTitle>Activer le téléchargement</DialogTitle>
           <DialogDescription>
             Cliquez sur le bouton ci-dessous pour activer le téléchargement de votre CV.
+            {(!cvId || !userId) && (
+              <div className="mt-2 text-red-500 text-sm">
+                Attention: Informations utilisateur ou CV manquantes. Veuillez retourner au dashboard et réessayer.
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-center py-4">
