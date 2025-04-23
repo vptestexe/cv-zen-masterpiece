@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useInsertPayment } from "@/hooks/use-payments";
 import { updateDownloadCount } from "@/utils/downloadManager";
+import { PAID_DOWNLOADS_PER_CV } from "@/utils/downloads/types";
 
 export const usePaymentVerification = (
   state: any,
@@ -54,7 +55,7 @@ export const usePaymentVerification = (
           
           toast({
             title: "Paiement confirmé",
-            description: "La vérification est terminée. Vous disposez maintenant de 5 téléchargements pour ce CV.",
+            description: `La vérification est terminée. Vous disposez maintenant de ${PAID_DOWNLOADS_PER_CV} téléchargements pour ce CV.`,
           });
         } catch (error) {
           console.error("Payment verification error:", error);

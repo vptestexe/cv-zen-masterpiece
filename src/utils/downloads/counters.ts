@@ -1,5 +1,5 @@
 
-import { DownloadCount, DownloadCounts, FREE_DOWNLOADS_PER_CV } from './types';
+import { DownloadCount, DownloadCounts, FREE_DOWNLOADS_PER_CV, PAID_DOWNLOADS_PER_CV } from './types';
 
 export const getDownloadCount = (cvId: string): DownloadCount => {
   const counts = localStorage.getItem('cv_download_counts');
@@ -42,7 +42,7 @@ export const updateDownloadCount = (cvId: string, paymentVerified: boolean = fal
   
   if (paymentVerified) {
     console.log(`Réinitialisation du compteur pour le CV ${cvId} après paiement vérifié`);
-    parsedCounts[cvId] = { count: 5, lastPaymentDate: new Date().toISOString() };
+    parsedCounts[cvId] = { count: PAID_DOWNLOADS_PER_CV, lastPaymentDate: new Date().toISOString() };
   } else {
     if (!parsedCounts[cvId]) {
       parsedCounts[cvId] = { count: FREE_DOWNLOADS_PER_CV, lastPaymentDate: '' };

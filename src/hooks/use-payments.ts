@@ -1,6 +1,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { PAID_DOWNLOADS_PER_CV } from '@/utils/downloads/types';
 
 export const useInsertPayment = () => {
   const queryClient = useQueryClient();

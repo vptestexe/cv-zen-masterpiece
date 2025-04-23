@@ -4,6 +4,7 @@ import { usePaymentDialog } from "@/hooks/usePaymentDialog";
 import PaymentButtons from "./PaymentButtons";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PAID_DOWNLOADS_PER_CV } from "@/utils/downloads/types";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -29,7 +30,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
                 </p>
               </div>
             ) : (
-              "Cliquez sur le bouton ci-dessous pour télécharger votre CV."
+              `Cliquez sur le bouton ci-dessous pour obtenir ${PAID_DOWNLOADS_PER_CV} téléchargements pour votre CV.`
             )}
           </DialogDescription>
         </DialogHeader>
