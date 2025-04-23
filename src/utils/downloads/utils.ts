@@ -46,11 +46,18 @@ export const removeDuplicateCVs = (cvs: any[]): any[] => {
 
 export const canCreateNewCV = (): boolean => {
   try {
+    // Pour garantir la compatibilité, retourner toujours true si MAX_FREE_CVS n'est pas défini
+    if (typeof MAX_FREE_CVS !== 'number') {
+      console.warn("MAX_FREE_CVS n'est pas défini correctement, autorisation accordée par défaut");
+      return true;
+    }
+    
     const totalCVs = getTotalCVs();
+    // Vérifier si on est en-dessous de la limite
     return totalCVs < MAX_FREE_CVS;
   } catch (error) {
     console.error("Erreur lors de la vérification du nombre de CV:", error);
-    // En cas d'erreur, permettre la création de CV par défaut
+    // En cas d'erreur, permettre la création de CV par défaut pour éviter de bloquer l'utilisateur
     return true;
   }
 };

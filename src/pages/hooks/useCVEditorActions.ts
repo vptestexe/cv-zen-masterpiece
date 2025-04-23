@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCallback, useState, useEffect, useRef } from "react";
-import { isFreeDownloadAvailable } from "@/utils/downloads/utils";
+import { isFreeDownloadAvailable } from "@/utils/downloadManager";
 import { useCVDownload } from "./useCVDownload";
 import { useCVSave } from "./useCVSave";
 import { useCVNavigation } from "./useCVNavigation";
