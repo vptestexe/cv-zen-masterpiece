@@ -86,12 +86,24 @@ export function useDashboardActions(state: any) {
       return;
     }
     
-    navigate("/editor/classic");
-    
-    if (!state.isMobile) {
+    try {
+      // Utiliser setTimeout pour laisser le temps au navigateur de traiter l'opération
+      setTimeout(() => {
+        navigate("/editor/classic");
+        
+        if (!state.isMobile) {
+          toast({
+            title: "Création d'un nouveau CV",
+            description: "Choisissez un modèle pour commencer"
+          });
+        }
+      }, 100);
+    } catch (error) {
+      console.error("Erreur lors de la navigation:", error);
       toast({
-        title: "Création d'un nouveau CV",
-        description: "Choisissez un modèle pour commencer"
+        title: "Erreur",
+        description: "Impossible de créer un nouveau CV. Veuillez réessayer.",
+        variant: "destructive"
       });
     }
   };
