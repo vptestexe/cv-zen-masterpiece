@@ -1,4 +1,3 @@
-
 interface DownloadCount {
   count: number;
   lastPaymentDate: string;
@@ -9,7 +8,7 @@ interface DownloadCounts {
 }
 
 // Prix du téléchargement en CFA
-export const PAYMENT_AMOUNT = 1000;
+export const PAYMENT_AMOUNT = import.meta.env.PROD ? 1000 : 50;
 
 // Nombre maximum de CVs gratuits qu'un utilisateur peut créer
 export const MAX_FREE_CVS = 2;
@@ -114,6 +113,12 @@ export const updateDownloadCount = (cvId: string, paymentVerified: boolean = fal
   if (paymentVerified) {
     console.log(`Réinitialisation du compteur pour le CV ${cvId} après paiement vérifié`);
     parsedCounts[cvId] = { count: 5, lastPaymentDate: new Date().toISOString() };
+    
+    // Forcer le rafraîchissement du localStorage
+    localStorage.setItem('cv_download_counts', JSON.stringify(parsedCounts));
+    
+    // Envoyer un événement personnalisé pour notifier le rafraîchissement
+    window.dispatchEvent(new CustomEvent('downloadCountUpdated', { detail: { cvId } }));
   } else {
     // Si ce CV n'a pas de compteur, initialiser avec les téléchargements gratuits
     if (!parsedCounts[cvId]) {

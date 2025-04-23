@@ -10,6 +10,9 @@ interface PaymentDialogProps {
 
 const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
   const isMobile = useIsMobile();
+  const waveLink = import.meta.env.PROD 
+    ? "https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=100"  // 1000 FCFA
+    : "https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=5";   // 50 FCFA
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -28,7 +31,7 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
                 Veuillez payer Cvbuilder avec Wave en cliquant sur ce lien&nbsp;:
               </p>
               <a
-                href="https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=100"
+                href={waveLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 underline font-semibold text-lg"
@@ -53,10 +56,10 @@ const PaymentDialog = ({ open, onClose }: PaymentDialogProps) => {
               </div>
               <div className="flex flex-col items-center mt-2">
                 <span className="font-semibold text-lg text-primary">
-                  1000 CFA
+                  {PAYMENT_AMOUNT} CFA
                 </span>
                 <a
-                  href="https://pay.wave.com/m/M_ci_C5jSUwlXR3P5/c/ci/?amount=100"
+                  href={waveLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 underline mt-2 text-sm"

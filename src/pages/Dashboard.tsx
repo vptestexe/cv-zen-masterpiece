@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -212,6 +211,23 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    const handleDownloadCountUpdate = (event: CustomEvent) => {
+      const { cvId } = event.detail;
+      const updatedCount = getDownloadCount(cvId);
+      setDownloadCounts(prev => ({
+        ...prev,
+        [cvId]: updatedCount
+      }));
+    };
+
+    window.addEventListener('downloadCountUpdated', handleDownloadCountUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('downloadCountUpdated', handleDownloadCountUpdate as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     const verifyPayment = async () => {
       const cvBeingPaid = localStorage.getItem('cv_being_paid');
       if (!cvBeingPaid || processingPayment) return;
@@ -225,47 +241,43 @@ const Dashboard = () => {
       if (paymentSuccessful && paymentAmount === PAYMENT_AMOUNT) {
         setProcessingPayment(true);
         if (user?.email) {
-          insertPayment(
-            {
-              userId: user.id || '',
-              cvId: cvBeingPaid,
-              amount: PAYMENT_AMOUNT,
-              transactionId: paymentSession?.transactionId || null,
-            },
-            {
-              onSuccess: () => {
-                setPaymentVerified(prev => ({ ...prev, [cvBeingPaid]: true }));
-                const updatedCount = updateDownloadCount(cvBeingPaid, true);
-                setDownloadCounts(prev => ({
-                  ...prev,
-                  [cvBeingPaid]: updatedCount
-                }));
-                localStorage.removeItem('cv_being_paid');
-                setProcessingPayment(false);
-                toast({
-                  title: "Paiement confirmé",
-                  description: "Vous disposez maintenant de 5 téléchargements pour ce CV.",
-                });
-              },
-              onError: () => {
-                setProcessingPayment(false);
-                toast({
-                  title: "Erreur enregistrement paiement",
-                  description: "Impossible d'enregistrer le paiement en base",
-                  variant: "destructive"
-                });
-              },
-            }
-          );
+          try {
+            await insertPayment(
+              {
+                userId: user.id || '',
+                cvId: cvBeingPaid,
+                amount: PAYMENT_AMOUNT,
+                transactionId: paymentSession?.transactionId || null,
+              }
+            );
+            
+            const updatedCount = updateDownloadCount(cvBeingPaid, true);
+            setDownloadCounts(prev => ({
+              ...prev,
+              [cvBeingPaid]: updatedCount
+            }));
+            
+            localStorage.removeItem('cv_being_paid');
+            setProcessingPayment(false);
+            
+            toast({
+              title: "Paiement confirmé",
+              description: "Vous disposez maintenant de 5 téléchargements pour ce CV.",
+            });
+            
+            // Force reload after payment success
+            window.location.reload();
+          } catch (error) {
+            console.error("Payment verification error:", error);
+            setProcessingPayment(false);
+            toast({
+              title: "Erreur enregistrement paiement",
+              description: "Impossible d'enregistrer le paiement en base",
+              variant: "destructive"
+            });
+          }
         }
-      } else {
-        toast({
-          title: "Échec du paiement",
-          description: "Le paiement n'a pas pu être vérifié.",
-          variant: "destructive"
-        });
       }
-      setProcessingPayment(false);
     };
 
     const checkPaymentReturn = () => {
@@ -286,7 +298,7 @@ const Dashboard = () => {
     if (cvBeingPaid && !processingPayment) {
       verifyPayment();
     }
-  }, [toast, processingPayment, isMobile, insertPayment, user]);
+  }, [toast, processingPayment, user, insertPayment]);
 
   const confirmDelete = (cvId) => {
     setCvToDelete(cvId);
