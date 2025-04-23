@@ -59,10 +59,11 @@ export const hasDownloadsRemaining = (cvId: string): boolean => {
   return false;
 };
 
-// Renamed function with same functionality to force recognition of changes
+// Fonction avec modification mineure pour forcer la détection du changement
 export const isFreeDownloadAvailable = (cvId: string): boolean => {
-  // Return result of hasDownloadsRemaining
-  return hasDownloadsRemaining(cvId);
+  // Implémentation modifiée pour forcer la détection
+  const result = hasDownloadsRemaining(cvId);
+  return result;
 };
 
 export const resetCVPaymentStatus = () => {
