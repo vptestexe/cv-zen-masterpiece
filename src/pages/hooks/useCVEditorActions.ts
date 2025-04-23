@@ -22,6 +22,7 @@ export function useCVEditorActions() {
   const [previewResetKey, setPreviewResetKey] = useState(0);
   const [freeDownloadAvailable, setFreeDownloadAvailable] = useState(true);
   const initialized = useRef(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refreshPreview = useCallback(() => {
     setPreviewResetKey((prev) => prev + 1);
@@ -69,24 +70,46 @@ export function useCVEditorActions() {
     }
   }, [currentCVId]);
 
-  // Chargement du CV depuis l'URL
+  // Chargement du CV depuis l'URL ou création d'un nouveau CV
   useEffect(() => {
     if (initialized.current) return;
     
     try {
+      setIsLoading(true);
       console.log("Tentative de chargement du CV, location:", location);
-      const stateWithId = location.state as { cvId?: string } | null;
-      let cvIdToLoad = null;
+      const stateData = location.state as { cvId?: string, newCv?: boolean } | null;
       
-      if (stateWithId?.cvId) {
-        cvIdToLoad = stateWithId.cvId;
+      // Vérification de l'authentification
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        console.error("Authentification manquante, redirection vers login");
+        navigate("/login");
+        return;
+      }
+      
+      let cvIdToLoad = null;
+      let isNewCv = false;
+      
+      // Déterminer si c'est un CV existant à charger ou un nouveau CV à créer
+      if (stateData?.cvId) {
+        // Édition d'un CV existant
+        cvIdToLoad = stateData.cvId;
         console.log("CV ID trouvé dans location.state:", cvIdToLoad);
+      } else if (stateData?.newCv) {
+        // Création d'un nouveau CV
+        console.log("Création d'un nouveau CV détectée");
+        isNewCv = true;
       } else {
+        // Vérifier les paramètres d'URL comme fallback
         const params = new URLSearchParams(location.search);
         const cvIdParam = params.get("cvId");
         if (cvIdParam) {
           cvIdToLoad = cvIdParam;
           console.log("CV ID trouvé dans l'URL:", cvIdToLoad);
+        } else {
+          // Par défaut, considérer comme un nouveau CV si aucune info n'est fournie
+          console.log("Aucun CV à charger, création d'un nouveau CV");
+          isNewCv = true;
         }
       }
       
@@ -94,22 +117,36 @@ export function useCVEditorActions() {
         console.log("Chargement du CV:", cvIdToLoad);
         setCurrentCVId(cvIdToLoad);
         loadSavedCV(cvIdToLoad);
-        initialized.current = true;
-      } else {
-        console.log("Aucun CV à charger, création d'un nouveau CV");
-        initialized.current = true;
+      } else if (isNewCv) {
+        console.log("Initialisation d'un nouveau CV");
+        resetCV();
+        
+        // Appliquer le thème du template si spécifié
+        if (templateId && templateId !== 'classic') {
+          console.log("Application du thème:", templateId);
+          setInitialTheme(templateId);
+        }
       }
+      
+      initialized.current = true;
     } catch (error) {
       console.error("Erreur lors du chargement initial du CV:", error);
-      initialized.current = true; // Marquer comme initialisé même en cas d'erreur pour éviter les boucles infinies
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger ou créer le CV",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, [location, loadSavedCV]);
+  }, [location, loadSavedCV, resetCV, navigate, setInitialTheme, templateId, toast]);
 
   return {
     currentCVId,
     lastSaved,
     freeDownloadAvailable,
-    handleSaveCV: (...args: any[]) => handleSaveCV(currentCVId, setCurrentCVId, ...args),
+    isLoading,
+    handleSaveCV: (...args: any[]) => handleSaveCV(currentCVId, setCurrentCVId, setLastSaved, ...args),
     handleResetCV,
     handleBackToDashboard,
     handleDownloadCV: (format: "pdf" | "word" = "pdf") => handleDownloadCV(format, currentCVId, setFreeDownloadAvailable),

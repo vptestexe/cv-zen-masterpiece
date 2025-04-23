@@ -9,14 +9,10 @@ import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle, Down
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import { v4 as uuidv4 } from 'uuid';
 import { getDownloadCount, isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/utils/downloadManager";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";
 import { useCVEditorActions } from "./hooks/useCVEditorActions";
 import { HeaderBar } from "./components/HeaderBar";
 import { FooterBar } from "./components/FooterBar";
@@ -25,6 +21,32 @@ import { ScrollToTopButton } from "./components/ScrollToTopButton";
 
 const MAX_AUTO_SAVE_INTERVAL = 30000; // 30 secondes
 
+const LoadingScreen = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="text-center">
+      <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-6"></div>
+      <p className="text-xl font-semibold text-gray-700">Chargement du CV...</p>
+      <p className="text-sm text-gray-500 mt-2">Veuillez patienter un instant</p>
+    </div>
+  </div>
+);
+
+const ErrorScreen = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+      <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-gray-800 mb-3">Une erreur est survenue</h2>
+      <p className="text-gray-600 mb-6">{message}</p>
+      <div className="flex gap-4 justify-center">
+        <Button variant="outline" onClick={() => window.location.href = "/dashboard"}>
+          Retour au tableau de bord
+        </Button>
+        <Button onClick={onRetry}>Réessayer</Button>
+      </div>
+    </div>
+  </div>
+);
+
 const Index = () => {
   // UI/Editor state
   const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
@@ -32,6 +54,7 @@ const Index = () => {
   const [previewActive, setPreviewActive] = useState(!useIsMobile());
   const [showPreviewInfo, setShowPreviewInfo] = useState(false);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -40,6 +63,7 @@ const Index = () => {
   const {
     lastSaved,
     freeDownloadAvailable,
+    isLoading,
     handleSaveCV,
     handleResetCV,
     handleBackToDashboard,
@@ -57,6 +81,8 @@ const Index = () => {
         const authToken = localStorage.getItem('auth_token');
         
         if (!authToken) {
+          setAuthError("Veuillez vous connecter pour créer ou modifier un CV");
+          
           if (!isMobile) {
             toast({
               title: "Connexion requise",
@@ -64,12 +90,18 @@ const Index = () => {
               variant: "destructive"
             });
           }
-          navigate("/login");
+          
+          // Délai court pour permettre l'affichage du toast avant la redirection
+          setTimeout(() => {
+            navigate("/login", { replace: true });
+          }, 100);
+          
           return false;
         }
         return true;
       } catch (error) {
         console.error("Erreur lors de la vérification de l'authentification:", error);
+        setAuthError("Erreur d'authentification. Veuillez vous reconnecter.");
         return false;
       }
     };
@@ -82,7 +114,7 @@ const Index = () => {
 
   // Configuration de sauvegarde automatique
   useEffect(() => {
-    if (!isPageLoaded) return;
+    if (!isPageLoaded || isLoading) return;
 
     const autoSaveTimeoutRef = setTimeout(() => {
       if (cvData?.personalInfo?.fullName) {
@@ -93,7 +125,7 @@ const Index = () => {
     return () => {
       clearTimeout(autoSaveTimeoutRef);
     };
-  }, [cvData, handleSaveCV, isPageLoaded]);
+  }, [cvData, handleSaveCV, isPageLoaded, isLoading]);
 
   // Gestion du défilement
   useEffect(() => {
@@ -125,16 +157,19 @@ const Index = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleRetry = () => {
+    setAuthError(null);
+    window.location.reload();
+  };
+
+  // Si une erreur d'authentification s'est produite
+  if (authError) {
+    return <ErrorScreen message={authError} onRetry={handleRetry} />;
+  }
+
   // Si la page n'est pas encore chargée ou l'authentification est en cours
-  if (!isPageLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-lg font-semibold text-gray-700">Chargement...</p>
-        </div>
-      </div>
-    );
+  if (!isPageLoaded || isLoading) {
+    return <LoadingScreen />;
   }
 
   return (
@@ -189,7 +224,7 @@ const Index = () => {
 
       <FooterBar
         onBack={handleBackToDashboard}
-        onSave={handleSaveCV}
+        onSave={() => handleSaveCV(false)}
         onReset={handleResetCV}
         onDownloadPdf={() => handleDownloadCV("pdf")}
         onDownloadWord={() => handleDownloadCV("word")}

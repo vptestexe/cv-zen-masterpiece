@@ -24,6 +24,7 @@ export function useDashboardActions(state: any) {
   const handleEdit = (cvId: string) => {
     const cv = state.userCVs.find((cv: any) => cv.id === cvId);
     if (cv) {
+      console.log("Édition du CV:", cv.id, "template:", cv.template || 'classic');
       // Utiliser un objet état plutôt que query params pour plus de fiabilité
       navigate(`/editor/${cv.template || 'classic'}`, { state: { cvId } });
       if (!state.isMobile) {
@@ -88,8 +89,23 @@ export function useDashboardActions(state: any) {
     }
     
     try {
-      // Naviguer directement sans utiliser setTimeout pour éviter les problèmes de timing
-      navigate("/editor/classic");
+      console.log("Création d'un nouveau CV - navigation vers /editor/classic");
+      
+      // Préparons le localStorage pour éviter des problèmes de timing
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        console.error("Erreur: Authentification manquante");
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour créer un CV",
+          variant: "destructive"
+        });
+        navigate("/login");
+        return;
+      }
+      
+      // Utiliser un état explicitement vide pour indiquer qu'il s'agit d'un nouveau CV
+      navigate("/editor/classic", { state: { newCv: true, timestamp: Date.now() } });
       
       if (!state.isMobile) {
         toast({
@@ -124,16 +140,23 @@ export function useDashboardActions(state: any) {
   };
 
   const handleLogout = () => {
-    resetCVPaymentStatus();
-    secureStorage.remove('payment_token');
-    state.logout();
-    navigate("/");
-    
-    if (!state.isMobile) {
-      toast({
-        title: "Déconnexion réussie",
-        description: "À bientôt !"
-      });
+    try {
+      resetCVPaymentStatus();
+      secureStorage.remove('payment_token');
+      state.logout();
+      navigate("/");
+      
+      if (!state.isMobile) {
+        toast({
+          title: "Déconnexion réussie",
+          description: "À bientôt !"
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      // En cas d'échec de déconnexion avec Supabase, forcer la déconnexion locale
+      localStorage.removeItem('auth_token');
+      navigate("/login");
     }
   };
 
