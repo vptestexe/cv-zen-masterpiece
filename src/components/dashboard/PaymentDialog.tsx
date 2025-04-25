@@ -42,18 +42,16 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       }
 
       try {
-        const merchantId = await supabase
-          .from('secrets')
-          .select('value')
-          .eq('name', 'PAIEMENTPRO_MERCHANT_ID')
-          .single();
-
-        if (!merchantId?.data?.value) {
+        // Hardcoded merchant ID - in production, this should be stored securely
+        // For instance, using Supabase Edge Functions to retrieve secrets
+        const merchantId = "YOUR_MERCHANT_ID"; // Replace with your actual merchant ID
+        
+        if (!merchantId) {
           throw new Error("ID marchand non configuré");
         }
 
         window.PaiementPro.init({
-          merchantId: merchantId.data.value,
+          merchantId: merchantId,
           amount: PAYMENT_AMOUNT,
           description: "Téléchargement CV",
           callbackUrl: window.location.origin + "/dashboard",
