@@ -12,178 +12,146 @@ export const usePaiementProScript = (
   const urlIndexRef = useRef(0);
   const { toast } = useToast();
 
-  const loadScript = () => {
-    console.log("Tentative de chargement du script PaiementPro");
-    
-    // Incrémenter le nombre de tentatives
-    attemptsRef.current += 1;
-    console.log(`Tentative #${attemptsRef.current}`);
-    
-    // Nettoyer les anciens scripts
-    const oldScript = document.querySelector('script[src*="paiementpro"]');
-    if (oldScript) {
-      console.log("Suppression de l'ancien script PaiementPro");
-      oldScript.remove();
+  const checkServiceAvailability = async (url: string): Promise<boolean> => {
+    if (!navigator.onLine) return false;
+
+    try {
+      console.log(`[PaiementPro] Vérification de la disponibilité: ${url}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), PAIEMENT_PRO_CONFIG.HEALTH_CHECK_TIMEOUT);
+      
+      const response = await fetch(url, {
+        method: 'HEAD',
+        mode: 'no-cors',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`[PaiementPro] Service disponible sur ${url}`);
+      return true;
+    } catch (error) {
+      console.warn(`[PaiementPro] Service indisponible sur ${url}:`, error);
+      return false;
     }
-    
-    // Vérifier si window.PaiementPro existe déjà
+  };
+
+  const loadScript = async () => {
+    if (!navigator.onLine) {
+      console.error("[PaiementPro] Pas de connexion internet");
+      handleLoadError("Aucune connexion internet détectée");
+      return;
+    }
+
+    attemptsRef.current++;
+    console.log(`[PaiementPro] Tentative #${attemptsRef.current}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES}`);
+
+    // Cleanup old script if exists
+    if (scriptRef.current) {
+      console.log("[PaiementPro] Nettoyage de l'ancien script");
+      scriptRef.current.remove();
+      scriptRef.current = null;
+    }
+
+    // Check if SDK is already available
     if (window.PaiementPro) {
-      console.log("PaiementPro déjà disponible dans window");
+      console.log("[PaiementPro] SDK déjà chargé");
       try {
         onLoad();
         return;
       } catch (err) {
-        console.error("Échec d'utilisation du PaiementPro existant:", err);
+        console.error("[PaiementPro] Erreur avec le SDK existant:", err);
       }
     }
-    
-    // Vérification de connectivité internet avant de charger le script
-    if (!navigator.onLine) {
-      console.error("Pas de connexion internet détectée");
-      handleNetworkError("Aucune connexion internet détectée. Veuillez vérifier votre connexion et réessayer.");
+
+    const currentUrl = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current];
+    console.log(`[PaiementPro] Tentative de chargement depuis ${currentUrl}`);
+
+    // Vérifier la disponibilité du service
+    const isAvailable = await checkServiceAvailability(currentUrl);
+    if (!isAvailable) {
+      handleLoadError(`Service indisponible sur ${new URL(currentUrl).hostname}`);
       return;
     }
-    
-    // Vérification de disponibilité du service
-    checkServiceAvailability().then(isAvailable => {
-      if (!isAvailable) {
-        console.error("Service PaiementPro indisponible");
-        handleNetworkError("Le service de paiement semble indisponible actuellement. Veuillez réessayer plus tard.");
-        return;
-      }
-      
-      // Créer un nouveau script
-      const script = document.createElement('script');
-      const currentUrl = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current];
-      
-      if (PAIEMENT_PRO_CONFIG.DEBUG) {
-        console.log(`Chargement du script depuis: ${currentUrl}`);
-      }
-      
-      script.src = currentUrl;
-      script.defer = true;
-      script.async = true;
-      script.crossOrigin = "anonymous"; // Ajouter CORS support
-      
-      // Définir un délai maximum pour le chargement du script
-      const timeoutId = setTimeout(() => {
-        if (scriptRef.current === script) {
-          console.error(`Délai dépassé pour l'URL: ${currentUrl}`);
-          handleScriptError(`Délai de chargement dépassé (${PAIEMENT_PRO_CONFIG.TIMEOUT / 1000}s)`);
-        }
-      }, PAIEMENT_PRO_CONFIG.TIMEOUT);
-      
-      script.onload = () => {
-        console.log(`Script PaiementPro chargé avec succès depuis ${currentUrl}`);
-        clearTimeout(timeoutId);
-        
-        setTimeout(() => {
-          if (window.PaiementPro) {
-            console.log("SDK PaiementPro détecté dans window");
-            toast({
-              title: "Paiement initialisé",
-              description: "Le système de paiement est prêt à être utilisé",
-            });
-            onLoad();
-          } else {
-            console.error("Script chargé mais SDK non détecté");
-            handleScriptError("Script chargé mais SDK non initialisé");
-          }
-        }, 500);
-      };
-      
-      script.onerror = (e) => {
-        clearTimeout(timeoutId);
-        console.error(`Erreur lors du chargement depuis ${currentUrl}`, e);
-        handleScriptError(`Échec de chargement depuis ${new URL(currentUrl).hostname}`);
-      };
-      
-      document.body.appendChild(script);
-      scriptRef.current = script;
-    });
-  };
 
-  const checkServiceAvailability = async (): Promise<boolean> => {
-    try {
-      // Essai avec une requête HEAD pour vérifier si le service est disponible
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const url = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current];
-      const response = await fetch(url, { 
-        method: 'HEAD', 
-        mode: 'no-cors',
-        signal: controller.signal 
-      });
-      
+    const script = document.createElement('script');
+    script.src = currentUrl;
+    script.async = true;
+    script.defer = true;
+    script.crossOrigin = "anonymous";
+
+    const timeoutId = setTimeout(() => {
+      if (scriptRef.current === script) {
+        console.error(`[PaiementPro] Délai dépassé pour ${currentUrl}`);
+        handleLoadError("Délai de chargement dépassé");
+      }
+    }, PAIEMENT_PRO_CONFIG.TIMEOUT);
+
+    script.onload = () => {
       clearTimeout(timeoutId);
-      return true; // Si on arrive ici, le service répond
-    } catch (error) {
-      console.warn("Échec de la vérification de disponibilité:", error);
-      return navigator.onLine; // On se fie à la connectivité internet
-    }
+      console.log(`[PaiementPro] Script chargé depuis ${currentUrl}`);
+      
+      // Vérification différée de l'initialisation du SDK
+      setTimeout(() => {
+        if (window.PaiementPro) {
+          console.log("[PaiementPro] SDK initialisé avec succès");
+          toast({
+            title: "PaiementPro initialisé",
+            description: "Le système de paiement est prêt",
+          });
+          onLoad();
+        } else {
+          console.error("[PaiementPro] SDK non initialisé après chargement");
+          handleLoadError("Échec d'initialisation du SDK");
+        }
+      }, 500);
+    };
+
+    script.onerror = () => {
+      clearTimeout(timeoutId);
+      console.error(`[PaiementPro] Erreur de chargement depuis ${currentUrl}`);
+      handleLoadError(`Échec de chargement depuis ${new URL(currentUrl).hostname}`);
+    };
+
+    document.body.appendChild(script);
+    scriptRef.current = script;
   };
 
-  const handleNetworkError = (errorMessage: string) => {
-    toast({
-      title: "Problème réseau",
-      description: errorMessage,
-      variant: "destructive"
-    });
-    
-    onError(errorMessage);
-  };
+  const handleLoadError = (error: string) => {
+    const canRetry = attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES;
+    const hasMoreUrls = urlIndexRef.current < PAIEMENT_PRO_CONFIG.SCRIPT_URLS.length - 1;
 
-  const handleScriptError = (details: string) => {
-    // Essayer l'URL suivante si disponible
-    if (urlIndexRef.current < PAIEMENT_PRO_CONFIG.SCRIPT_URLS.length - 1) {
-      urlIndexRef.current += 1;
-      console.log(`Tentative avec l'URL de secours: ${PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current]}`);
+    if (hasMoreUrls) {
+      urlIndexRef.current++;
+      console.log(`[PaiementPro] Passage à l'URL suivante: ${PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current]}`);
       setTimeout(loadScript, PAIEMENT_PRO_CONFIG.RETRY_DELAY);
-    } else if (attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES) {
-      // Réinitialiser l'index d'URL et réessayer
+    } else if (canRetry) {
       urlIndexRef.current = 0;
-      
-      // Délai progressif entre les tentatives
-      const retryDelay = PAIEMENT_PRO_CONFIG.RETRY_DELAY * Math.pow(1.5, attemptsRef.current - 1);
-      console.log(`Nouvelle série de tentatives dans ${retryDelay/1000}s...`);
-      
-      setTimeout(loadScript, retryDelay);
+      const delay = PAIEMENT_PRO_CONFIG.RETRY_DELAY * Math.pow(1.5, attemptsRef.current - 1);
+      console.log(`[PaiementPro] Nouvelle tentative dans ${delay/1000}s...`);
+      setTimeout(loadScript, delay);
     } else {
-      // Échec définitif après toutes les tentatives
-      console.error("Échec du chargement après toutes les tentatives");
-      
-      let errorMessage = "Impossible de charger le système de paiement. ";
-      if (!navigator.onLine) {
-        errorMessage += "Veuillez vérifier votre connexion internet et réessayer.";
-      } else {
-        errorMessage += "Le service peut être temporairement indisponible ou bloqué par votre réseau.";
-      }
-      
-      onError(errorMessage);
-      
-      // Notification explicite
+      console.error("[PaiementPro] Échec après toutes les tentatives");
+      onError(error);
       toast({
-        title: "Erreur de chargement",
-        description: "Le système de paiement n'a pas pu être chargé après plusieurs tentatives",
+        title: "Erreur PaiementPro",
+        description: "Impossible d'initialiser le système de paiement. Veuillez réessayer plus tard.",
         variant: "destructive",
       });
     }
   };
 
-  const cleanupScript = () => {
-    if (scriptRef.current) {
-      scriptRef.current.remove();
-      scriptRef.current = null;
-    }
-    
-    // Nettoyer aussi les scripts qui pourraient rester dans le DOM
-    const oldScripts = document.querySelectorAll('script[src*="paiementpro"]');
-    oldScripts.forEach(script => script.remove());
-    
-    attemptsRef.current = 0;
-    urlIndexRef.current = 0;
-  };
+  useEffect(() => {
+    loadScript();
+    return () => {
+      if (scriptRef.current) {
+        scriptRef.current.remove();
+        scriptRef.current = null;
+      }
+      attemptsRef.current = 0;
+      urlIndexRef.current = 0;
+    };
+  }, []);
 
-  return { loadScript, cleanupScript };
+  return { loadScript };
 };
+

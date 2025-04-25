@@ -11,6 +11,7 @@ interface PaiementProInitOptions {
     userAgent: string;
     language: string;
   };
+  debug?: boolean;
 }
 
 interface PaiementProSDK {
@@ -18,8 +19,10 @@ interface PaiementProSDK {
   startPayment: () => void;
   getStatus?: () => string;
   version?: string;
+  isReady?: boolean;
 }
 
 interface Window {
   PaiementPro: PaiementProSDK;
 }
+

@@ -1,6 +1,7 @@
 
-import { AlertTriangle, RefreshCw, ArrowLeft, Wifi, Globe } from "lucide-react";
+import { AlertTriangle, RefreshCw, ArrowLeft, Wifi, Globe, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 interface PaymentErrorProps {
   error: string;
@@ -9,76 +10,95 @@ interface PaymentErrorProps {
 }
 
 export const PaymentError = ({ error, onRetry, onClose }: PaymentErrorProps) => {
-  // Détermine quel type d'erreur pour afficher les bons conseils
-  const isConnectivityError = error.includes("connexion") || error.includes("réseau");
-  const isServiceError = error.includes("service") || error.includes("indisponible");
+  const isConnectivityError = error.toLowerCase().includes("connexion") || 
+                            error.toLowerCase().includes("réseau") ||
+                            error.toLowerCase().includes("internet");
   
+  const isServiceError = error.toLowerCase().includes("service") || 
+                        error.toLowerCase().includes("indisponible") ||
+                        error.toLowerCase().includes("délai");
+  
+  const isSdkError = error.toLowerCase().includes("sdk") || 
+                     error.toLowerCase().includes("script") ||
+                     error.toLowerCase().includes("chargement");
+
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="flex items-center gap-2 text-red-500">
+      <Alert variant="destructive" className="w-full">
         <AlertTriangle className="h-5 w-5" />
-        <span className="font-medium">Problème de chargement</span>
-      </div>
+        <div className="ml-2">
+          <h4 className="font-medium">Problème de paiement</h4>
+          <p className="text-sm">{error}</p>
+        </div>
+      </Alert>
       
-      <p className="text-sm text-center text-gray-700">{error}</p>
-      
-      {/* Suggestions spécifiques selon le type d'erreur */}
-      <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-xs text-amber-800 w-full">
-        {isConnectivityError ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1">
-              <Wifi className="h-3 w-3" /> 
-              <span className="font-medium">Conseils:</span>
+      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 w-full">
+        {isConnectivityError && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-amber-800">
+              <Wifi className="h-4 w-4" />
+              <span className="font-medium">Problème de connexion</span>
             </div>
-            <ul className="list-disc pl-4 space-y-1">
+            <ul className="list-disc pl-5 text-sm text-amber-700 space-y-1">
               <li>Vérifiez votre connexion internet</li>
-              <li>Désactivez votre VPN ou pare-feu temporairement</li>
-              <li>Essayez un autre réseau si possible</li>
+              <li>Désactivez temporairement votre VPN si vous en utilisez un</li>
+              <li>Essayez de vous connecter à un autre réseau</li>
             </ul>
           </div>
-        ) : isServiceError ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1">
-              <Globe className="h-3 w-3" /> 
-              <span className="font-medium">Informations:</span>
+        )}
+
+        {isServiceError && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-amber-800">
+              <Server className="h-4 w-4" />
+              <span className="font-medium">Service temporairement indisponible</span>
             </div>
-            <ul className="list-disc pl-4 space-y-1">
-              <li>Le service de paiement semble temporairement indisponible</li>
+            <ul className="list-disc pl-5 text-sm text-amber-700 space-y-1">
+              <li>Le service de paiement est momentanément inaccessible</li>
+              <li>Nos équipes ont été notifiées du problème</li>
               <li>Veuillez réessayer dans quelques minutes</li>
-              <li>Si le problème persiste, contactez le support</li>
             </ul>
           </div>
-        ) : (
-          <div>
-            <p>Si le problème persiste, essayez de rafraîchir la page ou utilisez un autre navigateur.</p>
+        )}
+
+        {isSdkError && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-amber-800">
+              <Globe className="h-4 w-4" />
+              <span className="font-medium">Problème technique</span>
+            </div>
+            <ul className="list-disc pl-5 text-sm text-amber-700 space-y-1">
+              <li>Le système de paiement n'a pas pu être initialisé</li>
+              <li>Essayez de rafraîchir la page</li>
+              <li>Si le problème persiste, utilisez un autre navigateur</li>
+            </ul>
           </div>
         )}
       </div>
-      
-      <div className="flex flex-col w-full gap-2">
+
+      <div className="flex flex-col w-full gap-2 mt-2">
         <Button 
-          className="w-full bg-gray-200 text-gray-800 hover:bg-gray-300 gap-2"
           onClick={onRetry}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className="mr-2 h-4 w-4" />
           Réessayer
         </Button>
         
         {onClose && (
           <Button 
             variant="outline"
-            className="w-full gap-2"
             onClick={onClose}
+            className="w-full"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Revenir au tableau de bord
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour
           </Button>
         )}
       </div>
-      
-      <p className="text-xs text-gray-500 text-center mt-2">
-        Si le problème persiste après plusieurs tentatives, veuillez contacter notre support technique 
-        ou réessayer ultérieurement.
+
+      <p className="text-xs text-gray-500 text-center">
+        Si le problème persiste, contactez notre support technique
       </p>
     </div>
   );
