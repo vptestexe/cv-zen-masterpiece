@@ -2,13 +2,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { usePaymentDialog } from "@/hooks/usePaymentDialog";
 import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PAID_DOWNLOADS_PER_CV, PAYMENT_AMOUNT } from "@/utils/downloads/types";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Check, QrCode, CreditCard, Smartphone } from "lucide-react";
+import { Check, CreditCard } from "lucide-react";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -16,26 +15,85 @@ interface PaymentDialogProps {
   cvId?: string | null;
 }
 
+declare global {
+  interface Window {
+    PaiementPro: any;
+  }
+}
+
 const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
-  const { handlePayment, handleVerifyPayment, isProcessing, verificationStatus, isWaveRedirect } = usePaymentDialog(onClose, cvId);
+  const { handleVerifyPayment, isProcessing, verificationStatus } = usePaymentDialog(onClose, cvId);
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  
-  // Show toast when verification is complete
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
-    if (verificationStatus === 'success') {
+    if (!open) return;
+    
+    const initializePaiementPro = async () => {
+      if (!window.PaiementPro) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger PaiementPro. Veuillez réessayer.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      try {
+        const merchantId = await supabase
+          .from('secrets')
+          .select('value')
+          .eq('name', 'PAIEMENTPRO_MERCHANT_ID')
+          .single();
+
+        if (!merchantId?.data?.value) {
+          throw new Error("ID marchand non configuré");
+        }
+
+        window.PaiementPro.init({
+          merchantId: merchantId.data.value,
+          amount: PAYMENT_AMOUNT,
+          description: "Téléchargement CV",
+          callbackUrl: window.location.origin + "/dashboard",
+        });
+
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("Erreur d'initialisation PaiementPro:", error);
+        toast({
+          title: "Erreur de configuration",
+          description: "Impossible d'initialiser le système de paiement.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    initializePaiementPro();
+  }, [open, toast]);
+
+  const handlePayment = async () => {
+    if (!isInitialized || !cvId) {
       toast({
-        title: "Paiement confirmé",
-        description: "Votre paiement a été vérifié avec succès. Téléchargement disponible!",
+        title: "Erreur",
+        description: "Le système de paiement n'est pas prêt",
+        variant: "destructive"
       });
-    } else if (verificationStatus === 'error') {
+      return;
+    }
+
+    try {
+      localStorage.setItem('cv_being_paid', cvId);
+      window.PaiementPro.startPayment();
+    } catch (error) {
+      console.error("Erreur lors du paiement:", error);
       toast({
-        title: "Échec de la vérification",
-        description: "Impossible de vérifier votre paiement. Veuillez réessayer.",
+        title: "Erreur de paiement",
+        description: "Impossible de démarrer le paiement",
         variant: "destructive"
       });
     }
-  }, [verificationStatus, toast]);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -49,7 +107,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                 <Progress value={100} className="w-full" />
                 <p className="text-sm text-muted-foreground">
                   Veuillez patienter pendant la vérification de votre paiement.
-                  Cette opération peut prendre jusqu'à 5 secondes.
                 </p>
               </div>
             ) : verificationStatus === 'success' ? (
@@ -67,60 +124,18 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
             ) : (
               <div className="space-y-4">
                 <p>
-                  Pour obtenir {PAID_DOWNLOADS_PER_CV} téléchargements, veuillez effectuer un paiement de {PAYMENT_AMOUNT} FCFA via Wave.
+                  Pour obtenir {PAID_DOWNLOADS_PER_CV} téléchargements, veuillez effectuer un paiement de {PAYMENT_AMOUNT} FCFA.
                 </p>
-                {!isMobile ? (
-                  <div className="flex flex-col items-center space-y-4">
-                    <div className="border border-gray-200 p-4 rounded-lg bg-white">
-                      <img 
-                        src="/lovable-uploads/1c070811-a6f0-4e04-be67-11bc4226d5f9.png" 
-                        alt="Code QR Wave" 
-                        className="w-64 h-64 object-contain"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <QrCode className="h-4 w-4" />
-                      <p>Scannez le code QR avec l'application Wave</p>
-                    </div>
-                    {isWaveRedirect ? (
-                      <Button 
-                        className="mt-4 w-full"
-                        onClick={handleVerifyPayment}
-                      >
-                        J'ai payé, vérifier mon paiement
-                      </Button>
-                    ) : (
-                      <p className="text-sm text-center text-muted-foreground mt-2">
-                        Après avoir scanné et payé, revenez ici et cliquez sur "Vérifier mon paiement"
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center space-y-4">
-                    <Button 
-                      className="w-full bg-[#00b6f0] hover:bg-[#00a0d6] gap-2"
-                      onClick={handlePayment}
-                    >
-                      <Smartphone className="h-4 w-4" />
-                      Payer avec Wave
-                    </Button>
-                    {isWaveRedirect && (
-                      <Button 
-                        className="w-full gap-2"
-                        onClick={handleVerifyPayment}
-                      >
-                        <CreditCard className="h-4 w-4" />
-                        J'ai payé, vérifier mon paiement
-                      </Button>
-                    )}
-                  </div>
-                )}
-                
-                {verificationStatus === 'error' && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-                    <p>La vérification du paiement a échoué. Veuillez vous assurer que vous avez bien effectué le paiement avant de cliquer sur "Vérifier mon paiement".</p>
-                  </div>
-                )}
+                <div className="flex flex-col items-center space-y-4">
+                  <Button 
+                    className="w-full bg-[#2563eb] hover:bg-[#1d4ed8] gap-2"
+                    onClick={handlePayment}
+                    disabled={!isInitialized || isProcessing}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Payer maintenant
+                  </Button>
+                </div>
               </div>
             )}
           </DialogDescription>

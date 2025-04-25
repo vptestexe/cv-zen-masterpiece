@@ -16,10 +16,15 @@ export type Database = {
           cv_id: string
           downloads_added: number
           id: string
+          paiementpro_reference: string | null
+          paiementpro_status: string | null
+          paiementpro_token: string | null
           payment_method: string
+          payment_provider: string | null
           status: string
           transaction_id: string | null
           user_id: string
+          verification_attempts: number | null
         }
         Insert: {
           amount: number
@@ -27,10 +32,15 @@ export type Database = {
           cv_id: string
           downloads_added: number
           id?: string
+          paiementpro_reference?: string | null
+          paiementpro_status?: string | null
+          paiementpro_token?: string | null
           payment_method: string
+          payment_provider?: string | null
           status: string
           transaction_id?: string | null
           user_id: string
+          verification_attempts?: number | null
         }
         Update: {
           amount?: number
@@ -38,10 +48,15 @@ export type Database = {
           cv_id?: string
           downloads_added?: number
           id?: string
+          paiementpro_reference?: string | null
+          paiementpro_status?: string | null
+          paiementpro_token?: string | null
           payment_method?: string
+          payment_provider?: string | null
           status?: string
           transaction_id?: string | null
           user_id?: string
+          verification_attempts?: number | null
         }
         Relationships: []
       }
@@ -77,14 +92,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      verify_payment: {
-        Args: {
-          p_user_id: string
-          p_cv_id: string
-          p_amount: number
-          p_transaction_id?: string
-        }
+      check_duplicate_payment: {
+        Args: { p_reference: string; p_amount: number }
         Returns: boolean
+      }
+      verify_payment: {
+        Args:
+          | Record<PropertyKey, never>
+          | {
+              p_user_id: string
+              p_cv_id: string
+              p_amount: number
+              p_transaction_id?: string
+            }
+        Returns: undefined
       }
     }
     Enums: {

@@ -1,4 +1,3 @@
-
 import { MAX_FREE_CVS } from './types';
 import { getSavedCVs, saveCVs } from './storage';
 
@@ -78,7 +77,7 @@ export const resetCVPaymentStatus = () => {
 export const trackPaymentAttempt = (cvId: string, userId: string) => {
   try {
     // Generate a unique order reference
-    const orderRef = `WAVE_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+    const orderRef = `PP_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
     
     const paymentAttempt = {
       cvId,
@@ -96,20 +95,13 @@ export const trackPaymentAttempt = (cvId: string, userId: string) => {
   }
 };
 
-// Validate that a payment reference matches what we expect
 export const validatePaymentReference = (orderRef: string): boolean => {
   try {
     const paymentAttemptJson = localStorage.getItem('payment_attempt');
     if (!paymentAttemptJson) return false;
     
     const paymentAttempt = JSON.parse(paymentAttemptJson);
-    
-    // Validate the payment reference
-    if (paymentAttempt.orderRef && orderRef) {
-      return true;
-    }
-    
-    return false;
+    return paymentAttempt.orderRef === orderRef;
   } catch (error) {
     console.error("Erreur lors de la validation de la référence de paiement:", error);
     return false;
