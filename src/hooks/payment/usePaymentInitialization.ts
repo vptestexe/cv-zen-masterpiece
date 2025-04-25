@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePaiementProScript } from "./usePaiementProScript";
 import { useMerchantId } from "./useMerchantId";
 import { usePaiementProInit } from "./usePaiementProInit";
+import { PAIEMENT_PRO_CONFIG } from "@/config/payment";
 
 export interface UsePaymentInitializationReturn {
   isInitialized: boolean;
@@ -21,32 +22,69 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
   const MAX_RETRIES = 3;
 
   const { isInitialized, initializeSdk, setIsInitialized } = usePaiementProInit();
-  const { fetchMerchantId } = useMerchantId();
+  const { fetchMerchantId, merchantIdError } = useMerchantId();
   const { loadScript, cleanupScript } = usePaiementProScript(
     () => initializePaiementPro(),
-    (error) => setInitError(error)
+    (error) => {
+      // Vérifier si l'erreur est liée à l'ID marchand ou au script
+      if (merchantIdError) {
+        setInitError(`Configuration: ${merchantIdError}`);
+      } else {
+        setInitError(error);
+      }
+    }
   );
+
+  const checkNetworkConnectivity = (): boolean => {
+    const isOnline = navigator.onLine;
+    
+    if (!isOnline && !initError) {
+      setInitError("Aucune connexion internet détectée. Veuillez vérifier votre réseau.");
+      toast({
+        title: "Problème de connexion",
+        description: "Vérifiez votre connexion internet",
+        variant: "destructive"
+      });
+    }
+    
+    return isOnline;
+  };
 
   const initializePaiementPro = async () => {
     if (isInitializing) return;
     
+    if (!checkNetworkConnectivity()) return;
+    
     setIsInitializing(true);
     setInitError(null);
     
-    console.log("Tentative d'initialisation PaiementPro...", { retries: initRetries });
+    console.log("Tentative d'initialisation PaiementPro...", { 
+      retries: initRetries,
+      sandbox: PAIEMENT_PRO_CONFIG.SANDBOX_MODE
+    });
     
     try {
       const merchantId = await fetchMerchantId();
+      
+      if (!merchantId) {
+        throw new Error("ID marchand non disponible. Vérifiez la configuration Supabase.");
+      }
       
       initializeSdk({
         merchantId,
         amount: 1000,
         description: "Téléchargement CV",
         callbackUrl: window.location.origin + "/dashboard",
+        sandboxMode: PAIEMENT_PRO_CONFIG.SANDBOX_MODE
       });
 
       setIsInitializing(false);
       console.log("PaiementPro initialisé avec succès");
+      
+      toast({
+        title: "Système de paiement prêt",
+        description: "Vous pouvez maintenant procéder au paiement",
+      });
     } catch (error) {
       console.error("Erreur d'initialisation PaiementPro:", error);
       
@@ -57,8 +95,14 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
         const nextRetry = initRetries + 1;
         setInitRetries(nextRetry);
         
-        const retryDelay = 3000 * nextRetry;
+        // Délai progressif entre les tentatives
+        const retryDelay = 3000 * Math.pow(1.5, nextRetry - 1);
         console.log(`Réessai d'initialisation (${nextRetry}/${MAX_RETRIES}) dans ${retryDelay/1000}s...`);
+        
+        toast({
+          title: "Nouvelle tentative",
+          description: `Réessai d'initialisation (${nextRetry}/${MAX_RETRIES})...`,
+        });
         
         setTimeout(() => {
           setIsInitializing(false);
@@ -84,7 +128,9 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       setInitRetries(0);
       
       const timer = setTimeout(() => {
-        loadScript();
+        if (checkNetworkConnectivity()) {
+          loadScript();
+        }
       }, 300);
       
       return () => {
@@ -99,7 +145,10 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
     setIsInitializing(false);
     setInitError(null);
     setInitRetries(0);
-    loadScript();
+    
+    if (checkNetworkConnectivity()) {
+      loadScript();
+    }
   };
 
   useEffect(() => {
