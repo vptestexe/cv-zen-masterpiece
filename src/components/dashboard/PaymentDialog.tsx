@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -45,38 +44,37 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
     }
   };
 
-  // Helper function to determine what content to render
   const renderPaymentContent = () => {
-    if (verificationStatus === 'processing') {
-      return (
-        <div className="space-y-4">
-          <p>Vérification du paiement en cours...</p>
-          <Progress value={100} className="w-full" />
-          <PaymentLoading message="Veuillez patienter pendant la vérification de votre paiement." />
-        </div>
-      );
+    switch (verificationStatus) {
+      case 'processing':
+        return (
+          <div className="space-y-4">
+            <p>Vérification du paiement en cours...</p>
+            <Progress value={100} className="w-full" />
+            <PaymentLoading message="Veuillez patienter pendant la vérification de votre paiement." />
+          </div>
+        );
+      
+      case 'success':
+        return <PaymentSuccess />;
+      
+      case 'idle':
+      case 'error':
+      default:
+        if (isInitializing) {
+          return <PaymentLoading />;
+        }
+        if (initError) {
+          return <PaymentError error={initError} onRetry={handleRetryInit} />;
+        }
+        return (
+          <PaymentForm 
+            onPayment={handlePayment}
+            isInitialized={isInitialized}
+            isProcessing={isProcessing}
+          />
+        );
     }
-    
-    if (verificationStatus === 'success') {
-      return <PaymentSuccess />;
-    }
-    
-    // Default case: 'idle' or 'error'
-    if (isInitializing) {
-      return <PaymentLoading />;
-    }
-    
-    if (initError) {
-      return <PaymentError error={initError} onRetry={handleRetryInit} />;
-    }
-    
-    return (
-      <PaymentForm 
-        onPayment={handlePayment}
-        isInitialized={isInitialized}
-        isProcessing={isProcessing}
-      />
-    );
   };
 
   return (
