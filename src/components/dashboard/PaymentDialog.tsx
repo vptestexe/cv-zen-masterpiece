@@ -37,7 +37,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
   const scriptRef = useRef<HTMLScriptElement | null>(null);
   const merchantIdRef = useRef<string | null>(null);
 
-  // Nettoyer complètement l'état quand le dialogue se ferme
   useEffect(() => {
     if (!open) {
       setIsInitialized(false);
@@ -48,7 +47,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
     }
   }, [open]);
 
-  // Force re-initialization when dialog is re-opened
   useEffect(() => {
     if (open) {
       console.log("Dialog ouvert, réinitialisation de l'état");
@@ -57,31 +55,25 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       setInitError(null);
       setInitRetries(0);
       
-      // Chargez le script de manière dynamique lorsque le dialogue s'ouvre
       const loadScript = () => {
         console.log("Chargement dynamique du script PaiementPro");
         
-        // Supprimez l'ancien script s'il existe
         const oldScript = document.querySelector('script[src*="paiementpro.min.js"]');
         if (oldScript) {
           console.log("Suppression de l'ancien script PaiementPro");
           oldScript.remove();
         }
         
-        // Créez un nouveau script
         const script = document.createElement('script');
         script.src = "https://js.paiementpro.net/v1/paiementpro.min.js";
         script.defer = true;
         script.async = true;
         
-        // Ajoutez des écouteurs d'événements pour détecter le chargement ou les erreurs
         script.onload = () => {
           console.log("Script PaiementPro chargé avec succès");
-          // Donnez un court délai pour que le SDK s'initialise complètement
           setTimeout(() => {
             if (window.PaiementPro) {
               console.log("SDK PaiementPro détecté dans window");
-              // Lancez l'initialisation du SDK après confirmation du chargement
               initializePaiementPro();
             } else {
               console.error("Script chargé mais SDK PaiementPro non détecté dans window");
@@ -95,12 +87,10 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
           setInitError("Impossible de charger le script PaiementPro");
         };
         
-        // Ajoutez le script au document
         document.body.appendChild(script);
         scriptRef.current = script;
       };
       
-      // Déclenchez le chargement avec un délai pour s'assurer que le dialogue est bien monté
       const timer = setTimeout(() => {
         loadScript();
       }, 300);
@@ -111,7 +101,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
     }
   }, [open]);
   
-  // Fonction d'initialisation séparée pour plus de clarté
   const initializePaiementPro = async () => {
     if (isInitializing) return;
     
@@ -121,15 +110,12 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
     console.log("Tentative d'initialisation PaiementPro...", { retries: initRetries });
     
     try {
-      // Vérifiez que le SDK est disponible
       if (!window.PaiementPro) {
         throw new Error("SDK PaiementPro non chargé");
       }
 
-      // Si nous avons déjà récupéré l'ID marchand, utilisons-le directement
       let merchantId = merchantIdRef.current;
       
-      // Sinon, récupérons-le depuis Supabase
       if (!merchantId) {
         console.log("Récupération de l'ID marchand depuis Supabase");
         const { data: secretData, error: secretError } = await supabase.functions.invoke(
@@ -145,12 +131,11 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
         }
         
         merchantId = secretData.value;
-        merchantIdRef.current = merchantId; // Stockez pour les futures initialisations
+        merchantIdRef.current = merchantId;
       }
 
       console.log("Initialisation PaiementPro avec ID marchand...");
       
-      // Configuration du SDK avec les paramètres harmonisés
       window.PaiementPro.init({
         merchantId: merchantId,
         amount: PAYMENT_AMOUNT,
@@ -158,7 +143,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
         callbackUrl: window.location.origin + "/dashboard",
       });
 
-      // Vérifiez que l'initialisation a réussi en accédant à une méthode du SDK
       if (typeof window.PaiementPro.startPayment !== 'function') {
         throw new Error("Initialisation incomplète du SDK");
       }
@@ -172,18 +156,15 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
       setInitError(errorMessage);
       
-      // Gestion des retries avec délais croissants
       if (initRetries < MAX_RETRIES) {
         const nextRetry = initRetries + 1;
         setInitRetries(nextRetry);
         
-        // Délai progressif entre les tentatives (3000ms, 6000ms, 9000ms)
         const retryDelay = 3000 * (nextRetry);
         console.log(`Réessai d'initialisation (${nextRetry}/${MAX_RETRIES}) dans ${retryDelay/1000}s...`);
         
         setTimeout(() => {
           setIsInitializing(false);
-          // Rechargez complètement le script avant de réessayer
           const oldScript = document.querySelector('script[src*="paiementpro.min.js"]');
           if (oldScript) {
             oldScript.remove();
@@ -196,7 +177,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
           document.body.appendChild(script);
           scriptRef.current = script;
           
-          // Délai supplémentaire avant la nouvelle tentative
           setTimeout(initializePaiementPro, 1000);
         }, retryDelay);
       } else {
@@ -241,7 +221,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
     setInitError(null);
     setInitRetries(0);
     
-    // Force le rechargement complet du script
     const oldScript = document.querySelector('script[src*="paiementpro.min.js"]');
     if (oldScript) {
       oldScript.remove();
@@ -285,7 +264,7 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                   <PaymentForm 
                     onPayment={handlePayment}
                     isInitialized={isInitialized}
-                    isProcessing={verificationStatus === 'processing'}
+                    isProcessing={isProcessing || verificationStatus === 'processing'}
                   />
                 )}
               </>
