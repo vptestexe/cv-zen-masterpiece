@@ -59,7 +59,7 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
               </div>
             ) : verificationStatus === 'success' ? (
               <PaymentSuccess />
-            ) : (
+            ) : verificationStatus === 'error' || verificationStatus === 'idle' ? (
               <>
                 {isInitializing ? (
                   <PaymentLoading />
@@ -73,7 +73,7 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                   />
                 )}
               </>
-            )}
+            ) : null}
           </DialogDescription>
         </DialogHeader>
       </DialogContent>
