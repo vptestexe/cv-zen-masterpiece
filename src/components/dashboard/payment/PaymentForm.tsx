@@ -2,7 +2,6 @@
 import { CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PAYMENT_AMOUNT } from "@/utils/downloads/types";
-import { VerificationStatus } from "@/hooks/usePaymentDialog";
 
 interface PaymentFormProps {
   onPayment: () => void;
