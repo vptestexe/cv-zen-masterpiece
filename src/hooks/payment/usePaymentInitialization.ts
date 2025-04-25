@@ -5,7 +5,7 @@ import { usePaiementProScript } from "./usePaiementProScript";
 import { useMerchantId } from "./useMerchantId";
 import { usePaiementProInit } from "./usePaiementProInit";
 
-interface UsePaymentInitializationReturn {
+export interface UsePaymentInitializationReturn {
   isInitialized: boolean;
   isInitializing: boolean;
   initError: string | null;

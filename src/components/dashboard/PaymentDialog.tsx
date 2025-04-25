@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { usePaymentDialog } from "@/hooks/usePaymentDialog";
-import { usePaymentInitialization } from "@/hooks/usePaymentInitialization";
+import { usePaymentInitialization } from "@/hooks/payment/usePaymentInitialization";
 import { PaymentLoading } from "./payment/PaymentLoading";
 import { PaymentError } from "./payment/PaymentError";
 import { PaymentSuccess } from "./payment/PaymentSuccess";
@@ -59,7 +59,7 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
               </div>
             ) : verificationStatus === 'success' ? (
               <PaymentSuccess />
-            ) : verificationStatus === 'error' || verificationStatus === 'idle' ? (
+            ) : (verificationStatus === 'error' || verificationStatus === 'idle') ? (
               <>
                 {isInitializing ? (
                   <PaymentLoading />
