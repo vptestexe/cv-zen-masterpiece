@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Check, CreditCard, Loader2, AlertTriangle } from "lucide-react";
+import { Check, CreditCard, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -31,14 +32,37 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
   const [initRetries, setInitRetries] = useState(0);
   const MAX_RETRIES = 3;
 
+  // Force re-initialization when dialog is re-opened
+  useEffect(() => {
+    if (open) {
+      setIsInitialized(false);
+      setInitializing(false);
+      setInitError(null);
+      setInitRetries(0);
+    }
+  }, [open]);
+
+  // Separate initialization state setter to prevent race conditions
+  const setInitializing = (value: boolean) => {
+    setIsInitializing(value);
+    if (!value) {
+      // Add a small delay to ensure UI updates properly
+      setTimeout(() => {
+        console.log("Initialization state reset completed");
+      }, 100);
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
     
     const initializePaiementPro = async () => {
-      if (isInitializing || isInitialized) return;
+      if (isInitializing) return;
       
-      setIsInitializing(true);
+      setInitializing(true);
       setInitError(null);
+      
+      console.log("Tentative d'initialisation PaiementPro...", { retries: initRetries });
       
       try {
         // Slightly longer delay to ensure SDK is fully loaded
@@ -48,13 +72,23 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
           throw new Error("SDK PaiementPro non chargé");
         }
 
-        // Retrieve merchant ID from environment (Supabase secret)
-        const merchantId = process.env.PAIEMENTPRO_MERCHANT_ID;
+        // Retrieve merchant ID from Supabase environment variable
+        const { data: secretData, error: secretError } = await supabase.functions.invoke(
+          "get-payment-config",
+          {
+            body: { secret_name: "PAIEMENTPRO_MERCHANT_ID" }
+          }
+        );
         
-        if (!merchantId) {
+        const merchantId = secretData?.value;
+        
+        if (secretError || !merchantId) {
+          console.error("Erreur de récupération de l'ID marchand:", secretError);
           throw new Error("ID marchand non configuré. Veuillez vérifier vos paramètres.");
         }
 
+        console.log("Initialisation avec ID marchand...");
+        
         window.PaiementPro.init({
           merchantId: merchantId,
           amount: PAYMENT_AMOUNT,
@@ -63,7 +97,8 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
         });
 
         setIsInitialized(true);
-        setIsInitializing(false);
+        setInitializing(false);
+        console.log("PaiementPro initialisé avec succès");
       } catch (error) {
         console.error("Erreur d'initialisation PaiementPro:", error);
         
@@ -71,7 +106,9 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
         setInitError(errorMessage);
         
         if (initRetries < MAX_RETRIES) {
-          setInitRetries(prev => prev + 1);
+          const nextRetry = initRetries + 1;
+          setInitRetries(nextRetry);
+          console.log(`Réessai d'initialisation (${nextRetry}/${MAX_RETRIES}) dans 2 secondes...`);
           setTimeout(initializePaiementPro, 2000); // Retry after 2 seconds
         } else {
           toast({
@@ -79,12 +116,21 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
             description: "Impossible d'initialiser le système de paiement. Veuillez réessayer plus tard.",
             variant: "destructive"
           });
-          setIsInitializing(false);
+          setInitializing(false);
         }
       }
     };
 
-    initializePaiementPro();
+    // Small delay before initialization to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      if (!isInitialized && !isInitializing) {
+        initializePaiementPro();
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, [open, toast, initRetries, isInitialized, isInitializing]);
 
   const handlePayment = async () => {
@@ -99,6 +145,7 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
 
     try {
       localStorage.setItem('cv_being_paid', cvId);
+      console.log("Démarrage du processus de paiement pour CV:", cvId);
       window.PaiementPro.startPayment();
     } catch (error) {
       console.error("Erreur lors du paiement:", error);
@@ -108,6 +155,29 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleRetryInit = () => {
+    setIsInitialized(false);
+    setInitializing(false);
+    setInitError(null);
+    setInitRetries(0);
+    
+    // Small delay before reinitialization
+    setTimeout(() => {
+      if (open) {
+        console.log("Réinitialisation manuelle du processus de paiement");
+        // Force script reload
+        const oldScript = document.querySelector('script[src*="paiementpro.min.js"]');
+        if (oldScript) {
+          oldScript.remove();
+          const newScript = document.createElement('script');
+          newScript.src = "https://js.paiementpro.net/v1/paiementpro.min.js";
+          newScript.defer = true;
+          document.body.appendChild(newScript);
+        }
+      }
+    }, 300);
   };
 
   return (
@@ -148,9 +218,18 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                       <span>Initialisation du paiement...</span>
                     </div>
                   ) : initError ? (
-                    <div className="flex items-center gap-2 text-red-500">
-                      <AlertTriangle className="h-5 w-5" />
-                      <span>{initError}</span>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex items-center gap-2 text-red-500">
+                        <AlertTriangle className="h-5 w-5" />
+                        <span>{initError}</span>
+                      </div>
+                      <Button 
+                        className="w-full bg-gray-200 text-gray-800 hover:bg-gray-300 gap-2"
+                        onClick={handleRetryInit}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Réessayer l'initialisation
+                      </Button>
                     </div>
                   ) : (
                     <Button 
