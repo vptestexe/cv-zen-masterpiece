@@ -74,7 +74,7 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       <PaymentForm 
         onPayment={handlePayment}
         isInitialized={isInitialized}
-        isProcessing={isProcessing || verificationStatus === 'processing'}
+        isProcessing={isProcessing}
       />
     );
   };
