@@ -1,25 +1,24 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { PAID_DOWNLOADS_PER_CV } from '@/utils/downloads/types';
+import { PAID_DOWNLOADS_PER_CV, PAYMENT_AMOUNT } from '@/utils/downloads/types';
 
 export const useInsertPayment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ userId, cvId, amount, transactionId }: {
+    mutationFn: async ({ userId, cvId, transactionId }: {
       userId: string,
       cvId: string,
-      amount: number,
       transactionId?: string,
     }) => {
-      console.log("Tentative de vérification paiement pour:", { userId, cvId, amount });
+      console.log("Tentative de vérification paiement pour:", { userId, cvId, amount: PAYMENT_AMOUNT });
       
       // Première tentative: vérification par rpc
       const { data, error } = await supabase.rpc('verify_payment', {
         p_user_id: userId,
         p_cv_id: cvId,
-        p_amount: amount,
+        p_amount: PAYMENT_AMOUNT,
         p_transaction_id: transactionId || null,
       });
 
@@ -40,7 +39,7 @@ export const useInsertPayment = () => {
         .select('*')
         .eq('user_id', userId)
         .eq('cv_id', cvId)
-        .eq('amount', amount)
+        .eq('amount', PAYMENT_AMOUNT)
         .order('created_at', { ascending: false })
         .limit(1);
       

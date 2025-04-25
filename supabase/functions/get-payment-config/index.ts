@@ -17,6 +17,7 @@ serve(async (req) => {
     const { secret_name } = await req.json()
     
     if (!secret_name) {
+      console.error("Nom du secret manquant dans la requête")
       return new Response(
         JSON.stringify({ error: "Le nom du secret est requis" }),
         { 
@@ -25,6 +26,8 @@ serve(async (req) => {
         }
       )
     }
+    
+    console.log(`Récupération du secret: ${secret_name}`)
     
     // Get secret from Deno environment (Supabase secrets)
     const secretValue = Deno.env.get(secret_name)
@@ -39,6 +42,8 @@ serve(async (req) => {
         }
       )
     }
+    
+    console.log(`Secret "${secret_name}" récupéré avec succès`)
     
     // Return secret value
     return new Response(
