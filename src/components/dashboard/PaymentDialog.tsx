@@ -45,35 +45,47 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
     }
   };
 
+  // Helper function to determine what content to render
+  const renderPaymentContent = () => {
+    if (verificationStatus === 'processing') {
+      return (
+        <div className="space-y-4">
+          <p>Vérification du paiement en cours...</p>
+          <Progress value={100} className="w-full" />
+          <PaymentLoading message="Veuillez patienter pendant la vérification de votre paiement." />
+        </div>
+      );
+    }
+    
+    if (verificationStatus === 'success') {
+      return <PaymentSuccess />;
+    }
+    
+    // Default case: 'idle' or 'error'
+    if (isInitializing) {
+      return <PaymentLoading />;
+    }
+    
+    if (initError) {
+      return <PaymentError error={initError} onRetry={handleRetryInit} />;
+    }
+    
+    return (
+      <PaymentForm 
+        onPayment={handlePayment}
+        isInitialized={isInitialized}
+        isProcessing={isProcessing || verificationStatus === 'processing'}
+      />
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Téléchargement de CV</DialogTitle>
           <DialogDescription>
-            {verificationStatus === 'processing' ? (
-              <div className="space-y-4">
-                <p>Vérification du paiement en cours...</p>
-                <Progress value={100} className="w-full" />
-                <PaymentLoading message="Veuillez patienter pendant la vérification de votre paiement." />
-              </div>
-            ) : verificationStatus === 'success' ? (
-              <PaymentSuccess />
-            ) : (verificationStatus === 'error' || verificationStatus === 'idle') ? (
-              <>
-                {isInitializing ? (
-                  <PaymentLoading />
-                ) : initError ? (
-                  <PaymentError error={initError} onRetry={handleRetryInit} />
-                ) : (
-                  <PaymentForm 
-                    onPayment={handlePayment}
-                    isInitialized={isInitialized}
-                    isProcessing={isProcessing || verificationStatus === 'processing'}
-                  />
-                )}
-              </>
-            ) : null}
+            {renderPaymentContent()}
           </DialogDescription>
         </DialogHeader>
       </DialogContent>
