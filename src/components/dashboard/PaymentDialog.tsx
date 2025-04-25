@@ -1,14 +1,17 @@
-
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { usePaymentDialog } from "@/hooks/usePaymentDialog";
+import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { PaymentLoading } from "./payment/PaymentLoading";
+import { PaymentError } from "./payment/PaymentError";
+import { PaymentSuccess } from "./payment/PaymentSuccess";
+import { PaymentForm } from "./payment/PaymentForm";
+import { usePaymentDialog } from "@/hooks/usePaymentDialog";
 import { PAID_DOWNLOADS_PER_CV, PAYMENT_AMOUNT } from "@/utils/downloads/types";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect, useState, useRef } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { Check, CreditCard, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -264,63 +267,28 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
         <DialogHeader>
           <DialogTitle>Téléchargement de CV</DialogTitle>
           <DialogDescription>
-            {isProcessing ? (
+            {verificationStatus === 'processing' ? (
               <div className="space-y-4">
                 <p>Vérification du paiement en cours...</p>
                 <Progress value={100} className="w-full" />
-                <p className="text-sm text-muted-foreground">
-                  Veuillez patienter pendant la vérification de votre paiement.
-                </p>
+                <PaymentLoading message="Veuillez patienter pendant la vérification de votre paiement." />
               </div>
             ) : verificationStatus === 'success' ? (
-              <div className="space-y-4 text-center">
-                <div className="flex justify-center">
-                  <div className="bg-green-100 p-3 rounded-full">
-                    <Check className="h-8 w-8 text-green-600" />
-                  </div>
-                </div>
-                <p>Paiement confirmé! Votre téléchargement va démarrer automatiquement.</p>
-                <p className="text-sm text-muted-foreground">
-                  Vous disposez maintenant de {PAID_DOWNLOADS_PER_CV} téléchargements pour ce CV.
-                </p>
-              </div>
+              <PaymentSuccess />
             ) : (
-              <div className="space-y-4">
-                <p>
-                  Pour obtenir {PAID_DOWNLOADS_PER_CV} téléchargements, veuillez effectuer un paiement de {PAYMENT_AMOUNT} FCFA.
-                </p>
-                <div className="flex flex-col items-center space-y-4">
-                  {isInitializing ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Initialisation du paiement...</span>
-                    </div>
-                  ) : initError ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="flex items-center gap-2 text-red-500">
-                        <AlertTriangle className="h-5 w-5" />
-                        <span>{initError}</span>
-                      </div>
-                      <Button 
-                        className="w-full bg-gray-200 text-gray-800 hover:bg-gray-300 gap-2"
-                        onClick={handleRetryInit}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                        Réessayer l'initialisation
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button 
-                      className="w-full bg-[#2563eb] hover:bg-[#1d4ed8] gap-2"
-                      onClick={handlePayment}
-                      disabled={!isInitialized || isProcessing}
-                    >
-                      <CreditCard className="h-4 w-4" />
-                      Payer maintenant
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <>
+                {isInitializing ? (
+                  <PaymentLoading />
+                ) : initError ? (
+                  <PaymentError error={initError} onRetry={handleRetryInit} />
+                ) : (
+                  <PaymentForm 
+                    onPayment={handlePayment}
+                    isInitialized={isInitialized}
+                    isProcessing={verificationStatus === 'processing'}
+                  />
+                )}
+              </>
             )}
           </DialogDescription>
         </DialogHeader>
