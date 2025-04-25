@@ -13,7 +13,7 @@ export const PaymentError = ({ error, onRetry, onClose }: PaymentErrorProps) => 
     <div className="flex flex-col items-center gap-4">
       <div className="flex items-center gap-2 text-red-500">
         <AlertTriangle className="h-5 w-5" />
-        <span className="font-medium">Erreur de paiement</span>
+        <span className="font-medium">Erreur de chargement</span>
       </div>
       
       <p className="text-sm text-center text-gray-700">{error}</p>
@@ -24,7 +24,7 @@ export const PaymentError = ({ error, onRetry, onClose }: PaymentErrorProps) => 
           onClick={onRetry}
         >
           <RefreshCw className="h-4 w-4" />
-          Réessayer l'initialisation
+          Réessayer
         </Button>
         
         {onClose && (
@@ -40,7 +40,7 @@ export const PaymentError = ({ error, onRetry, onClose }: PaymentErrorProps) => 
       </div>
       
       <p className="text-xs text-gray-500 text-center mt-2">
-        Si le problème persiste, veuillez réessayer plus tard ou contacter notre support.
+        Si le problème persiste après plusieurs tentatives, veuillez rafraîchir la page ou contacter notre support technique.
       </p>
     </div>
   );
