@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Check, CreditCard, Loader2 } from "lucide-react";
+import { Check, CreditCard, Loader2, AlertTriangle } from "lucide-react";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -27,6 +27,7 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const [initRetries, setInitRetries] = useState(0);
   const MAX_RETRIES = 3;
 
@@ -37,20 +38,21 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       if (isInitializing || isInitialized) return;
       
       setIsInitializing(true);
+      setInitError(null);
       
       try {
-        // Add a small delay to ensure SDK is loaded
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Slightly longer delay to ensure SDK is fully loaded
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         if (!window.PaiementPro) {
           throw new Error("SDK PaiementPro non chargé");
         }
 
-        // Replace with your actual merchant ID from your PaiementPro dashboard
-        const merchantId = "PP-TEST-MERCHANT"; // Use your real merchant ID in production
+        // Retrieve merchant ID from environment (Supabase secret)
+        const merchantId = process.env.PAIEMENTPRO_MERCHANT_ID;
         
         if (!merchantId) {
-          throw new Error("ID marchand non configuré");
+          throw new Error("ID marchand non configuré. Veuillez vérifier vos paramètres.");
         }
 
         window.PaiementPro.init({
@@ -65,17 +67,20 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       } catch (error) {
         console.error("Erreur d'initialisation PaiementPro:", error);
         
+        const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+        setInitError(errorMessage);
+        
         if (initRetries < MAX_RETRIES) {
           setInitRetries(prev => prev + 1);
           setTimeout(initializePaiementPro, 2000); // Retry after 2 seconds
         } else {
           toast({
             title: "Erreur de configuration",
-            description: "Impossible d'initialiser le système de paiement. Veuillez rafraîchir la page.",
+            description: "Impossible d'initialiser le système de paiement. Veuillez réessayer plus tard.",
             variant: "destructive"
           });
+          setIsInitializing(false);
         }
-        setIsInitializing(false);
       }
     };
 
@@ -141,6 +146,11 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Initialisation du paiement...</span>
+                    </div>
+                  ) : initError ? (
+                    <div className="flex items-center gap-2 text-red-500">
+                      <AlertTriangle className="h-5 w-5" />
+                      <span>{initError}</span>
                     </div>
                   ) : (
                     <Button 
