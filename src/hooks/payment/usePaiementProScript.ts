@@ -1,5 +1,5 @@
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { PAIEMENT_PRO_CONFIG } from "@/config/payment";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,6 +11,7 @@ export const usePaiementProScript = (
   const attemptsRef = useRef(0);
   const urlIndexRef = useRef(0);
   const { toast } = useToast();
+  const scriptLoadingRef = useRef(false);
 
   const checkServiceAvailability = async (url: string): Promise<boolean> => {
     if (!navigator.onLine) return false;
@@ -20,10 +21,12 @@ export const usePaiementProScript = (
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), PAIEMENT_PRO_CONFIG.HEALTH_CHECK_TIMEOUT);
       
+      // Utiliser une requête HEAD pour vérifier que le service est disponible
       const response = await fetch(url, {
         method: 'HEAD',
         mode: 'no-cors',
-        signal: controller.signal
+        signal: controller.signal,
+        cache: 'no-cache'
       });
       
       clearTimeout(timeoutId);
@@ -35,13 +38,44 @@ export const usePaiementProScript = (
     }
   };
 
-  const loadScript = async () => {
+  const handleLoadError = useCallback((error: string) => {
+    const canRetry = attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES;
+    const hasMoreUrls = urlIndexRef.current < PAIEMENT_PRO_CONFIG.SCRIPT_URLS.length - 1;
+    scriptLoadingRef.current = false;
+
+    if (hasMoreUrls) {
+      urlIndexRef.current++;
+      console.log(`[PaiementPro] Passage à l'URL suivante: ${PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current]}`);
+      setTimeout(() => loadScript(), PAIEMENT_PRO_CONFIG.RETRY_DELAY);
+    } else if (canRetry) {
+      urlIndexRef.current = 0;
+      const delay = PAIEMENT_PRO_CONFIG.RETRY_DELAY * Math.pow(1.5, attemptsRef.current - 1);
+      console.log(`[PaiementPro] Nouvelle tentative dans ${delay/1000}s...`);
+      setTimeout(() => loadScript(), delay);
+    } else {
+      console.error("[PaiementPro] Échec après toutes les tentatives");
+      onError(error);
+      toast({
+        title: "Erreur PaiementPro",
+        description: "Impossible d'initialiser le système de paiement. Veuillez réessayer plus tard.",
+        variant: "destructive",
+      });
+    }
+  }, [onError, toast]);
+
+  const loadScript = useCallback(async () => {
+    if (scriptLoadingRef.current) {
+      console.log("[PaiementPro] Chargement de script déjà en cours, opération ignorée");
+      return;
+    }
+
     if (!navigator.onLine) {
       console.error("[PaiementPro] Pas de connexion internet");
       handleLoadError("Aucune connexion internet détectée");
       return;
     }
 
+    scriptLoadingRef.current = true;
     attemptsRef.current++;
     console.log(`[PaiementPro] Tentative #${attemptsRef.current}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES}`);
 
@@ -57,6 +91,7 @@ export const usePaiementProScript = (
       console.log("[PaiementPro] SDK déjà chargé");
       try {
         onLoad();
+        scriptLoadingRef.current = false;
         return;
       } catch (err) {
         console.error("[PaiementPro] Erreur avec le SDK existant:", err);
@@ -78,6 +113,10 @@ export const usePaiementProScript = (
     script.async = true;
     script.defer = true;
     script.crossOrigin = "anonymous";
+    
+    // Ajouter un attribut de version au script pour éviter les problèmes de cache
+    script.setAttribute('data-version', PAIEMENT_PRO_CONFIG.VERSION);
+    script.setAttribute('data-timestamp', Date.now().toString());
 
     const timeoutId = setTimeout(() => {
       if (scriptRef.current === script) {
@@ -98,6 +137,7 @@ export const usePaiementProScript = (
             title: "PaiementPro initialisé",
             description: "Le système de paiement est prêt",
           });
+          scriptLoadingRef.current = false;
           onLoad();
         } else {
           console.error("[PaiementPro] SDK non initialisé après chargement");
@@ -114,48 +154,25 @@ export const usePaiementProScript = (
 
     document.body.appendChild(script);
     scriptRef.current = script;
-  };
+  }, [handleLoadError, onLoad, toast]);
 
-  const handleLoadError = (error: string) => {
-    const canRetry = attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES;
-    const hasMoreUrls = urlIndexRef.current < PAIEMENT_PRO_CONFIG.SCRIPT_URLS.length - 1;
-
-    if (hasMoreUrls) {
-      urlIndexRef.current++;
-      console.log(`[PaiementPro] Passage à l'URL suivante: ${PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current]}`);
-      setTimeout(loadScript, PAIEMENT_PRO_CONFIG.RETRY_DELAY);
-    } else if (canRetry) {
-      urlIndexRef.current = 0;
-      const delay = PAIEMENT_PRO_CONFIG.RETRY_DELAY * Math.pow(1.5, attemptsRef.current - 1);
-      console.log(`[PaiementPro] Nouvelle tentative dans ${delay/1000}s...`);
-      setTimeout(loadScript, delay);
-    } else {
-      console.error("[PaiementPro] Échec après toutes les tentatives");
-      onError(error);
-      toast({
-        title: "Erreur PaiementPro",
-        description: "Impossible d'initialiser le système de paiement. Veuillez réessayer plus tard.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const cleanupScript = () => {
+  const cleanupScript = useCallback(() => {
     if (scriptRef.current) {
       console.log("[PaiementPro] Nettoyage du script lors du démontage");
       scriptRef.current.remove();
       scriptRef.current = null;
     }
+    scriptLoadingRef.current = false;
     attemptsRef.current = 0;
     urlIndexRef.current = 0;
-  };
+  }, []);
 
   useEffect(() => {
     loadScript();
     return () => {
       cleanupScript();
     };
-  }, []);
+  }, [loadScript, cleanupScript]);
 
   return { loadScript, cleanupScript };
 };

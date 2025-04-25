@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { usePaiementProScript } from "./usePaiementProScript";
 import { useMerchantId } from "./useMerchantId";
@@ -23,34 +23,9 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
 
   const { isInitialized, initializeSdk, setIsInitialized } = usePaiementProInit();
   const { fetchMerchantId, merchantIdError } = useMerchantId();
-  const { loadScript, cleanupScript } = usePaiementProScript(
-    () => initializePaiementPro(),
-    (error) => {
-      // Vérifier si l'erreur est liée à l'ID marchand ou au script
-      if (merchantIdError) {
-        setInitError(`Configuration: ${merchantIdError}`);
-      } else {
-        setInitError(error);
-      }
-    }
-  );
-
-  const checkNetworkConnectivity = (): boolean => {
-    const isOnline = navigator.onLine;
-    
-    if (!isOnline && !initError) {
-      setInitError("Aucune connexion internet détectée. Veuillez vérifier votre réseau.");
-      toast({
-        title: "Problème de connexion",
-        description: "Vérifiez votre connexion internet",
-        variant: "destructive"
-      });
-    }
-    
-    return isOnline;
-  };
-
-  const initializePaiementPro = async () => {
+  
+  // Utilisation de useCallback pour éviter des re-renders inutiles
+  const initializePaiementPro = useCallback(async () => {
     if (isInitializing) return;
     
     if (!checkNetworkConnectivity()) return;
@@ -117,8 +92,36 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
         setIsInitializing(false);
       }
     }
-  };
+  }, [initRetries, toast, fetchMerchantId, initializeSdk]);
+  
+  const { loadScript, cleanupScript } = usePaiementProScript(
+    () => initializePaiementPro(),
+    (error) => {
+      // Vérifier si l'erreur est liée à l'ID marchand ou au script
+      if (merchantIdError) {
+        setInitError(`Configuration: ${merchantIdError}`);
+      } else {
+        setInitError(error);
+      }
+    }
+  );
 
+  const checkNetworkConnectivity = useCallback((): boolean => {
+    const isOnline = navigator.onLine;
+    
+    if (!isOnline && !initError) {
+      setInitError("Aucune connexion internet détectée. Veuillez vérifier votre réseau.");
+      toast({
+        title: "Problème de connexion",
+        description: "Vérifiez votre connexion internet",
+        variant: "destructive"
+      });
+    }
+    
+    return isOnline;
+  }, [initError, toast]);
+
+  // Gérer l'ouverture de la boîte de dialogue
   useEffect(() => {
     if (open) {
       console.log("Dialog ouvert, réinitialisation de l'état");
@@ -137,9 +140,20 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
         clearTimeout(timer);
       };
     }
-  }, [open]);
+  }, [open, checkNetworkConnectivity, loadScript, setIsInitialized]);
 
-  const handleRetryInit = () => {
+  // Gérer la fermeture de la boîte de dialogue
+  useEffect(() => {
+    if (!open && cleanupScript) {
+      setIsInitialized(false);
+      setIsInitializing(false);
+      setInitError(null);
+      setInitRetries(0);
+      cleanupScript();
+    }
+  }, [open, cleanupScript, setIsInitialized]);
+
+  const handleRetryInit = useCallback(() => {
     console.log("Tentative de réinitialisation manuelle");
     setIsInitialized(false);
     setIsInitializing(false);
@@ -149,17 +163,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
     if (checkNetworkConnectivity()) {
       loadScript();
     }
-  };
-
-  useEffect(() => {
-    if (!open) {
-      setIsInitialized(false);
-      setIsInitializing(false);
-      setInitError(null);
-      setInitRetries(0);
-      cleanupScript();
-    }
-  }, [open, cleanupScript]);
+  }, [checkNetworkConnectivity, loadScript, setIsInitialized]);
 
   return {
     isInitialized,
