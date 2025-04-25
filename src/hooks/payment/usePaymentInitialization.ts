@@ -159,7 +159,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       setInitRetries(0);
       cleanupScript();
     }
-  }, [open]);
+  }, [open, cleanupScript]);
 
   return {
     isInitialized,

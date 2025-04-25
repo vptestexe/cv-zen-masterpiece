@@ -140,18 +140,22 @@ export const usePaiementProScript = (
     }
   };
 
+  const cleanupScript = () => {
+    if (scriptRef.current) {
+      console.log("[PaiementPro] Nettoyage du script lors du démontage");
+      scriptRef.current.remove();
+      scriptRef.current = null;
+    }
+    attemptsRef.current = 0;
+    urlIndexRef.current = 0;
+  };
+
   useEffect(() => {
     loadScript();
     return () => {
-      if (scriptRef.current) {
-        scriptRef.current.remove();
-        scriptRef.current = null;
-      }
-      attemptsRef.current = 0;
-      urlIndexRef.current = 0;
+      cleanupScript();
     };
   }, []);
 
-  return { loadScript };
+  return { loadScript, cleanupScript };
 };
-
