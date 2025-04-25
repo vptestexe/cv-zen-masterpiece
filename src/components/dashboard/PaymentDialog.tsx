@@ -65,7 +65,11 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
           return <PaymentLoading />;
         }
         if (initError) {
-          return <PaymentError error={initError} onRetry={handleRetryInit} />;
+          return <PaymentError 
+            error={initError} 
+            onRetry={handleRetryInit}
+            onClose={onClose} 
+          />;
         }
         return (
           <PaymentForm 
