@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { usePaymentDialog } from "@/hooks/usePaymentDialog";
+import { usePaymentInitialization } from "@/hooks/usePaymentInitialization";
 import { PaymentLoading } from "./payment/PaymentLoading";
 import { PaymentError } from "./payment/PaymentError";
 import { PaymentSuccess } from "./payment/PaymentSuccess";
 import { PaymentForm } from "./payment/PaymentForm";
-import { usePaymentDialog } from "@/hooks/usePaymentDialog";
-import { PAID_DOWNLOADS_PER_CV, PAYMENT_AMOUNT } from "@/utils/downloads/types";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Check, CreditCard, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -19,176 +16,10 @@ interface PaymentDialogProps {
   cvId?: string | null;
 }
 
-declare global {
-  interface Window {
-    PaiementPro: any;
-  }
-}
-
 const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
   const { handleVerifyPayment, isProcessing, verificationStatus } = usePaymentDialog(onClose, cvId);
-  const isMobile = useIsMobile();
+  const { isInitialized, isInitializing, initError, handleRetryInit } = usePaymentInitialization(open);
   const { toast } = useToast();
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [initRetries, setInitRetries] = useState(0);
-  const MAX_RETRIES = 3;
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
-  const merchantIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setIsInitialized(false);
-      setIsInitializing(false);
-      setInitError(null);
-      setInitRetries(0);
-      merchantIdRef.current = null;
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (open) {
-      console.log("Dialog ouvert, réinitialisation de l'état");
-      setIsInitialized(false);
-      setIsInitializing(false);
-      setInitError(null);
-      setInitRetries(0);
-      
-      const loadScript = () => {
-        console.log("Chargement dynamique du script PaiementPro");
-        
-        const oldScript = document.querySelector('script[src*="paiementpro.min.js"]');
-        if (oldScript) {
-          console.log("Suppression de l'ancien script PaiementPro");
-          oldScript.remove();
-        }
-        
-        const script = document.createElement('script');
-        script.src = "https://js.paiementpro.net/v1/paiementpro.min.js";
-        script.defer = true;
-        script.async = true;
-        
-        script.onload = () => {
-          console.log("Script PaiementPro chargé avec succès");
-          setTimeout(() => {
-            if (window.PaiementPro) {
-              console.log("SDK PaiementPro détecté dans window");
-              initializePaiementPro();
-            } else {
-              console.error("Script chargé mais SDK PaiementPro non détecté dans window");
-              setInitError("Le SDK PaiementPro n'a pas pu être chargé correctement");
-            }
-          }, 500);
-        };
-        
-        script.onerror = () => {
-          console.error("Erreur lors du chargement du script PaiementPro");
-          setInitError("Impossible de charger le script PaiementPro");
-        };
-        
-        document.body.appendChild(script);
-        scriptRef.current = script;
-      };
-      
-      const timer = setTimeout(() => {
-        loadScript();
-      }, 300);
-      
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-  }, [open]);
-  
-  const initializePaiementPro = async () => {
-    if (isInitializing) return;
-    
-    setIsInitializing(true);
-    setInitError(null);
-    
-    console.log("Tentative d'initialisation PaiementPro...", { retries: initRetries });
-    
-    try {
-      if (!window.PaiementPro) {
-        throw new Error("SDK PaiementPro non chargé");
-      }
-
-      let merchantId = merchantIdRef.current;
-      
-      if (!merchantId) {
-        console.log("Récupération de l'ID marchand depuis Supabase");
-        const { data: secretData, error: secretError } = await supabase.functions.invoke(
-          "get-payment-config",
-          {
-            body: { secret_name: "PAIEMENTPRO_MERCHANT_ID" }
-          }
-        );
-        
-        if (secretError || !secretData?.value) {
-          console.error("Erreur de récupération de l'ID marchand:", secretError);
-          throw new Error("ID marchand non configuré. Veuillez vérifier vos paramètres.");
-        }
-        
-        merchantId = secretData.value;
-        merchantIdRef.current = merchantId;
-      }
-
-      console.log("Initialisation PaiementPro avec ID marchand...");
-      
-      window.PaiementPro.init({
-        merchantId: merchantId,
-        amount: PAYMENT_AMOUNT,
-        description: "Téléchargement CV",
-        callbackUrl: window.location.origin + "/dashboard",
-      });
-
-      if (typeof window.PaiementPro.startPayment !== 'function') {
-        throw new Error("Initialisation incomplète du SDK");
-      }
-
-      setIsInitialized(true);
-      setIsInitializing(false);
-      console.log("PaiementPro initialisé avec succès");
-    } catch (error) {
-      console.error("Erreur d'initialisation PaiementPro:", error);
-      
-      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
-      setInitError(errorMessage);
-      
-      if (initRetries < MAX_RETRIES) {
-        const nextRetry = initRetries + 1;
-        setInitRetries(nextRetry);
-        
-        const retryDelay = 3000 * (nextRetry);
-        console.log(`Réessai d'initialisation (${nextRetry}/${MAX_RETRIES}) dans ${retryDelay/1000}s...`);
-        
-        setTimeout(() => {
-          setIsInitializing(false);
-          const oldScript = document.querySelector('script[src*="paiementpro.min.js"]');
-          if (oldScript) {
-            oldScript.remove();
-          }
-          
-          const script = document.createElement('script');
-          script.src = "https://js.paiementpro.net/v1/paiementpro.min.js";
-          script.defer = true;
-          script.async = true;
-          document.body.appendChild(script);
-          scriptRef.current = script;
-          
-          setTimeout(initializePaiementPro, 1000);
-        }, retryDelay);
-      } else {
-        toast({
-          title: "Erreur de configuration",
-          description: "Impossible d'initialiser le système de paiement. Veuillez réessayer plus tard.",
-          variant: "destructive"
-        });
-        setIsInitializing(false);
-      }
-    }
-  };
 
   const handlePayment = async () => {
     if (!isInitialized || !cvId) {
@@ -212,32 +43,6 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
         variant: "destructive"
       });
     }
-  };
-
-  const handleRetryInit = () => {
-    console.log("Tentative de réinitialisation manuelle");
-    setIsInitialized(false);
-    setIsInitializing(false);
-    setInitError(null);
-    setInitRetries(0);
-    
-    const oldScript = document.querySelector('script[src*="paiementpro.min.js"]');
-    if (oldScript) {
-      oldScript.remove();
-    }
-    
-    const script = document.createElement('script');
-    script.src = "https://js.paiementpro.net/v1/paiementpro.min.js";
-    script.defer = true;
-    script.async = true;
-    
-    script.onload = () => {
-      console.log("Script rechargé avec succès, initialisation dans 1s");
-      setTimeout(initializePaiementPro, 1000);
-    };
-    
-    document.body.appendChild(script);
-    scriptRef.current = script;
   };
 
   return (
