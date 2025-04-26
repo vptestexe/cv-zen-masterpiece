@@ -39,4 +39,5 @@ interface Window {
   PaiementPro: {
     new (merchantId: string): PaiementPro;
   }
+  _paiementProInstance?: PaiementPro;
 }

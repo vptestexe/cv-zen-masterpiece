@@ -27,6 +27,7 @@ export const usePaiementProInit = () => {
   // Fonction d'initialisation basée sur l'exemple
   const initializeSdk = useCallback((options: InitOptions) => {
     if (!window.PaiementPro) {
+      console.error("SDK PaiementPro non chargé");
       throw new Error("SDK PaiementPro non chargé");
     }
 
@@ -77,10 +78,3 @@ export const usePaiementProInit = () => {
     setIsInitialized
   };
 };
-
-// Augmenter la fenêtre pour stocker l'instance PaiementPro
-declare global {
-  interface Window {
-    _paiementProInstance?: any;
-  }
-}

@@ -53,6 +53,17 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
     });
     
     try {
+      // Vérification préalable que le SDK est bien chargé
+      if (!window.PaiementPro) {
+        console.warn("SDK PaiementPro non disponible, attente...");
+        // Attendre un peu plus longtemps que le délai de 500ms dans le script loader
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        if (!window.PaiementPro) {
+          throw new Error("SDK PaiementPro non disponible après chargement du script");
+        }
+      }
+      
       const merchantId = await fetchMerchantId();
       
       if (!merchantId) {
@@ -100,7 +111,8 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
   const onScriptLoaded = useCallback(() => {
     console.log("[PaiementPro] Script chargé avec succès");
     setScriptLoaded(true);
-    initializePaiementPro();
+    // Délai court pour permettre à l'objet global d'être correctement initialisé
+    setTimeout(() => initializePaiementPro(), 300);
   }, [initializePaiementPro]);
   
   const onScriptError = useCallback((error: string) => {
@@ -128,17 +140,18 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       setInitRetries(0);
       setScriptLoaded(false);
       
-      const timer = setTimeout(() => {
-        if (checkNetworkConnectivity()) {
+      // On charge directement le script sans délai pour accélérer le processus
+      if (checkNetworkConnectivity()) {
+        // Vérifier d'abord si le SDK est déjà chargé
+        if (window.PaiementPro) {
+          console.log("[PaiementPro] SDK déjà chargé dans window");
+          onScriptLoaded();
+        } else {
           loadScript();
         }
-      }, 300);
-      
-      return () => {
-        clearTimeout(timer);
-      };
+      }
     }
-  }, [open, checkNetworkConnectivity, loadScript, setIsInitialized]);
+  }, [open, checkNetworkConnectivity, loadScript, setIsInitialized, onScriptLoaded]);
 
   // Gérer la fermeture de la boîte de dialogue
   useEffect(() => {
@@ -164,10 +177,16 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
     setInitRetries(prev => prev + 1);
     setScriptLoaded(false);
     
-    if (checkNetworkConnectivity()) {
-      loadScript();
+    // Nettoyer complètement et réessayer
+    if (cleanupScript) {
+      cleanupScript();
     }
-  }, [checkNetworkConnectivity, loadScript, setIsInitialized]);
+    
+    if (checkNetworkConnectivity()) {
+      // Attente courte avant de réessayer
+      setTimeout(() => loadScript(), 500);
+    }
+  }, [checkNetworkConnectivity, loadScript, setIsInitialized, cleanupScript]);
 
   return {
     isInitialized,

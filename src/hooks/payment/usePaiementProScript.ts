@@ -13,6 +13,28 @@ export const usePaiementProScript = (
   const { toast } = useToast();
   const scriptLoadingRef = useRef(false);
 
+  // Fonction de nettoyage
+  const cleanupScript = useCallback(() => {
+    if (scriptRef.current) {
+      scriptRef.current.remove();
+      scriptRef.current = null;
+    }
+    
+    // Nettoyer les scripts existants
+    document.querySelectorAll(`script[id="${PAIEMENT_PRO_CONFIG.SCRIPT_ID}"]`).forEach(
+      script => script.remove()
+    );
+    
+    scriptLoadingRef.current = false;
+    attemptsRef.current = 0;
+    urlIndexRef.current = 0;
+    
+    // Nettoyer l'instance globale
+    delete window._paiementProInstance;
+    
+    console.log("[PaiementPro] Scripts nettoyés");
+  }, []);
+
   // Fonction de chargement du script
   const loadScript = useCallback(() => {
     if (scriptLoadingRef.current) {
@@ -37,14 +59,8 @@ export const usePaiementProScript = (
     scriptLoadingRef.current = true;
 
     // Nettoyer les scripts existants
-    const existingScripts = document.querySelectorAll(`script[id="${PAIEMENT_PRO_CONFIG.SCRIPT_ID}"]`);
-    existingScripts.forEach(script => script.remove());
+    cleanupScript();
     
-    if (scriptRef.current) {
-      scriptRef.current.remove();
-      scriptRef.current = null;
-    }
-
     // Vérifier si le SDK est déjà chargé
     if (window.PaiementPro) {
       console.log("[PaiementPro] SDK déjà chargé");
@@ -53,9 +69,18 @@ export const usePaiementProScript = (
       return;
     }
 
-    // Sélection de l'URL à utiliser
-    const currentUrl = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current];
-    console.log(`[PaiementPro] Tentative #${attemptsRef.current + 1}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES} - URL: ${currentUrl}`);
+    // Si configuré pour utiliser immédiatement le fallback, on commence par l'URL principale, 
+    // mais on utilise le fallback immédiatement en cas d'erreur
+    // sinon on essaie toutes les URLs dans l'ordre
+    let currentUrl;
+    if (PAIEMENT_PRO_CONFIG.USE_FALLBACK_IMMEDIATELY) {
+      // On commence toujours par la première URL
+      currentUrl = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[0];
+      console.log(`[PaiementPro] Tentative #${attemptsRef.current + 1}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES} - URL: ${currentUrl} (avec fallback immédiat)`);
+    } else {
+      currentUrl = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current];
+      console.log(`[PaiementPro] Tentative #${attemptsRef.current + 1}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES} - URL: ${currentUrl}`);
+    }
 
     // Création du script
     const script = document.createElement('script');
@@ -109,45 +134,73 @@ export const usePaiementProScript = (
     
     // Fonction de gestion des erreurs
     function handleScriptError(error: string) {
-      const canRetry = attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES;
       const hasMoreUrls = urlIndexRef.current < PAIEMENT_PRO_CONFIG.SCRIPT_URLS.length - 1;
       scriptLoadingRef.current = false;
 
-      if (hasMoreUrls) {
+      if (PAIEMENT_PRO_CONFIG.USE_FALLBACK_IMMEDIATELY && hasMoreUrls) {
+        // Pour le fallback immédiat, essayer l'URL suivante directement
+        urlIndexRef.current++;
+        const fallbackUrl = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current];
+        console.log(`[PaiementPro] Utilisation immédiate du fallback: ${fallbackUrl}`);
+        
+        // Créer un nouveau script avec l'URL de fallback
+        const fallbackScript = document.createElement('script');
+        fallbackScript.src = fallbackUrl;
+        fallbackScript.id = PAIEMENT_PRO_CONFIG.SCRIPT_ID;
+        fallbackScript.async = true;
+        fallbackScript.defer = true;
+        fallbackScript.type = 'text/javascript';
+        
+        // Attributs supplémentaires
+        Object.entries(PAIEMENT_PRO_CONFIG.SCRIPT_ATTRIBUTES).forEach(([key, value]) => {
+          fallbackScript.setAttribute(key, value);
+        });
+        
+        const fallbackTimeoutId = setTimeout(() => {
+          console.error(`[PaiementPro] Délai dépassé pour le fallback ${fallbackUrl}`);
+          onError("Échec de chargement du script principal et du fallback");
+        }, PAIEMENT_PRO_CONFIG.TIMEOUT);
+        
+        fallbackScript.onload = () => {
+          clearTimeout(fallbackTimeoutId);
+          console.log(`[PaiementPro] Script fallback chargé depuis ${fallbackUrl}`);
+          
+          setTimeout(() => {
+            if (window.PaiementPro) {
+              console.log("[PaiementPro] SDK fallback disponible globalement");
+              scriptLoadingRef.current = false;
+              onLoad();
+            } else {
+              console.error("[PaiementPro] SDK fallback non disponible après chargement");
+              onError("Échec du chargement principal et du fallback");
+            }
+          }, 500);
+        };
+        
+        fallbackScript.onerror = () => {
+          clearTimeout(fallbackTimeoutId);
+          console.error(`[PaiementPro] Erreur de chargement du fallback depuis ${fallbackUrl}`);
+          onError("Tous les scripts ont échoué");
+        };
+        
+        document.head.appendChild(fallbackScript);
+        scriptRef.current = fallbackScript;
+      } else if (!PAIEMENT_PRO_CONFIG.USE_FALLBACK_IMMEDIATELY && hasMoreUrls) {
+        // Approche standard: passer à l'URL suivante
         urlIndexRef.current++;
         console.log(`[PaiementPro] Passage à l'URL suivante: ${PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current]}`);
         setTimeout(() => loadScript(), PAIEMENT_PRO_CONFIG.RETRY_DELAY);
-      } else if (canRetry) {
-        attemptsRef.current++;
+      } else if (attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES) {
+        // Réessayer depuis la première URL
         urlIndexRef.current = 0;
-        console.log(`[PaiementPro] Nouvelle tentative #${attemptsRef.current}`);
+        console.log(`[PaiementPro] Nouvelle tentative #${attemptsRef.current + 1}`);
         setTimeout(() => loadScript(), PAIEMENT_PRO_CONFIG.RETRY_DELAY);
       } else {
         console.error("[PaiementPro] Échec après toutes les tentatives");
-        onError(error);
+        onError("Impossible de charger le SDK PaiementPro après plusieurs tentatives");
       }
     }
-  }, [onError, onLoad]);
-
-  // Fonction de nettoyage
-  const cleanupScript = useCallback(() => {
-    if (scriptRef.current) {
-      scriptRef.current.remove();
-      scriptRef.current = null;
-    }
-    
-    // Nettoyer les scripts existants
-    document.querySelectorAll(`script[id="${PAIEMENT_PRO_CONFIG.SCRIPT_ID}"]`).forEach(
-      script => script.remove()
-    );
-    
-    scriptLoadingRef.current = false;
-    attemptsRef.current = 0;
-    urlIndexRef.current = 0;
-    
-    // Nettoyer l'instance globale
-    delete window._paiementProInstance;
-  }, []);
+  }, [onError, onLoad, cleanupScript]);
 
   // Nettoyage lors du démontage
   useEffect(() => {
