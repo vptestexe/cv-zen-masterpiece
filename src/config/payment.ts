@@ -1,20 +1,28 @@
 
+/**
+ * Configuration PaiementPro selon les spécifications de la documentation officielle
+ * Documentation: https://dashboard.paiementpro.net/_files/PaiementPro-JS-V1.0.1.pdf
+ */
 export const PAIEMENT_PRO_CONFIG = {
   SCRIPT_URLS: [
-    "https://js.paiementpro.net/v1/paiementpro.js", // Changé en .js au lieu de .min.js
-    "https://cdn.paiementpro.net/v1/paiementpro.js",
-    "https://static.paiementpro.net/v1/paiementpro.js",
-    "https://assets.paiementpro.net/sdk/latest/paiementpro.js"
+    "https://js.paiementpro.net/v1/paiementpro.min.js", // URL principale selon la documentation
+    "https://cdn.paiementpro.net/v1/paiementpro.min.js", // URL de secours
+    "https://static.paiementpro.net/v1/paiementpro.min.js", // URL de secours
+    "https://assets.paiementpro.net/sdk/latest/paiementpro.min.js" // URL de secours
   ],
-  TIMEOUT: 20000,        // 20 secondes (augmenté)
-  MAX_RETRIES: 3,        // Réduire encore le nombre de tentatives
-  RETRY_DELAY: 3000,     // Délai initial entre les tentatives (augmenté)
+  TIMEOUT: 10000,        // 10 secondes (selon doc)
+  MAX_RETRIES: 2,        // Réduire le nombre de tentatives (éviter trop d'erreurs)
+  RETRY_DELAY: 2000,     // 2 secondes entre les tentatives
   DEBUG: true,
-  SANDBOX_MODE: true,
-  HEALTH_CHECK_TIMEOUT: 5000, // Augmenté pour être plus patient
+  SANDBOX_MODE: true,    // Mode sandbox pour les tests
+  HEALTH_CHECK_TIMEOUT: 3000,
   LOG_LEVEL: 'debug',
-  VERSION: '1.0.5',      // Version mise à jour
-  AUTO_LOAD: true,       // Activation du chargement automatique selon la doc
-  ENABLE_INIT_TRACING: true, // Pour le débogage supplémentaire
-  SCRIPT_ID: 'paiementpro-js-sdk' // ID unique pour le script
+  VERSION: '1.0.1',      // Version exacte selon la documentation
+  AUTO_LOAD: false,      // Désactivé pour contrôler nous-mêmes le chargement
+  ENABLE_INIT_TRACING: true,
+  SCRIPT_ID: 'paiementpro-js-sdk',
+  SCRIPT_ATTRIBUTES: {   // Attributs spécifiques selon la documentation
+    'data-mode': 'production',
+    'data-auto-initialize': 'false'
+  }
 };

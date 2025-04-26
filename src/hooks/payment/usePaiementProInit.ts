@@ -14,6 +14,11 @@ interface InitOptions {
     userAgent: string;
     language: string;
   };
+  currency?: string;
+  customData?: any;
+  themeColor?: string;
+  logoUrl?: string;
+  paymentMethods?: string[];
 }
 
 export const usePaiementProInit = () => {
@@ -24,7 +29,7 @@ export const usePaiementProInit = () => {
       throw new Error("SDK PaiementPro non chargé");
     }
 
-    // Selon la doc, nous devons envoyer ces données exactement comme spécifié
+    // Options d'initialisation selon la documentation
     const initOptions = {
       merchantId: options.merchantId,
       amount: options.amount,
@@ -37,7 +42,12 @@ export const usePaiementProInit = () => {
         userAgent: navigator.userAgent.substring(0, 100),
         language: navigator.language
       },
-      debug: PAIEMENT_PRO_CONFIG.DEBUG
+      debug: PAIEMENT_PRO_CONFIG.DEBUG,
+      currency: options.currency || 'XOF', // XOF selon la doc par défaut
+      customData: options.customData,
+      themeColor: options.themeColor,
+      logoUrl: options.logoUrl,
+      paymentMethods: options.paymentMethods
     };
 
     console.log("Initialisation du SDK avec les options:", {
@@ -46,6 +56,7 @@ export const usePaiementProInit = () => {
     });
 
     try {
+      // Initialisation du SDK selon les spécifications
       window.PaiementPro.init(initOptions);
       
       // Vérifier si le SDK a bien été initialisé
@@ -53,7 +64,7 @@ export const usePaiementProInit = () => {
         throw new Error("Initialisation incomplète du SDK");
       }
       
-      // Méthodes supplémentaires si elles existent
+      // Vérifications et logs supplémentaires
       if (window.PaiementPro.isReady) {
         console.log("État du SDK:", window.PaiementPro.isReady);
       }
@@ -62,6 +73,7 @@ export const usePaiementProInit = () => {
         console.log("Version du SDK:", window.PaiementPro.version);
       }
 
+      // Succès de l'initialisation
       setIsInitialized(true);
     } catch (error) {
       console.error("Erreur lors de l'initialisation du SDK:", error);

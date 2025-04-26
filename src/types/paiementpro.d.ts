@@ -12,10 +12,10 @@ interface PaiementProInitOptions {
     language: string;
   };
   debug?: boolean;
-  currency?: string;      // Devise (XOF par défaut)
-  customData?: any;       // Données personnalisées 
-  themeColor?: string;    // Couleur du thème
-  logoUrl?: string;       // URL du logo
+  currency?: string;       // XOF par défaut selon la doc
+  customData?: any;        // Données personnalisées
+  themeColor?: string;     // Couleur du thème
+  logoUrl?: string;        // URL du logo
   paymentMethods?: string[]; // Méthodes de paiement acceptées
 }
 
@@ -28,6 +28,15 @@ interface PaiementProEventListener {
   (event: PaiementProEvent): void;
 }
 
+interface PaiementProTransaction {
+  id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface PaiementProSDK {
   init: (options: PaiementProInitOptions) => void;
   startPayment: () => void;
@@ -37,6 +46,7 @@ interface PaiementProSDK {
   addEventListener?: (eventName: string, callback: PaiementProEventListener) => void;
   removeEventListener?: (eventName: string, callback: PaiementProEventListener) => void;
   cancel?: () => void;
+  getTransaction?: () => PaiementProTransaction;
 }
 
 interface Window {
