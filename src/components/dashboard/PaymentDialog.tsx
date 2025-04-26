@@ -33,7 +33,13 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
     try {
       localStorage.setItem('cv_being_paid', cvId);
       console.log("Démarrage du processus de paiement pour CV:", cvId);
-      window.PaiementPro.startPayment();
+      
+      // Vérifier que la méthode startPayment existe avant de l'appeler
+      if (window.PaiementPro && window.PaiementPro.startPayment) {
+        window.PaiementPro.startPayment();
+      } else {
+        throw new Error("La méthode startPayment n'est pas disponible");
+      }
     } catch (error) {
       console.error("Erreur lors du paiement:", error);
       toast({

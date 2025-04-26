@@ -5,7 +5,13 @@
  */
 export const PAIEMENT_PRO_CONFIG = {
   SCRIPT_URL: "https://www.paiementpro.net/webservice/onlinepayment/js/paiementpro.v1.0.1.js",
+  SCRIPT_URLS: [
+    "https://www.paiementpro.net/webservice/onlinepayment/js/paiementpro.v1.0.1.js",
+    "https://cdn.paiementpro.net/js/paiementpro.v1.0.1.min.js"
+  ],
   TIMEOUT: 10000,        // 10 secondes
+  RETRY_DELAY: 3000,     // 3 secondes entre les tentatives
+  MAX_RETRIES: 3,        // Nombre maximum de tentatives
   DEBUG: true,
   SANDBOX_MODE: true,    // Mode sandbox pour les tests
   VERSION: '1.0.1',      // Version exacte selon la documentation
@@ -17,4 +23,3 @@ export const PAIEMENT_PRO_CONFIG = {
     'data-mode': 'production'
   }
 };
-

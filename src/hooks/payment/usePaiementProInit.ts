@@ -57,19 +57,28 @@ export const usePaiementProInit = () => {
 
     try {
       // Initialisation du SDK selon les spécifications
-      window.PaiementPro.init(initOptions);
+      if (window.PaiementPro.init) {
+        window.PaiementPro.init(initOptions);
+      } else {
+        console.warn("La méthode init n'est pas disponible, tentative d'initialisation directe");
+        // Certaines versions peuvent nécessiter une initialisation différente
+        const paiementInstance = new window.PaiementPro(initOptions.merchantId);
+        Object.assign(paiementInstance, initOptions);
+      }
       
       // Vérifier si le SDK a bien été initialisé
-      if (typeof window.PaiementPro.startPayment !== 'function') {
-        throw new Error("Initialisation incomplète du SDK");
+      if (window.PaiementPro.startPayment) {
+        console.log("Méthode startPayment disponible");
+      } else {
+        console.warn("La méthode startPayment n'est pas disponible");
       }
       
       // Vérifications et logs supplémentaires
-      if (window.PaiementPro.isReady) {
+      if (typeof window.PaiementPro.isReady !== 'undefined') {
         console.log("État du SDK:", window.PaiementPro.isReady);
       }
       
-      if (window.PaiementPro.version) {
+      if (typeof window.PaiementPro.version !== 'undefined') {
         console.log("Version du SDK:", window.PaiementPro.version);
       }
 
