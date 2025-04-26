@@ -24,66 +24,47 @@ interface InitOptions {
 export const usePaiementProInit = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   
+  // Fonction d'initialisation basée sur l'exemple
   const initializeSdk = useCallback((options: InitOptions) => {
     if (!window.PaiementPro) {
       throw new Error("SDK PaiementPro non chargé");
     }
 
-    // Options d'initialisation selon la documentation
-    const initOptions = {
-      merchantId: options.merchantId,
-      amount: options.amount,
-      description: options.description,
-      callbackUrl: options.callbackUrl,
-      sandboxMode: options.sandboxMode !== undefined ? options.sandboxMode : PAIEMENT_PRO_CONFIG.SANDBOX_MODE,
-      clientInfo: options.clientInfo || {
-        version: PAIEMENT_PRO_CONFIG.VERSION,
-        platform: navigator.platform,
-        userAgent: navigator.userAgent.substring(0, 100),
-        language: navigator.language
-      },
-      debug: PAIEMENT_PRO_CONFIG.DEBUG,
-      currency: options.currency || 'XOF', // XOF selon la doc par défaut
-      customData: options.customData,
-      themeColor: options.themeColor,
-      logoUrl: options.logoUrl,
-      paymentMethods: options.paymentMethods
-    };
-
-    console.log("Initialisation du SDK avec les options:", {
-      ...initOptions,
-      merchantId: initOptions.merchantId.substring(0, 5) + "..." // Masquer l'ID complet
-    });
-
     try {
-      // Initialisation du SDK selon les spécifications
-      if (window.PaiementPro.init) {
-        window.PaiementPro.init(initOptions);
-      } else {
-        console.warn("La méthode init n'est pas disponible, tentative d'initialisation directe");
-        // Certaines versions peuvent nécessiter une initialisation différente
-        const paiementInstance = new window.PaiementPro(initOptions.merchantId);
-        Object.assign(paiementInstance, initOptions);
-      }
-      
-      // Vérifier si le SDK a bien été initialisé
-      if (window.PaiementPro.startPayment) {
-        console.log("Méthode startPayment disponible");
-      } else {
-        console.warn("La méthode startPayment n'est pas disponible");
-      }
-      
-      // Vérifications et logs supplémentaires
-      if (typeof window.PaiementPro.isReady !== 'undefined') {
-        console.log("État du SDK:", window.PaiementPro.isReady);
-      }
-      
-      if (typeof window.PaiementPro.version !== 'undefined') {
-        console.log("Version du SDK:", window.PaiementPro.version);
-      }
+      console.log("Initialisation du SDK avec les options:", {
+        ...options,
+        merchantId: options.merchantId.substring(0, 5) + "..." // Masquer l'ID complet
+      });
 
+      // Créer une nouvelle instance selon l'exemple fourni
+      const paiementPro = new window.PaiementPro(options.merchantId);
+      
+      // Définir les paramètres selon l'exemple
+      paiementPro.amount = options.amount;
+      paiementPro.channel = PAIEMENT_PRO_CONFIG.PAYMENT_CHANNEL;
+      paiementPro.referenceNumber = 'TXN-' + Date.now(); // Générer une référence unique
+      paiementPro.customerEmail = 'client@example.com'; // Valeur par défaut
+      paiementPro.customerFirstName = 'Prénom';
+      paiementPro.customerLastname = 'Nom'; // Noter la minuscule sur "lastname" selon l'exemple
+      paiementPro.customerPhoneNumber = '0102030405';
+      paiementPro.description = options.description;
+      paiementPro.countryCurrencyCode = options.currency || PAIEMENT_PRO_CONFIG.CURRENCY_CODE;
+      
+      // URLs optionnelles mais recommandées
+      if (options.callbackUrl) {
+        const baseUrl = new URL(options.callbackUrl).origin;
+        paiementPro.notificationURL = `${baseUrl}/api/payment/notify`;
+        paiementPro.returnURL = options.callbackUrl;
+      }
+      
       // Succès de l'initialisation
+      console.log("Instance PaiementPro créée avec succès");
       setIsInitialized(true);
+      
+      // Stocker l'instance pour un accès global
+      window._paiementProInstance = paiementPro;
+      
+      return paiementPro;
     } catch (error) {
       console.error("Erreur lors de l'initialisation du SDK:", error);
       throw error;
@@ -96,3 +77,10 @@ export const usePaiementProInit = () => {
     setIsInitialized
   };
 };
+
+// Augmenter la fenêtre pour stocker l'instance PaiementPro
+declare global {
+  interface Window {
+    _paiementProInstance?: any;
+  }
+}

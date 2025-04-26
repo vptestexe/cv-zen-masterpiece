@@ -34,11 +34,22 @@ const PaymentDialog = ({ open, onClose, cvId }: PaymentDialogProps) => {
       localStorage.setItem('cv_being_paid', cvId);
       console.log("Démarrage du processus de paiement pour CV:", cvId);
       
-      // Vérifier que la méthode startPayment existe avant de l'appeler
-      if (window.PaiementPro && window.PaiementPro.startPayment) {
-        window.PaiementPro.startPayment();
+      // Utiliser l'instance stockée ou lancer une erreur
+      const paiementProInstance = window._paiementProInstance;
+      if (!paiementProInstance) {
+        throw new Error("Instance PaiementPro non initialisée");
+      }
+      
+      // Appeler getUrlPayment selon l'exemple
+      await paiementProInstance.getUrlPayment();
+      
+      // Vérifier le résultat et rediriger
+      if (paiementProInstance.success && paiementProInstance.url) {
+        console.log("URL de paiement générée:", paiementProInstance.url);
+        // Rediriger vers la page de paiement
+        window.location.href = paiementProInstance.url;
       } else {
-        throw new Error("La méthode startPayment n'est pas disponible");
+        throw new Error("Échec de génération de l'URL de paiement");
       }
     } catch (error) {
       console.error("Erreur lors du paiement:", error);

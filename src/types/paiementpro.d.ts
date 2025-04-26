@@ -34,13 +34,9 @@ interface PaiementPro {
   getUrlPayment(): Promise<void>;
 }
 
-// Define the global PaiementPro interface based on the actual library
+// Define the global PaiementPro interface based on the example code
 interface Window {
   PaiementPro: {
     new (merchantId: string): PaiementPro;
-    init?(options: any): void;
-    startPayment?(): void;
-    isReady?: boolean;
-    version?: string;
   }
 }

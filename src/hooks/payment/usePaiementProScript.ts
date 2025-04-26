@@ -13,58 +13,24 @@ export const usePaiementProScript = (
   const { toast } = useToast();
   const scriptLoadingRef = useRef(false);
 
-  // Fonction simplifiée pour vérifier la disponibilité du service
-  const checkServiceAvailability = async (url: string): Promise<boolean> => {
-    if (!navigator.onLine) return false;
-    
-    // Pour accélérer les tests, nous allons supposer que le service est disponible
-    // car la vérification peut échouer même si le script est accessible
-    return true;
-  };
-
-  // Gestionnaire d'erreur de chargement
-  const handleLoadError = useCallback((error: string) => {
-    const canRetry = attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES;
-    const hasMoreUrls = urlIndexRef.current < PAIEMENT_PRO_CONFIG.SCRIPT_URLS.length - 1;
-    scriptLoadingRef.current = false;
-
-    if (hasMoreUrls) {
-      urlIndexRef.current++;
-      console.log(`[PaiementPro] Passage à l'URL suivante: ${PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current]}`);
-      setTimeout(() => loadScript(), PAIEMENT_PRO_CONFIG.RETRY_DELAY);
-    } else if (canRetry) {
-      attemptsRef.current++;
-      urlIndexRef.current = 0;
-      console.log(`[PaiementPro] Nouvelle tentative #${attemptsRef.current}`);
-      setTimeout(() => loadScript(), PAIEMENT_PRO_CONFIG.RETRY_DELAY);
-    } else {
-      console.error("[PaiementPro] Échec après toutes les tentatives");
-      onError("Impossible de charger le système de paiement après plusieurs tentatives.");
-      toast({
-        title: "Erreur de chargement",
-        description: "Impossible d'initialiser le système de paiement. Veuillez réessayer plus tard.",
-        variant: "destructive",
-      });
-    }
-  }, [onError, toast]);
-
-  // Fonction principale de chargement du script
+  // Fonction de chargement du script
   const loadScript = useCallback(() => {
     if (scriptLoadingRef.current) {
-      console.log("[PaiementPro] Chargement de script déjà en cours, opération ignorée");
+      console.log("[PaiementPro] Chargement de script déjà en cours");
       return;
     }
 
+    // Vérification de la connexion internet
     if (!navigator.onLine) {
       console.error("[PaiementPro] Pas de connexion internet");
-      handleLoadError("Aucune connexion internet détectée");
+      onError("Aucune connexion internet détectée");
       return;
     }
     
-    // Contrôle du nombre de tentatives
+    // Vérification du nombre maximum de tentatives
     if (attemptsRef.current >= PAIEMENT_PRO_CONFIG.MAX_RETRIES) {
       console.error(`[PaiementPro] Limite de tentatives atteinte (${attemptsRef.current}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES})`);
-      handleLoadError("Limite de tentatives atteinte");
+      onError("Limite de tentatives atteinte");
       return;
     }
     
@@ -72,47 +38,34 @@ export const usePaiementProScript = (
 
     // Nettoyer les scripts existants
     const existingScripts = document.querySelectorAll(`script[id="${PAIEMENT_PRO_CONFIG.SCRIPT_ID}"]`);
-    existingScripts.forEach(script => {
-      console.log("[PaiementPro] Suppression d'un script existant");
-      script.remove();
-    });
+    existingScripts.forEach(script => script.remove());
     
     if (scriptRef.current) {
-      console.log("[PaiementPro] Nettoyage de l'ancien script");
       scriptRef.current.remove();
       scriptRef.current = null;
     }
 
-    // Vérifier si SDK est déjà disponible
+    // Vérifier si le SDK est déjà chargé
     if (window.PaiementPro) {
       console.log("[PaiementPro] SDK déjà chargé");
-      try {
-        onLoad();
-        scriptLoadingRef.current = false;
-        return;
-      } catch (err) {
-        console.error("[PaiementPro] Erreur avec le SDK existant:", err);
-        // Réinitialiser l'objet global
-        window.PaiementPro = undefined as any;
-      }
+      onLoad();
+      scriptLoadingRef.current = false;
+      return;
     }
 
+    // Sélection de l'URL à utiliser
     const currentUrl = PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current];
-    console.log(`[PaiementPro] Tentative #${attemptsRef.current + 1}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES} - Chargement depuis ${currentUrl}`);
+    console.log(`[PaiementPro] Tentative #${attemptsRef.current + 1}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES} - URL: ${currentUrl}`);
 
-    // Création du script selon les spécifications exactes de la documentation
+    // Création du script
     const script = document.createElement('script');
     script.src = currentUrl;
     script.id = PAIEMENT_PRO_CONFIG.SCRIPT_ID;
     script.async = true;
-    script.defer = true; // Selon la documentation
-    script.type = 'text/javascript'; // Ajouté selon la documentation
+    script.defer = true; // Selon l'exemple HTML
+    script.type = 'text/javascript'; // Selon l'exemple HTML
     
-    // Attributs selon la documentation
-    script.setAttribute('data-version', PAIEMENT_PRO_CONFIG.VERSION);
-    script.setAttribute('data-sandbox', PAIEMENT_PRO_CONFIG.SANDBOX_MODE ? 'true' : 'false');
-    
-    // Ajout des attributs spécifiques
+    // Attributs supplémentaires
     Object.entries(PAIEMENT_PRO_CONFIG.SCRIPT_ATTRIBUTES).forEach(([key, value]) => {
       script.setAttribute(key, value);
     });
@@ -121,27 +74,24 @@ export const usePaiementProScript = (
     const timeoutId = setTimeout(() => {
       if (scriptRef.current === script) {
         console.error(`[PaiementPro] Délai dépassé pour ${currentUrl}`);
-        handleLoadError("Délai de chargement dépassé");
+        handleScriptError("Délai de chargement dépassé");
       }
     }, PAIEMENT_PRO_CONFIG.TIMEOUT);
 
+    // Gestionnaires d'événements
     script.onload = () => {
       clearTimeout(timeoutId);
       console.log(`[PaiementPro] Script chargé depuis ${currentUrl}`);
       
-      // Vérification différée de l'initialisation du SDK
+      // Vérification différée de l'objet global
       setTimeout(() => {
         if (window.PaiementPro) {
-          console.log("[PaiementPro] SDK initialisé avec succès", window.PaiementPro);
+          console.log("[PaiementPro] SDK disponible globalement");
           scriptLoadingRef.current = false;
-          toast({
-            title: "PaiementPro prêt",
-            description: "Le système de paiement est prêt à être utilisé",
-          });
           onLoad();
         } else {
-          console.error("[PaiementPro] SDK non initialisé après chargement");
-          handleLoadError("Échec d'initialisation du SDK");
+          console.error("[PaiementPro] SDK non disponible après chargement");
+          handleScriptError("SDK non disponible après chargement");
         }
       }, 500);
     };
@@ -149,23 +99,44 @@ export const usePaiementProScript = (
     script.onerror = () => {
       clearTimeout(timeoutId);
       console.error(`[PaiementPro] Erreur de chargement depuis ${currentUrl}`);
-      handleLoadError(`Échec de chargement depuis ${new URL(currentUrl).hostname}`);
+      handleScriptError(`Échec de chargement depuis ${new URL(currentUrl).hostname}`);
     };
 
-    // Ajout en tête de document selon la documentation
+    // Ajouter à la tête du document comme dans l'exemple HTML
     document.head.appendChild(script);
     scriptRef.current = script;
     attemptsRef.current++;
-  }, [handleLoadError, onLoad, toast]);
+    
+    // Fonction de gestion des erreurs
+    function handleScriptError(error: string) {
+      const canRetry = attemptsRef.current < PAIEMENT_PRO_CONFIG.MAX_RETRIES;
+      const hasMoreUrls = urlIndexRef.current < PAIEMENT_PRO_CONFIG.SCRIPT_URLS.length - 1;
+      scriptLoadingRef.current = false;
 
+      if (hasMoreUrls) {
+        urlIndexRef.current++;
+        console.log(`[PaiementPro] Passage à l'URL suivante: ${PAIEMENT_PRO_CONFIG.SCRIPT_URLS[urlIndexRef.current]}`);
+        setTimeout(() => loadScript(), PAIEMENT_PRO_CONFIG.RETRY_DELAY);
+      } else if (canRetry) {
+        attemptsRef.current++;
+        urlIndexRef.current = 0;
+        console.log(`[PaiementPro] Nouvelle tentative #${attemptsRef.current}`);
+        setTimeout(() => loadScript(), PAIEMENT_PRO_CONFIG.RETRY_DELAY);
+      } else {
+        console.error("[PaiementPro] Échec après toutes les tentatives");
+        onError(error);
+      }
+    }
+  }, [onError, onLoad]);
+
+  // Fonction de nettoyage
   const cleanupScript = useCallback(() => {
     if (scriptRef.current) {
-      console.log("[PaiementPro] Nettoyage du script lors du démontage");
       scriptRef.current.remove();
       scriptRef.current = null;
     }
     
-    // Nettoyer tous les scripts PaiementPro
+    // Nettoyer les scripts existants
     document.querySelectorAll(`script[id="${PAIEMENT_PRO_CONFIG.SCRIPT_ID}"]`).forEach(
       script => script.remove()
     );
@@ -174,13 +145,11 @@ export const usePaiementProScript = (
     attemptsRef.current = 0;
     urlIndexRef.current = 0;
     
-    // Nettoyage de l'objet global
-    if (window.PaiementPro) {
-      console.log("[PaiementPro] Réinitialisation de l'objet global PaiementPro");
-      window.PaiementPro = undefined as any;
-    }
+    // Nettoyer l'instance globale
+    delete window._paiementProInstance;
   }, []);
 
+  // Nettoyage lors du démontage
   useEffect(() => {
     return () => {
       cleanupScript();
