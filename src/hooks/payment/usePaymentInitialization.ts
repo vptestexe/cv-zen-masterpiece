@@ -132,6 +132,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       
       const timer = setTimeout(() => {
         if (checkNetworkConnectivity()) {
+          // Chargement du script seulement quand la boîte de dialogue est ouverte
           loadScript();
         }
       }, 300);
@@ -144,12 +145,15 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
 
   // Gérer la fermeture de la boîte de dialogue
   useEffect(() => {
-    if (!open && cleanupScript) {
+    if (!open) {
       setIsInitialized(false);
       setIsInitializing(false);
       setInitError(null);
       setInitRetries(0);
-      cleanupScript();
+      
+      if (cleanupScript) {
+        cleanupScript();
+      }
     }
   }, [open, cleanupScript, setIsInitialized]);
 

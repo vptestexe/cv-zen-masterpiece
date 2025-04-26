@@ -168,7 +168,14 @@ export const usePaiementProScript = (
   }, []);
 
   useEffect(() => {
+    // Ne charge pas automatiquement le script si AUTO_LOAD est désactivé
+    if (!PAIEMENT_PRO_CONFIG.AUTO_LOAD) {
+      console.log("[PaiementPro] Chargement automatique désactivé");
+      return;
+    }
+    
     loadScript();
+    
     return () => {
       cleanupScript();
     };
