@@ -25,7 +25,6 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
   const { isInitialized, initializeSdk, setIsInitialized } = usePaiementProInit();
   const { fetchMerchantId, merchantIdError } = useMerchantId();
   
-  // Utilisation de useCallback pour éviter des re-renders inutiles
   const initializePaiementPro = useCallback(async () => {
     if (isInitializing) return;
     
@@ -45,12 +44,15 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       if (!merchantId) {
         throw new Error("ID marchand non disponible. Vérifiez la configuration Supabase.");
       }
+
+      // URL de callback absolu (important selon la doc)
+      const callbackUrl = new URL("/dashboard", window.location.origin).toString();
       
       initializeSdk({
         merchantId,
         amount: 1000,
         description: "Téléchargement CV",
-        callbackUrl: window.location.origin + "/dashboard",
+        callbackUrl: callbackUrl,
         sandboxMode: PAIEMENT_PRO_CONFIG.SANDBOX_MODE
       });
 
@@ -100,6 +102,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
   }, [initRetries, toast, fetchMerchantId, initializeSdk, scriptLoaded]);
   
   const onScriptLoaded = useCallback(() => {
+    console.log("[PaiementPro] Script chargé avec succès, passage à l'initialisation");
     setScriptLoaded(true);
     initializePaiementPro();
   }, [initializePaiementPro]);
