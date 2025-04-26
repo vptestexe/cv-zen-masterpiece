@@ -133,6 +133,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       const timer = setTimeout(() => {
         if (checkNetworkConnectivity()) {
           // Chargement du script seulement quand la boîte de dialogue est ouverte
+          console.log("[PaiementPro] Chargement explicite du script suite à l'ouverture du dialog");
           loadScript();
         }
       }, 300);
@@ -146,6 +147,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
   // Gérer la fermeture de la boîte de dialogue
   useEffect(() => {
     if (!open) {
+      console.log("[PaiementPro] Fermeture du dialog, nettoyage des ressources");
       setIsInitialized(false);
       setIsInitializing(false);
       setInitError(null);

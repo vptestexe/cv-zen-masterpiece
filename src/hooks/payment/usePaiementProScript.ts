@@ -95,6 +95,8 @@ export const usePaiementProScript = (
         return;
       } catch (err) {
         console.error("[PaiementPro] Erreur avec le SDK existant:", err);
+        // On continue pour recharger le script
+        window.PaiementPro = undefined;
       }
     }
 
@@ -117,6 +119,7 @@ export const usePaiementProScript = (
     // Ajouter un attribut de version au script pour éviter les problèmes de cache
     script.setAttribute('data-version', PAIEMENT_PRO_CONFIG.VERSION);
     script.setAttribute('data-timestamp', Date.now().toString());
+    script.setAttribute('data-auto-load', 'false');
 
     const timeoutId = setTimeout(() => {
       if (scriptRef.current === script) {
@@ -165,21 +168,23 @@ export const usePaiementProScript = (
     scriptLoadingRef.current = false;
     attemptsRef.current = 0;
     urlIndexRef.current = 0;
+    
+    // Nettoyage supplémentaire de l'objet global
+    if (window.PaiementPro) {
+      console.log("[PaiementPro] Réinitialisation de l'objet global PaiementPro");
+      window.PaiementPro = undefined;
+    }
   }, []);
 
   useEffect(() => {
-    // Ne charge pas automatiquement le script si AUTO_LOAD est désactivé
-    if (!PAIEMENT_PRO_CONFIG.AUTO_LOAD) {
-      console.log("[PaiementPro] Chargement automatique désactivé");
-      return;
-    }
-    
-    loadScript();
+    // Ne charge JAMAIS automatiquement le script
+    // Le chargement est contrôlé explicitement par l'appelant via loadScript()
+    console.log("[PaiementPro] Chargement automatique désactivé, attendant une demande explicite");
     
     return () => {
       cleanupScript();
     };
-  }, [loadScript, cleanupScript]);
+  }, [cleanupScript]);
 
   return { loadScript, cleanupScript };
 };

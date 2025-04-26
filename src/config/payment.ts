@@ -13,6 +13,7 @@ export const PAIEMENT_PRO_CONFIG = {
   SANDBOX_MODE: true,
   HEALTH_CHECK_TIMEOUT: 4000,
   LOG_LEVEL: 'debug',
-  VERSION: '1.0.2',       // Version mise à jour
-  AUTO_LOAD: false       // Désactivation du chargement automatique
+  VERSION: '1.0.2',      // Version mise à jour
+  AUTO_LOAD: false,      // Désactivation du chargement automatique
+  ENABLE_INIT_TRACING: true // Pour le débogage supplémentaire
 };
