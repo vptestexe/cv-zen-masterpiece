@@ -76,6 +76,13 @@ export const usePaiementProScript = (
     }
 
     scriptLoadingRef.current = true;
+    // Incrémenter AVANT de vérifier la limite pour éviter la condition Tentative #6/5
+    if (attemptsRef.current >= PAIEMENT_PRO_CONFIG.MAX_RETRIES) {
+      console.error(`[PaiementPro] Limite de tentatives atteinte (${attemptsRef.current}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES})`);
+      handleLoadError("Limite de tentatives atteinte");
+      return;
+    }
+    
     attemptsRef.current++;
     console.log(`[PaiementPro] Tentative #${attemptsRef.current}/${PAIEMENT_PRO_CONFIG.MAX_RETRIES}`);
 
