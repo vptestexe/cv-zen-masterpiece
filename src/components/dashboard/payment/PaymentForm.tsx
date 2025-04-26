@@ -18,7 +18,10 @@ export const PaymentForm = ({ onPayment, isInitialized, isProcessing }: PaymentF
       </p>
       
       {!isInitialized && (
-        <Alert variant="warning" className="bg-amber-50 border-amber-300">
+        <Alert 
+          variant="default" 
+          className="bg-amber-50 border-amber-300"
+        >
           <AlertDescription className="text-amber-800">
             Initialisation du système de paiement en cours...
           </AlertDescription>
@@ -53,3 +56,4 @@ export const PaymentForm = ({ onPayment, isInitialized, isProcessing }: PaymentF
     </div>
   );
 };
+
