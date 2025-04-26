@@ -19,7 +19,7 @@ export const PaymentForm = ({ onPayment, isInitialized, isProcessing }: PaymentF
       
       {!isInitialized && (
         <Alert 
-          variant="default" 
+          variant="default"
           className="bg-amber-50 border-amber-300"
         >
           <AlertDescription className="text-amber-800">
@@ -56,4 +56,3 @@ export const PaymentForm = ({ onPayment, isInitialized, isProcessing }: PaymentF
     </div>
   );
 };
-

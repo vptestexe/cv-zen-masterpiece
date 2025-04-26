@@ -2,53 +2,40 @@
 interface PaiementProInitOptions {
   merchantId: string;
   amount: number;
+  channel: string;
+  referenceNumber: string;
+  customerEmail: string;
+  customerFirstName: string;
+  customerLastname: string;
+  customerPhoneNumber: string;
   description: string;
-  callbackUrl: string;
-  sandboxMode?: boolean;
-  clientInfo?: {
-    version: string;
-    platform: string;
-    userAgent: string;
-    language: string;
-  };
-  debug?: boolean;
-  currency?: string;       // XOF par défaut selon la doc
-  customData?: any;        // Données personnalisées
-  themeColor?: string;     // Couleur du thème
-  logoUrl?: string;        // URL du logo
-  paymentMethods?: string[]; // Méthodes de paiement acceptées
+  countryCurrencyCode?: string;
+  notificationURL?: string;
+  returnURL?: string;
+  returnContext?: string;
 }
 
-interface PaiementProEvent {
-  type: string;
-  data: any;
-}
-
-interface PaiementProEventListener {
-  (event: PaiementProEvent): void;
-}
-
-interface PaiementProTransaction {
-  id: string;
-  status: string;
+interface PaiementPro {
+  merchantId: string;
   amount: number;
-  currency: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PaiementProSDK {
-  init: (options: PaiementProInitOptions) => void;
-  startPayment: () => void;
-  getStatus?: () => string;
-  version?: string;
-  isReady?: boolean;
-  addEventListener?: (eventName: string, callback: PaiementProEventListener) => void;
-  removeEventListener?: (eventName: string, callback: PaiementProEventListener) => void;
-  cancel?: () => void;
-  getTransaction?: () => PaiementProTransaction;
+  channel: string;
+  referenceNumber: string;
+  customerEmail: string;
+  customerFirstName: string;
+  customerLastname: string;
+  customerPhoneNumber: string;
+  description: string;
+  countryCurrencyCode?: string;
+  notificationURL?: string;
+  returnURL?: string;
+  returnContext?: string;
+  success?: boolean;
+  url?: string;
+  getUrlPayment(): Promise<void>;
 }
 
 interface Window {
-  PaiementPro: PaiementProSDK;
+  PaiementPro: {
+    new (merchantId: string): PaiementPro;
+  }
 }
