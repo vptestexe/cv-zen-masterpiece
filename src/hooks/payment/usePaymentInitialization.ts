@@ -18,6 +18,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
   const [isInitializing, setIsInitializing] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [initRetries, setInitRetries] = useState(0);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
   const { toast } = useToast();
   const MAX_RETRIES = 3;
 
@@ -81,7 +82,11 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
         
         setTimeout(() => {
           setIsInitializing(false);
-          loadScript();
+          if (scriptLoaded) {
+            initializePaiementPro();
+          } else {
+            loadScript();
+          }
         }, retryDelay);
       } else {
         toast({
@@ -92,18 +97,27 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
         setIsInitializing(false);
       }
     }
-  }, [initRetries, toast, fetchMerchantId, initializeSdk]);
+  }, [initRetries, toast, fetchMerchantId, initializeSdk, scriptLoaded]);
+  
+  const onScriptLoaded = useCallback(() => {
+    setScriptLoaded(true);
+    initializePaiementPro();
+  }, [initializePaiementPro]);
+  
+  const onScriptError = useCallback((error: string) => {
+    // Vérifier si l'erreur est liée à l'ID marchand ou au script
+    if (merchantIdError) {
+      setInitError(`Configuration: ${merchantIdError}`);
+    } else {
+      setInitError(error);
+    }
+    setScriptLoaded(false);
+    setIsInitializing(false);
+  }, [merchantIdError]);
   
   const { loadScript, cleanupScript } = usePaiementProScript(
-    () => initializePaiementPro(),
-    (error) => {
-      // Vérifier si l'erreur est liée à l'ID marchand ou au script
-      if (merchantIdError) {
-        setInitError(`Configuration: ${merchantIdError}`);
-      } else {
-        setInitError(error);
-      }
-    }
+    onScriptLoaded,
+    onScriptError
   );
 
   const checkNetworkConnectivity = useCallback((): boolean => {
@@ -129,6 +143,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       setIsInitializing(false);
       setInitError(null);
       setInitRetries(0);
+      setScriptLoaded(false);
       
       const timer = setTimeout(() => {
         if (checkNetworkConnectivity()) {
@@ -152,6 +167,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
       setIsInitializing(false);
       setInitError(null);
       setInitRetries(0);
+      setScriptLoaded(false);
       
       if (cleanupScript) {
         cleanupScript();
@@ -165,6 +181,7 @@ export const usePaymentInitialization = (open: boolean): UsePaymentInitializatio
     setIsInitializing(false);
     setInitError(null);
     setInitRetries(0);
+    setScriptLoaded(false);
     
     if (checkNetworkConnectivity()) {
       loadScript();

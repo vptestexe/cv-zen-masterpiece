@@ -7,13 +7,13 @@ export const PAIEMENT_PRO_CONFIG = {
     "https://assets.paiementpro.net/sdk/latest/paiementpro.min.js"
   ],
   TIMEOUT: 15000,        // 15 secondes
-  MAX_RETRIES: 5,        // Nombre de tentatives
+  MAX_RETRIES: 4,        // Réduire le nombre de tentatives
   RETRY_DELAY: 2000,     // Délai initial entre les tentatives
   DEBUG: true,
   SANDBOX_MODE: true,
   HEALTH_CHECK_TIMEOUT: 4000,
   LOG_LEVEL: 'debug',
-  VERSION: '1.0.3',      // Version mise à jour
+  VERSION: '1.0.4',      // Version mise à jour
   AUTO_LOAD: false,      // Désactivation du chargement automatique
   ENABLE_INIT_TRACING: true // Pour le débogage supplémentaire
 };
