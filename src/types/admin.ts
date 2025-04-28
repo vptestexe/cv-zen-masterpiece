@@ -1,5 +1,7 @@
 
-import { AdSize, AdPosition, AdNetwork } from "@/components/ads/AdTypes";
+export type AdPosition = "top" | "bottom" | "sidebar" | "inline" | "fixed";
+export type AdSize = "banner" | "rectangle" | "leaderboard" | "skyscraper" | "mobile";
+export type AdNetwork = "adsense" | "direct" | "local";
 
 export interface AdPlacement {
   id: string;
