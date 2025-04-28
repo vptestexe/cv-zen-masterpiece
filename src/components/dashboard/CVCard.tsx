@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Edit, Download, Trash2, FileText } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DownloadCount } from "@/utils/downloads/types";
 
 interface CV {
   id: string;
@@ -12,8 +13,11 @@ interface CV {
 
 interface CVCardProps {
   cv: CV;
+  downloadCount?: DownloadCount;
+  processingPayment?: boolean;
   onEdit: (id: string) => void;
   onDownload: (id: string, format: string) => void;
+  onRecharge?: (id: string) => void;
   onDelete: (id: string) => void;
   isMobile?: boolean;
 }

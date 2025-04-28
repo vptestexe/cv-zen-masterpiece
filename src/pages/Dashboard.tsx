@@ -75,8 +75,14 @@ const Dashboard = () => {
           <>
             <CVList
               cvs={state.userCVs}
+              downloadCounts={state.downloadCounts || {}}
+              processingPayment={state.processingPayment || false}
               onEdit={actions.handleEdit}
               onDownload={actions.handleDownload}
+              onRecharge={(id) => {
+                // Since downloads are free now, this is a no-op function
+                console.log("Recharge function called but ignored as downloads are free");
+              }}
               onDelete={(cvId) => {
                 state.setCvToDelete(cvId);
                 state.setShowDeleteConfirm(true);
