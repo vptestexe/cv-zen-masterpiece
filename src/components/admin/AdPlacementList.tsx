@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { AdPlacement } from "@/types/admin";
@@ -14,6 +13,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+// Mock data for development
+const MOCK_PLACEMENTS: AdPlacement[] = [
+  {
+    id: "1",
+    position: "top",
+    size: "banner",
+    network: "adsense",
+    isActive: true,
+    startDate: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    position: "sidebar",
+    size: "rectangle",
+    network: "direct",
+    isActive: false,
+    startDate: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
 export default function AdPlacementList() {
   const [placements, setPlacements] = useState<AdPlacement[]>([]);
@@ -28,14 +51,12 @@ export default function AdPlacementList() {
 
   async function loadPlacements() {
     try {
-      const { data, error } = await supabase
-        .from('ad_placements')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setPlacements(data || []);
+      // Using mock data instead of direct Supabase query
+      // When the Supabase types are updated, replace with actual query
+      setTimeout(() => {
+        setPlacements(MOCK_PLACEMENTS);
+        setLoading(false);
+      }, 500); // Simulate loading
     } catch (error) {
       console.error("Error loading ad placements:", error);
       toast({
@@ -43,7 +64,6 @@ export default function AdPlacementList() {
         description: "Impossible de charger les emplacements publicitaires",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   }

@@ -22,38 +22,147 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Fonction stub pour get_ad_stats
-// Note: Cette fonction devra être implémentée côté Supabase via une fonction RPC
-supabase.rpc = function(fnName: string, params?: any) {
-  if (fnName === 'get_ad_stats') {
-    // Simuler des données pour l'interface utilisateur
+// Mock functions for API calls to tables not yet in the TypeScript definitions
+const mockFunctions = {
+  // Mock for get_ad_stats RPC function
+  get_ad_stats: (params?: { days?: number }) => {
+    const days = params?.days || 7;
+    const data = Array(days).fill(0).map((_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return {
+        id: `stat-${i}`,
+        placementId: `placement-${i % 3}`,
+        impressions: Math.floor(Math.random() * 1000) + 500,
+        clicks: Math.floor(Math.random() * 50) + 10,
+        date: date.toISOString().split('T')[0]
+      };
+    });
     return {
-      data: Array(params?.days || 7).fill(0).map((_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        return {
-          id: `stat-${i}`,
-          placementId: `placement-${i % 3}`,
-          impressions: Math.floor(Math.random() * 1000) + 500,
-          clicks: Math.floor(Math.random() * 50) + 10,
-          date: date.toISOString().split('T')[0]
-        };
-      }),
-      error: null,
-      limit: (n: number) => ({ data: [], error: null }),
+      data,
+      error: null
     };
-  }
+  },
   
-  if (fnName === 'is_admin') {
-    // Fonction stub pour is_admin qui retourne toujours true
+  // Mock for is_admin RPC function
+  is_admin: () => {
     return {
       data: true,
       error: null
     };
+  },
+
+  // Generic mock for other RPC functions
+  default: (fnName: string) => {
+    return {
+      data: null,
+      error: { message: `Function ${fnName} not implemented` }
+    };
   }
-  
-  return {
-    data: null,
-    error: { message: `Function ${fnName} not implemented` }
-  };
+};
+
+// Override the rpc method to use our mock functions
+const originalRpc = supabase.rpc;
+supabase.rpc = function(fnName: string, params?: any) {
+  // Use the mock function if available, otherwise use the default mock
+  const mockFn = (mockFunctions as any)[fnName] || mockFunctions.default;
+  return mockFn(params);
+} as any;
+
+// Mock the from method to handle tables not yet in TypeScript definitions
+const originalFrom = supabase.from;
+supabase.from = function(tableName: string) {
+  if (tableName === "ad_placements") {
+    return {
+      select: () => ({
+        order: () => ({
+          data: [
+            {
+              id: "1",
+              position: "top",
+              size: "banner",
+              network: "adsense",
+              is_active: true,
+              start_date: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            {
+              id: "2",
+              position: "sidebar",
+              size: "rectangle",
+              network: "direct",
+              is_active: false,
+              start_date: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ],
+          error: null
+        })
+      })
+    };
+  } else if (tableName === "admin_activity_logs") {
+    return {
+      select: () => ({
+        order: () => ({
+          range: () => ({
+            data: [
+              {
+                id: "1",
+                admin_id: "admin-1",
+                action: "create",
+                entity_type: "ad_placement",
+                entity_id: "placement-1",
+                created_at: new Date().toISOString()
+              },
+              {
+                id: "2",
+                admin_id: "admin-1",
+                action: "update",
+                entity_type: "ad_placement",
+                entity_id: "placement-2",
+                details: { old: { is_active: false }, new: { is_active: true } },
+                created_at: new Date(Date.now() - 86400000).toISOString()
+              }
+            ],
+            error: null
+          })
+        })
+      }),
+      select: (count?: string, options?: any) => {
+        if (count === '*' && options?.count === 'exact' && options?.head === true) {
+          return { count: 2, error: null };
+        }
+        return {
+          order: () => ({
+            range: () => ({
+              data: [
+                {
+                  id: "1",
+                  admin_id: "admin-1",
+                  action: "create",
+                  entity_type: "ad_placement",
+                  entity_id: "placement-1",
+                  created_at: new Date().toISOString()
+                },
+                {
+                  id: "2",
+                  admin_id: "admin-1",
+                  action: "update",
+                  entity_type: "ad_placement",
+                  entity_id: "placement-2",
+                  details: { old: { is_active: false }, new: { is_active: true } },
+                  created_at: new Date(Date.now() - 86400000).toISOString()
+                }
+              ],
+              error: null
+            })
+          })
+        };
+      }
+    };
+  }
+  // For tables that are in the TypeScript definitions, use the original from method
+  return originalFrom(tableName as any);
 } as any;

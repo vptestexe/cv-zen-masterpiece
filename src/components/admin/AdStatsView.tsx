@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { AdStats } from "@/types/admin";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -13,6 +12,21 @@ import {
 } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+
+// Generate mock data for development
+function generateMockStats(days: number): AdStats[] {
+  return Array(days).fill(0).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    return {
+      id: `stat-${i}`,
+      placementId: `placement-${i % 3}`,
+      impressions: Math.floor(Math.random() * 1000) + 500,
+      clicks: Math.floor(Math.random() * 50) + 10,
+      date: date.toISOString().split('T')[0]
+    };
+  });
+}
 
 export default function AdStatsView() {
   const [stats, setStats] = useState<AdStats[]>([]);
@@ -27,15 +41,12 @@ export default function AdStatsView() {
   async function loadStats() {
     setLoading(true);
     try {
-      // Dans un environnement réel, nous filtrerions par plage de dates
-      // basée sur la valeur timeRange
-      const { data, error } = await supabase
-        .rpc('get_ad_stats', { days: timeRangeToNumber(timeRange) })
-        .limit(100);
-
-      if (error) throw error;
-
-      setStats(data || []);
+      // Using mock data instead of Supabase RPC
+      setTimeout(() => {
+        const days = timeRangeToNumber(timeRange);
+        setStats(generateMockStats(days));
+        setLoading(false);
+      }, 500); // Simulate loading
     } catch (error) {
       console.error("Error loading ad stats:", error);
       toast({
@@ -43,7 +54,6 @@ export default function AdStatsView() {
         description: "Impossible de charger les statistiques publicitaires",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   }

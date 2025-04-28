@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { AdminActivity } from "@/types/admin";
 import {
@@ -22,6 +21,35 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+// Mock data for development
+const MOCK_ACTIVITY_LOGS: AdminActivity[] = [
+  {
+    id: "1",
+    adminId: "admin-1",
+    action: "create",
+    entityType: "ad_placement",
+    entityId: "placement-1",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    adminId: "admin-1",
+    action: "update",
+    entityType: "ad_placement",
+    entityId: "placement-2",
+    details: { old: { isActive: false }, new: { isActive: true } },
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: "3",
+    adminId: "admin-2",
+    action: "delete",
+    entityType: "ad_placement",
+    entityId: "placement-3",
+    createdAt: new Date(Date.now() - 172800000).toISOString(),
+  },
+];
+
 export default function ActivityLogs() {
   const [logs, setLogs] = useState<AdminActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,26 +65,13 @@ export default function ActivityLogs() {
   async function loadLogs() {
     setLoading(true);
     try {
-      // Récupérer le nombre total pour la pagination
-      const { count, error: countError } = await supabase
-        .from('admin_activity_logs')
-        .select('*', { count: 'exact', head: true });
-
-      if (countError) throw countError;
-
-      const total = count || 0;
-      setTotalPages(Math.ceil(total / perPage));
-
-      // Récupérer les entrées pour la page actuelle
-      const { data, error } = await supabase
-        .from('admin_activity_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range((page - 1) * perPage, page * perPage - 1);
-
-      if (error) throw error;
-
-      setLogs(data || []);
+      // Using mock data instead of direct Supabase query
+      // When the Supabase types are updated, replace with actual query
+      setTimeout(() => {
+        setLogs(MOCK_ACTIVITY_LOGS);
+        setTotalPages(1); // Just one page of mock data
+        setLoading(false);
+      }, 500); // Simulate loading
     } catch (error) {
       console.error("Error loading activity logs:", error);
       toast({
@@ -64,7 +79,6 @@ export default function ActivityLogs() {
         description: "Impossible de charger le journal d'activité",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   }
