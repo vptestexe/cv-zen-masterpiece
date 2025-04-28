@@ -50,6 +50,7 @@ export default function AdPlacementList() {
         endDate: item.end_date || undefined,
         createdAt: item.created_at,
         updatedAt: item.updated_at,
+        adCode: item.ad_code || undefined,
       }));
 
       setPlacements(formattedPlacements);

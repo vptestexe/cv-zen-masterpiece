@@ -37,6 +37,7 @@ export const AdBanner = ({
     async function loadAd() {
       try {
         setIsLoaded(false);
+        console.log(`Searching ad for position: ${position}, size: ${size}`);
         
         // Rechercher un emplacement publicitaire actif correspondant
         const { data, error } = await supabase
@@ -48,10 +49,13 @@ export const AdBanner = ({
           .maybeSingle();
 
         if (error) {
+          console.error('Error fetching ad placement:', error);
           throw error;
         }
 
         if (data) {
+          console.log('Ad placement found:', data);
+          
           // Enregistrer une impression
           try {
             await supabase
@@ -66,22 +70,21 @@ export const AdBanner = ({
             console.error('Erreur lors de l\'enregistrement de l\'impression:', statError);
           }
           
-          // Pour l'instant, simulons simplement l'affichage d'une publicité
           setIsLoaded(true);
           
-          // Ici, vous pouvez gérer les différents types de réseaux publicitaires
-          // et charger le code HTML approprié
+          // Gérer les différents types de réseaux publicitaires
           if (data.network === 'adsense') {
-            // Code pour charger AdSense
-            // setAdHtml(...);
+            setAdHtml(data.ad_code || null);
           } else if (data.network === 'direct') {
-            // Code pour charger des publicités directes
-            // setAdHtml(...);
+            // Pour les annonces directes, utiliser le code HTML fourni
+            setAdHtml(data.ad_code || null);
+            console.log('Direct ad code:', data.ad_code);
           } else {
             // Publicités locales (par défaut)
             setAdHtml(null);
           }
         } else {
+          console.log('No active ad placement found');
           setIsError(true);
         }
       } catch (error) {

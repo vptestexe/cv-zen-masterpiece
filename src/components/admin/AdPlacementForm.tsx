@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -28,6 +28,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { AdPlacement, AdPosition, AdSize, AdNetwork } from "@/types/admin";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -61,7 +62,7 @@ export default function AdPlacementForm({ placement, onClose, onSave }: AdPlacem
       size: placement?.size || "banner",
       network: placement?.network || "adsense",
       isActive: placement?.isActive ?? true,
-      adCode: "",
+      adCode: placement?.adCode || "",
     },
   });
 
@@ -75,9 +76,11 @@ export default function AdPlacementForm({ placement, onClose, onSave }: AdPlacem
         size: values.size,
         network: values.network,
         is_active: values.isActive,
-        // Ajouter des champs supplémentaires pour les codes publicitaires si nécessaire
+        ad_code: values.adCode || null,
         updated_at: new Date().toISOString(),
       };
+
+      console.log("Saving ad placement:", adData);
 
       let result;
       
@@ -102,6 +105,7 @@ export default function AdPlacementForm({ placement, onClose, onSave }: AdPlacem
                 size: placement.size,
                 network: placement.network,
                 isActive: placement.isActive,
+                adCode: placement.adCode,
               },
               new: values
             }
@@ -142,6 +146,7 @@ export default function AdPlacementForm({ placement, onClose, onSave }: AdPlacem
       }
 
       if (result.error) {
+        console.error("Error saving ad placement:", result.error);
         throw result.error;
       }
 
@@ -157,6 +162,8 @@ export default function AdPlacementForm({ placement, onClose, onSave }: AdPlacem
       setLoading(false);
     }
   }
+
+  const showAdCodeField = form.watch("network") === "adsense" || form.watch("network") === "direct";
 
   return (
     <Dialog open onOpenChange={() => !loading && onClose()}>
@@ -251,38 +258,22 @@ export default function AdPlacementForm({ placement, onClose, onSave }: AdPlacem
               )}
             />
 
-            {form.watch("network") === "adsense" && (
+            {showAdCodeField && (
               <FormField
                 control={form.control}
                 name="adCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Code AdSense</FormLabel>
+                    <FormLabel>
+                      {form.watch("network") === "adsense" ? "Code AdSense" : "Code HTML publicitaire"}
+                    </FormLabel>
                     <FormControl>
-                      <Input
+                      <Textarea
                         {...field}
-                        placeholder="Collez votre code AdSense ici"
-                        className="font-mono text-xs"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {form.watch("network") === "direct" && (
-              <FormField
-                control={form.control}
-                name="adCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Code HTML publicitaire</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Collez votre code HTML ici"
-                        className="font-mono text-xs"
+                        placeholder={form.watch("network") === "adsense" 
+                          ? "Collez votre code AdSense ici" 
+                          : "Collez votre code HTML ici"}
+                        className="font-mono text-xs h-32"
                       />
                     </FormControl>
                     <FormMessage />
