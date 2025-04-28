@@ -13,7 +13,7 @@ export interface AdPlacement {
   endDate?: string;
   createdAt: string;
   updatedAt: string;
-  adCode?: string; // Champ pour le code HTML des annonces
+  adCode?: string; // Added property for ad code
 }
 
 export interface AdminActivity {
