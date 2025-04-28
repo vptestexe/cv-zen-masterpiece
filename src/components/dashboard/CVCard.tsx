@@ -10,17 +10,10 @@ interface CV {
   lastUpdated: string;
 }
 
-interface DownloadCount {
-  count: number;
-}
-
 interface CVCardProps {
   cv: CV;
-  downloadCount?: DownloadCount;
-  processingPayment: boolean;
   onEdit: (id: string) => void;
   onDownload: (id: string, format: string) => void;
-  onRecharge: (id: string) => void;
   onDelete: (id: string) => void;
   isMobile?: boolean;
 }
@@ -36,11 +29,8 @@ const formatDate = (dateStr: string) => {
 
 const CVCard = ({
   cv,
-  downloadCount,
-  processingPayment,
   onEdit,
   onDownload,
-  onRecharge,
   onDelete,
 }: CVCardProps) => {
   return (
@@ -49,16 +39,6 @@ const CVCard = ({
         <h3 className="text-2xl font-semibold leading-none tracking-tight">{cv.title}</h3>
         <p className="text-sm text-muted-foreground">
           Dernière modification: {formatDate(cv.lastUpdated)}
-          {downloadCount && downloadCount.count > 0 && (
-            <div className="mt-2 text-sm font-medium text-green-600">
-              {downloadCount.count} téléchargements restants
-            </div>
-          )}
-          {(!downloadCount || downloadCount.count <= 0) && (
-            <div className="mt-2 text-sm font-medium text-amber-600">
-              Aucun téléchargement disponible
-            </div>
-          )}
         </p>
       </div>
       <div className="p-6 pt-0">
@@ -76,42 +56,30 @@ const CVCard = ({
           <Edit className="h-4 w-4" />
           Modifier
         </Button>
-        {downloadCount && downloadCount.count > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 flex-1"
-                disabled={processingPayment}
-              >
-                <Download className="h-4 w-4" />
-                Télécharger ({downloadCount.count})
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => onDownload(cv.id, "pdf")}>
-                <Download className="h-4 w-4 mr-2" />
-                Format PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDownload(cv.id, "word")}>
-                <FileText className="h-4 w-4 mr-2" />
-                Format Word
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Button
-            variant="default"
-            size="sm"
-            className="gap-1 flex-1"
-            disabled={processingPayment}
-            onClick={() => onRecharge(cv.id)}
-          >
-            <Download className="h-4 w-4" />
-            Recharger
-          </Button>
-        )}
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 flex-1"
+            >
+              <Download className="h-4 w-4" />
+              Télécharger
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => onDownload(cv.id, "pdf")}>
+              <Download className="h-4 w-4 mr-2" />
+              Format PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDownload(cv.id, "word")}>
+              <FileText className="h-4 w-4 mr-2" />
+              Format Word
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
         <Button
           variant="outline"
           size="sm"

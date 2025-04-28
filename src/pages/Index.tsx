@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useCVContext } from "@/contexts/CVContext";
 import { CVEditor } from "@/components/editor/CVEditor";
@@ -9,8 +8,6 @@ import { Save, RefreshCw, ChevronUp, ArrowLeft, Eye, EyeOff, AlertTriangle, Down
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { getDownloadCount, isFreeDownloadAvailable, PAYMENT_AMOUNT } from "@/utils/downloadManager";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useCVEditorActions } from "./hooks/useCVEditorActions";
@@ -18,6 +15,8 @@ import { HeaderBar } from "./components/HeaderBar";
 import { FooterBar } from "./components/FooterBar";
 import { PreviewInfoDialog } from "./components/PreviewInfoDialog";
 import { ScrollToTopButton } from "./components/ScrollToTopButton";
+import AdBanner from "@/components/ads/AdBanner";
+import { useAds } from "@/components/ads/AdProvider";
 
 const MAX_AUTO_SAVE_INTERVAL = 30000; // 30 secondes
 
@@ -58,6 +57,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { adsEnabled } = useAds();
 
   // Actions and logic refactored to custom hook
   const {
@@ -182,6 +182,13 @@ const Index = () => {
         togglePreview={togglePreview}
         onBack={handleBackToDashboard}
       />
+      
+      {adsEnabled && (
+        <div className="w-full flex justify-center py-2 bg-gray-50">
+          <AdBanner size="banner" position="top" />
+        </div>
+      )}
+      
       <main className="flex-1 container mx-auto flex flex-col md:flex-row gap-6 p-4 sm:p-6">
         <div 
           className={`w-full ${previewActive ? "md:w-1/2" : "md:w-full"} rounded-lg shadow-sm overflow-hidden transition-all duration-300 ${
@@ -199,14 +206,6 @@ const Index = () => {
 
         {(!isMobile && previewActive || isMobile && activeTab === "preview") && (
           <div className="w-full md:w-1/2 rounded-lg shadow-sm overflow-hidden transition-all duration-300">
-            {!freeDownloadAvailable && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Vous n'aurez pas de téléchargements gratuits pour ce CV. Un paiement de {PAYMENT_AMOUNT} CFA sera requis.
-                </AlertDescription>
-              </Alert>
-            )}
             <div 
               className="bg-white p-4 sm:p-6 shadow-sm rounded-lg"
               key={`preview-container-${previewResetKey}`}
@@ -222,13 +221,19 @@ const Index = () => {
         )}
       </main>
 
+      {adsEnabled && !isMobile && (
+        <div className="fixed right-4 bottom-20 z-40">
+          <AdBanner size="skyscraper" position="fixed" />
+        </div>
+      )}
+
       <FooterBar
         onBack={handleBackToDashboard}
         onSave={() => handleSaveCV(false)}
         onReset={handleResetCV}
         onDownloadPdf={() => handleDownloadCV("pdf")}
         onDownloadWord={() => handleDownloadCV("word")}
-        freeDownloadAvailable={freeDownloadAvailable}
+        freeDownloadAvailable={true}
       />
 
       <ScrollToTopButton scrolled={scrolled} onClick={scrollToTop} />
@@ -236,6 +241,12 @@ const Index = () => {
       <PreviewInfoDialog open={showPreviewInfo} onOpenChange={setShowPreviewInfo} />
 
       <ThemePalette />
+      
+      {adsEnabled && (
+        <div className="w-full flex justify-center py-3 bg-gray-50 border-t">
+          <AdBanner size="banner" position="bottom" />
+        </div>
+      )}
     </div>
   );
 };

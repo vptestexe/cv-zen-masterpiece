@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardFooter from "@/components/dashboard/DashboardFooter";
-import PaymentDialog from "@/components/dashboard/PaymentDialog";
 import DeleteConfirmDialog from "@/components/dashboard/DeleteConfirmDialog";
 import DuplicateAlertDialog from "@/components/dashboard/DuplicateAlertDialog";
 import CVList from "@/components/dashboard/CVList";
@@ -13,11 +12,14 @@ import { useDashboardState } from "./hooks/useDashboardState";
 import { useDashboardActions } from "./hooks/useDashboardActions";
 import { useDashboardEffects } from "./hooks/useDashboardEffects";
 import { MAX_FREE_CVS } from "@/utils/downloadManager";
+import AdBanner from "@/components/ads/AdBanner";
+import { useAds } from "@/components/ads/AdProvider";
 
 const Dashboard = () => {
   const state = useDashboardState();
   const actions = useDashboardActions(state);
   useDashboardEffects(state);
+  const { adsEnabled } = useAds();
 
   useEffect(() => {
     if (state.user?.id) {
@@ -25,29 +27,19 @@ const Dashboard = () => {
     }
   }, [state.user]);
 
-  const handlePaymentDialogClose = () => {
-    state.setShowPaymentDialog(false);
-    state.setCurrentCvId(null);
-    localStorage.removeItem('cv_being_paid');
-  };
-
-  const handleRechargeClick = (cvId: string) => {
-    state.setCurrentCvId(cvId);
-    localStorage.setItem("cv_being_paid", cvId);
-    
-    if (state.user?.id) {
-      localStorage.setItem('current_user_id', state.user.id);
-    }
-    
-    state.setShowPaymentDialog(true);
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       <DashboardHeader 
         userName={state.userName} 
         onLogout={actions.handleLogout} 
       />
+      
+      {adsEnabled && (
+        <div className="w-full flex justify-center py-4 bg-gray-50">
+          <AdBanner size="leaderboard" position="top" />
+        </div>
+      )}
+      
       <main className="flex-1 container mx-auto py-8 px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <div>
@@ -80,26 +72,32 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         ) : (
-          <CVList
-            cvs={state.userCVs}
-            downloadCounts={state.downloadCounts}
-            processingPayment={state.processingPayment}
-            onEdit={actions.handleEdit}
-            onDownload={actions.handleDownload}
-            onRecharge={handleRechargeClick}
-            onDelete={(cvId) => {
-              state.setCvToDelete(cvId);
-              state.setShowDeleteConfirm(true);
-            }}
-          />
+          <>
+            <CVList
+              cvs={state.userCVs}
+              onEdit={actions.handleEdit}
+              onDownload={actions.handleDownload}
+              onDelete={(cvId) => {
+                state.setCvToDelete(cvId);
+                state.setShowDeleteConfirm(true);
+              }}
+            />
+            
+            {adsEnabled && state.userCVs.length > 0 && (
+              <div className="mt-8 flex justify-center">
+                <AdBanner size="rectangle" position="inline" />
+              </div>
+            )}
+          </>
         )}
       </main>
+      
+      {adsEnabled && (
+        <div className="w-full flex justify-center py-4 bg-gray-50 border-t">
+          <AdBanner size="banner" position="bottom" />
+        </div>
+      )}
 
-      <PaymentDialog 
-        open={state.showPaymentDialog} 
-        onClose={handlePaymentDialogClose}
-        cvId={state.currentCvId}
-      />
       <DeleteConfirmDialog
         open={state.showDeleteConfirm}
         onCancel={() => state.setShowDeleteConfirm(false)}

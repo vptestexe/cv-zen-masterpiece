@@ -1,3 +1,4 @@
+
 import { MAX_FREE_CVS } from './types';
 import { getSavedCVs, saveCVs } from './storage';
 
@@ -57,11 +58,11 @@ export const canCreateNewCV = (): boolean => {
 };
 
 export const hasDownloadsRemaining = (): boolean => {
-  return false; // Force payment for all downloads
+  return true; // Toujours retourner true car les téléchargements sont maintenant gratuits
 };
 
 export const isFreeDownloadAvailable = (): boolean => {
-  return false; // Force payment for all downloads
+  return true; // Toujours retourner true car les téléchargements sont maintenant gratuits
 };
 
 export const resetCVPaymentStatus = () => {
@@ -73,37 +74,27 @@ export const resetCVPaymentStatus = () => {
   }
 };
 
-// Track payment attempt details with better validation
+// Track payment attempt details with better validation (conservé pour compatibilité)
 export const trackPaymentAttempt = (cvId: string, userId: string) => {
   try {
-    // Generate a unique order reference
-    const orderRef = `PP_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+    const orderRef = `FREE_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
     
     const paymentAttempt = {
       cvId,
       userId,
       timestamp: Date.now(),
       orderRef,
-      amount: 1000 // Store the expected amount for validation
+      amount: 0 // Montant zéro car gratuit
     };
     
     localStorage.setItem('payment_attempt', JSON.stringify(paymentAttempt));
     return orderRef;
   } catch (error) {
-    console.error("Erreur lors du suivi de la tentative de paiement:", error);
+    console.error("Erreur lors du suivi de la tentative de téléchargement:", error);
     return null;
   }
 };
 
 export const validatePaymentReference = (orderRef: string): boolean => {
-  try {
-    const paymentAttemptJson = localStorage.getItem('payment_attempt');
-    if (!paymentAttemptJson) return false;
-    
-    const paymentAttempt = JSON.parse(paymentAttemptJson);
-    return paymentAttempt.orderRef === orderRef;
-  } catch (error) {
-    console.error("Erreur lors de la validation de la référence de paiement:", error);
-    return false;
-  }
+  return true; // Toujours valider car gratuit
 };
