@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './use-auth';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useAdmin() {
   const { user } = useAuth();
@@ -17,13 +18,14 @@ export function useAdmin() {
       }
 
       try {
-        // For development, we're simulating an admin check instead of using the actual function
-        // When the Supabase types are updated, replace with actual RPC call
-        setTimeout(() => {
-          // For demo purposes, all authenticated users are admins
-          setIsAdmin(true);
-          setLoading(false);
-        }, 500);
+        const { data, error } = await supabase.rpc('is_admin');
+        
+        if (error) {
+          throw error;
+        }
+        
+        setIsAdmin(Boolean(data));
+        setLoading(false);
       } catch (error) {
         console.error("Error checking admin status:", error);
         toast({

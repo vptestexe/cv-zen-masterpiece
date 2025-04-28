@@ -1,6 +1,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { AdProps } from './AdTypes';
+import { supabase } from '@/integrations/supabase/client';
+import { useAds } from './AdProvider';
 
 export const AdBanner = ({
   size = 'banner',
@@ -13,6 +15,8 @@ export const AdBanner = ({
   const adRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [adHtml, setAdHtml] = useState<string | null>(null);
+  const { adsEnabled } = useAds();
   
   // Dimensions par défaut selon le format
   const dimensions = {
@@ -23,18 +27,103 @@ export const AdBanner = ({
     'mobile': { width: '320px', height: '50px' }
   };
 
-  // Simuler le chargement d'une publicité
+  // Chercher les publicités actives pour cette position et taille
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // 90% chance de succès pour simuler un chargement réussi
-      const success = Math.random() > 0.1;
-      setIsLoaded(success);
-      setIsError(!success);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    if (!adsEnabled) {
+      setIsError(true);
+      return;
+    }
+
+    async function loadAd() {
+      try {
+        setIsLoaded(false);
+        
+        // Rechercher un emplacement publicitaire actif correspondant
+        const { data, error } = await supabase
+          .from('ad_placements')
+          .select('*')
+          .eq('position', position)
+          .eq('size', size)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          // Enregistrer une impression
+          try {
+            await supabase
+              .from('ad_stats')
+              .insert({
+                placement_id: data.id,
+                impressions: 1,
+                clicks: 0,
+                date: new Date().toISOString().split('T')[0]
+              });
+          } catch (statError) {
+            console.error('Erreur lors de l\'enregistrement de l\'impression:', statError);
+          }
+          
+          // Pour l'instant, simulons simplement l'affichage d'une publicité
+          setIsLoaded(true);
+          
+          // Ici, vous pouvez gérer les différents types de réseaux publicitaires
+          // et charger le code HTML approprié
+          if (data.network === 'adsense') {
+            // Code pour charger AdSense
+            // setAdHtml(...);
+          } else if (data.network === 'direct') {
+            // Code pour charger des publicités directes
+            // setAdHtml(...);
+          } else {
+            // Publicités locales (par défaut)
+            setAdHtml(null);
+          }
+        } else {
+          setIsError(true);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement de la publicité:', error);
+        setIsError(true);
+      }
+    }
+
+    loadAd();
+  }, [position, size, network, adsEnabled]);
   
+  const handleAdClick = async () => {
+    try {
+      // Rechercher un emplacement publicitaire actif correspondant
+      const { data, error } = await supabase
+        .from('ad_placements')
+        .select('id')
+        .eq('position', position)
+        .eq('size', size)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Enregistrer un clic
+        await supabase
+          .from('ad_stats')
+          .insert({
+            placement_id: data.id,
+            impressions: 0,
+            clicks: 1,
+            date: new Date().toISOString().split('T')[0]
+          });
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement du clic:', error);
+    }
+  };
+
   const positionClasses = {
     'top': 'mt-0 mb-6',
     'bottom': 'mt-6 mb-0',
@@ -43,7 +132,10 @@ export const AdBanner = ({
     'fixed': 'fixed bottom-4 right-4 z-50'
   };
 
-  // Pour l'instant, on simule l'affichage publicitaire
+  if (!adsEnabled) {
+    return null;
+  }
+
   return (
     <div 
       id={id || `ad-${position}-${size}`}
@@ -77,19 +169,28 @@ export const AdBanner = ({
       )}
       
       {isLoaded && (
-        <div 
-          className="ad-content flex items-center justify-center w-full h-full bg-gray-50 border border-gray-200"
-          style={{
-            backgroundImage: 'linear-gradient(45deg, #f3f4f6 25%, transparent 25%, transparent 75%, #f3f4f6 75%, #f3f4f6), linear-gradient(45deg, #f3f4f6 25%, transparent 25%, transparent 75%, #f3f4f6 75%, #f3f4f6)',
-            backgroundSize: '20px 20px',
-            backgroundPosition: '0 0, 10px 10px'
-          }}
-        >
-          <div className="text-center">
-            <span className="font-bold text-sm">Votre publicité ici</span>
-            <p className="text-xs text-gray-600">Contactez-nous pour plus d'informations</p>
+        adHtml ? (
+          <div 
+            className="ad-content w-full h-full"
+            dangerouslySetInnerHTML={{ __html: adHtml }}
+            onClick={handleAdClick}
+          />
+        ) : (
+          <div 
+            className="ad-content flex items-center justify-center w-full h-full bg-gray-50 border border-gray-200 cursor-pointer"
+            onClick={handleAdClick}
+            style={{
+              backgroundImage: 'linear-gradient(45deg, #f3f4f6 25%, transparent 25%, transparent 75%, #f3f4f6 75%, #f3f4f6), linear-gradient(45deg, #f3f4f6 25%, transparent 25%, transparent 75%, #f3f4f6 75%, #f3f4f6)',
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 10px 10px'
+            }}
+          >
+            <div className="text-center">
+              <span className="font-bold text-sm">Votre publicité ici</span>
+              <p className="text-xs text-gray-600">Contactez-nous pour plus d'informations</p>
+            </div>
           </div>
-        </div>
+        )
       )}
     </div>
   );

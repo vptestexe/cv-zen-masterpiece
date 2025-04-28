@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { AdPlacement } from "@/types/admin";
 import AdPlacementForm from "./AdPlacementForm";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -13,30 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-// Mock data for development
-const MOCK_PLACEMENTS: AdPlacement[] = [
-  {
-    id: "1",
-    position: "top",
-    size: "banner",
-    network: "adsense",
-    isActive: true,
-    startDate: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    position: "sidebar",
-    size: "rectangle",
-    network: "direct",
-    isActive: false,
-    startDate: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function AdPlacementList() {
   const [placements, setPlacements] = useState<AdPlacement[]>([]);
@@ -51,12 +30,29 @@ export default function AdPlacementList() {
 
   async function loadPlacements() {
     try {
-      // Using mock data instead of direct Supabase query
-      // When the Supabase types are updated, replace with actual query
-      setTimeout(() => {
-        setPlacements(MOCK_PLACEMENTS);
-        setLoading(false);
-      }, 500); // Simulate loading
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('ad_placements')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      const formattedPlacements = data.map(item => ({
+        id: item.id,
+        position: item.position,
+        size: item.size,
+        network: item.network,
+        isActive: item.is_active,
+        startDate: item.start_date,
+        endDate: item.end_date || undefined,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+      }));
+
+      setPlacements(formattedPlacements);
     } catch (error) {
       console.error("Error loading ad placements:", error);
       toast({
@@ -64,12 +60,48 @@ export default function AdPlacementList() {
         description: "Impossible de charger les emplacements publicitaires",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet emplacement publicitaire ?")) {
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('ad_placements')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Succès",
+        description: "L'emplacement publicitaire a été supprimé",
+      });
+      
+      loadPlacements();
+    } catch (error) {
+      console.error("Error deleting ad placement:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'emplacement publicitaire",
+        variant: "destructive",
+      });
+    }
+  }
+
   if (loading) {
-    return <div className="animate-pulse">Chargement...</div>;
+    return (
+      <div className="flex justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
@@ -85,44 +117,66 @@ export default function AdPlacementList() {
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Position</TableHead>
-            <TableHead>Taille</TableHead>
-            <TableHead>Réseau</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {placements.map((placement) => (
-            <TableRow key={placement.id}>
-              <TableCell>{placement.position}</TableCell>
-              <TableCell>{placement.size}</TableCell>
-              <TableCell>{placement.network}</TableCell>
-              <TableCell>
-                {placement.isActive ? 
-                  <span className="text-green-600">Actif</span> : 
-                  <span className="text-red-600">Inactif</span>
-                }
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedPlacement(placement);
-                    setShowForm(true);
-                  }}
-                >
-                  Modifier
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {placements.length === 0 ? (
+        <div className="text-center p-8 border rounded-lg">
+          <p className="text-muted-foreground">Aucun emplacement publicitaire n'a été créé.</p>
+          <p className="mt-2">Cliquez sur "Ajouter" pour créer votre premier emplacement.</p>
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Position</TableHead>
+                <TableHead>Taille</TableHead>
+                <TableHead>Réseau</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Date de début</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {placements.map((placement) => (
+                <TableRow key={placement.id}>
+                  <TableCell className="font-medium">{placement.position}</TableCell>
+                  <TableCell>{placement.size}</TableCell>
+                  <TableCell>{placement.network}</TableCell>
+                  <TableCell>
+                    {placement.isActive ? 
+                      <span className="text-green-600 font-medium">Actif</span> : 
+                      <span className="text-red-600 font-medium">Inactif</span>
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(placement.startDate), 'dd/MM/yyyy', { locale: fr })}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPlacement(placement);
+                          setShowForm(true);
+                        }}
+                      >
+                        Modifier
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(placement.id)}
+                      >
+                        Supprimer
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {showForm && (
         <AdPlacementForm

@@ -9,6 +9,107 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ad_placements: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          network: string
+          position: string
+          size: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          network: string
+          position: string
+          size: string
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          network?: string
+          position?: string
+          size?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ad_stats: {
+        Row: {
+          clicks: number
+          created_at: string
+          date: string
+          id: string
+          impressions: number
+          placement_id: string | null
+        }
+        Insert: {
+          clicks?: number
+          created_at?: string
+          date?: string
+          id?: string
+          impressions?: number
+          placement_id?: string | null
+        }
+        Update: {
+          clicks?: number
+          created_at?: string
+          date?: string
+          id?: string
+          impressions?: number
+          placement_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_stats_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "ad_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_activity_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          entity_id: string
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -94,6 +195,20 @@ export type Database = {
     Functions: {
       check_duplicate_payment: {
         Args: { p_reference: string; p_amount: number }
+        Returns: boolean
+      }
+      get_ad_stats: {
+        Args: { days?: number }
+        Returns: {
+          id: string
+          placement_id: string
+          impressions: number
+          clicks: number
+          date: string
+        }[]
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       verify_payment: {

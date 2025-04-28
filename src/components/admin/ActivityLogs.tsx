@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AdminActivity } from "@/types/admin";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -21,40 +22,12 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// Mock data for development
-const MOCK_ACTIVITY_LOGS: AdminActivity[] = [
-  {
-    id: "1",
-    adminId: "admin-1",
-    action: "create",
-    entityType: "ad_placement",
-    entityId: "placement-1",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    adminId: "admin-1",
-    action: "update",
-    entityType: "ad_placement",
-    entityId: "placement-2",
-    details: { old: { isActive: false }, new: { isActive: true } },
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: "3",
-    adminId: "admin-2",
-    action: "delete",
-    entityType: "ad_placement",
-    entityId: "placement-3",
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
-
 export default function ActivityLogs() {
   const [logs, setLogs] = useState<AdminActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const perPage = 10;
   const { toast } = useToast();
 
@@ -65,13 +38,41 @@ export default function ActivityLogs() {
   async function loadLogs() {
     setLoading(true);
     try {
-      // Using mock data instead of direct Supabase query
-      // When the Supabase types are updated, replace with actual query
-      setTimeout(() => {
-        setLogs(MOCK_ACTIVITY_LOGS);
-        setTotalPages(1); // Just one page of mock data
-        setLoading(false);
-      }, 500); // Simulate loading
+      // Obtenir le nombre total d'entrées
+      const countResult = await supabase
+        .from('admin_activity_logs')
+        .select('*', { count: 'exact', head: true });
+        
+      if (countResult.error) {
+        throw countResult.error;
+      }
+      
+      const count = countResult.count || 0;
+      setTotalCount(count);
+      setTotalPages(Math.ceil(count / perPage));
+      
+      // Récupérer les données paginées
+      const { data, error } = await supabase
+        .from('admin_activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range((page - 1) * perPage, page * perPage - 1);
+
+      if (error) {
+        throw error;
+      }
+
+      const formattedLogs = data.map(log => ({
+        id: log.id,
+        adminId: log.admin_id,
+        action: log.action,
+        entityType: log.entity_type,
+        entityId: log.entity_id,
+        details: log.details,
+        createdAt: log.created_at
+      }));
+
+      setLogs(formattedLogs);
     } catch (error) {
       console.error("Error loading activity logs:", error);
       toast({
@@ -79,6 +80,7 @@ export default function ActivityLogs() {
         description: "Impossible de charger le journal d'activité",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
     }
   }
@@ -106,7 +108,12 @@ export default function ActivityLogs() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-semibold">Journal d'activité administrateur</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-semibold">Journal d'activité administrateur</h2>
+        <p className="text-sm text-muted-foreground">
+          {totalCount} {totalCount > 1 ? "entrées" : "entrée"}
+        </p>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-8">
@@ -115,7 +122,7 @@ export default function ActivityLogs() {
       ) : (
         <>
           {logs.length > 0 ? (
-            <div className="border rounded-md">
+            <div className="border rounded-md overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -129,11 +136,11 @@ export default function ActivityLogs() {
                   {logs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="whitespace-nowrap">{formatDate(log.createdAt)}</TableCell>
-                      <TableCell>{log.adminId}</TableCell>
+                      <TableCell>{log.adminId.substring(0, 8)}</TableCell>
                       <TableCell>{formatAction(log.action, log.entityType)}</TableCell>
                       <TableCell>
                         {log.details && (
-                          <pre className="text-xs overflow-auto max-w-xs">
+                          <pre className="text-xs overflow-auto max-w-xs bg-muted p-2 rounded">
                             {JSON.stringify(log.details, null, 2)}
                           </pre>
                         )}

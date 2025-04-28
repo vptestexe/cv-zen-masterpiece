@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AdStats } from "@/types/admin";
+import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import {
   Card,
@@ -13,25 +14,10 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-// Generate mock data for development
-function generateMockStats(days: number): AdStats[] {
-  return Array(days).fill(0).map((_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    return {
-      id: `stat-${i}`,
-      placementId: `placement-${i % 3}`,
-      impressions: Math.floor(Math.random() * 1000) + 500,
-      clicks: Math.floor(Math.random() * 50) + 10,
-      date: date.toISOString().split('T')[0]
-    };
-  });
-}
-
 export default function AdStatsView() {
   const [stats, setStats] = useState<AdStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<string>("7days");
+  const [timeRange, setTimeRange] = useState<string>("7");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,12 +27,24 @@ export default function AdStatsView() {
   async function loadStats() {
     setLoading(true);
     try {
-      // Using mock data instead of Supabase RPC
-      setTimeout(() => {
-        const days = timeRangeToNumber(timeRange);
-        setStats(generateMockStats(days));
-        setLoading(false);
-      }, 500); // Simulate loading
+      const { data, error } = await supabase.rpc('get_ad_stats', { 
+        days: parseInt(timeRange, 10) 
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const formattedStats = data.map(stat => ({
+        id: stat.id,
+        placementId: stat.placement_id,
+        impressions: stat.impressions,
+        clicks: stat.clicks,
+        date: stat.date
+      }));
+
+      setStats(formattedStats);
+      setLoading(false);
     } catch (error) {
       console.error("Error loading ad stats:", error);
       toast({
@@ -55,15 +53,6 @@ export default function AdStatsView() {
         variant: "destructive",
       });
       setLoading(false);
-    }
-  }
-
-  function timeRangeToNumber(range: string): number {
-    switch (range) {
-      case "7days": return 7;
-      case "30days": return 30;
-      case "90days": return 90;
-      default: return 7;
     }
   }
 
@@ -89,9 +78,9 @@ export default function AdStatsView() {
               <SelectValue placeholder="Sélectionner la période" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7days">7 derniers jours</SelectItem>
-              <SelectItem value="30days">30 derniers jours</SelectItem>
-              <SelectItem value="90days">90 derniers jours</SelectItem>
+              <SelectItem value="7">7 derniers jours</SelectItem>
+              <SelectItem value="30">30 derniers jours</SelectItem>
+              <SelectItem value="90">90 derniers jours</SelectItem>
             </SelectContent>
           </Select>
         </div>
