@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { AdPlacement } from "@/types/admin";
+import { AdPlacement, AdPosition, AdSize, AdNetwork } from "@/types/admin";
 import AdPlacementForm from "./AdPlacementForm";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -42,9 +42,9 @@ export default function AdPlacementList() {
 
       const formattedPlacements = data.map(item => ({
         id: item.id,
-        position: item.position,
-        size: item.size,
-        network: item.network,
+        position: item.position as AdPosition,
+        size: item.size as AdSize,
+        network: item.network as AdNetwork,
         isActive: item.is_active,
         startDate: item.start_date,
         endDate: item.end_date || undefined,

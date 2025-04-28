@@ -21,7 +21,7 @@ export interface AdminActivity {
   action: string;
   entityType: string;
   entityId: string;
-  details?: Record<string, any>;
+  details?: Record<string, any> | null;
   createdAt: string;
 }
 

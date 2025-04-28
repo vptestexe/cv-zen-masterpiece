@@ -68,7 +68,7 @@ export default function ActivityLogs() {
         action: log.action,
         entityType: log.entity_type,
         entityId: log.entity_id,
-        details: log.details,
+        details: log.details ? (log.details as Record<string, any>) : null,
         createdAt: log.created_at
       }));
 
