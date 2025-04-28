@@ -1,29 +1,44 @@
 
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { useAdmin } from "@/hooks/use-admin";
 
 interface DashboardHeaderProps {
-  userName: string;
-  onLogout: () => void;
+  userName?: string;
+  onLogout?: () => void;
 }
 
-const DashboardHeader = ({ userName, onLogout }: DashboardHeaderProps) => (
-  <header className="bg-white border-b sticky top-0 z-20">
-    <div className="container mx-auto py-4 px-4 sm:px-6 flex justify-between items-center">
-      <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">
-        <span className="font-playfair">CV Zen Masterpiece</span>
-      </h1>
-      <div className="flex items-center gap-2">
-        <span className="hidden sm:inline text-sm text-muted-foreground mr-2">
-          Bonjour, {userName}
-        </span>
-        <Button variant="outline" size="sm" onClick={onLogout} className="gap-2">
-          <LogOut className="h-4 w-4" />
-          <span className="hidden sm:inline">Déconnexion</span>
-        </Button>
+const DashboardHeader = ({ userName = "", onLogout }: DashboardHeaderProps) => {
+  const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
+
+  return (
+    <header className="bg-background border-b">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-semibold">
+              Bonjour, {userName}
+            </h1>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => navigate("/admin/ads")}
+              >
+                Administration
+              </Button>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            onClick={onLogout}
+          >
+            Déconnexion
+          </Button>
+        </div>
       </div>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
 export default DashboardHeader;
