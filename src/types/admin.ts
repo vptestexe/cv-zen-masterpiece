@@ -14,6 +14,7 @@ export interface AdPlacement {
   createdAt: string;
   updatedAt: string;
   adCode?: string; // Added property for ad code
+  imageUrl?: string; // Added property for local image URL
 }
 
 export interface AdminActivity {

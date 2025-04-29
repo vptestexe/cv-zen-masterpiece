@@ -16,6 +16,7 @@ export const AdBanner = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
   const [adHtml, setAdHtml] = useState<string | null>(null);
+  const [adImageUrl, setAdImageUrl] = useState<string | null>(null);
   const { adsEnabled } = useAds();
   
   // Dimensions par défaut selon le format
@@ -75,13 +76,20 @@ export const AdBanner = ({
           // Gérer les différents types de réseaux publicitaires
           if (data.network === 'adsense') {
             setAdHtml(data.ad_code || null);
+            setAdImageUrl(null);
           } else if (data.network === 'direct') {
             // Pour les annonces directes, utiliser le code HTML fourni
             setAdHtml(data.ad_code || null);
+            setAdImageUrl(null);
             console.log('Direct ad code:', data.ad_code);
-          } else {
-            // Publicités locales (par défaut)
+          } else if (data.network === 'local') {
+            // Pour les publicités locales, vérifier si nous avons une image
             setAdHtml(null);
+            setAdImageUrl(data.image_url || null);
+          } else {
+            // Valeur par défaut
+            setAdHtml(null);
+            setAdImageUrl(null);
           }
         } else {
           console.log('No active ad placement found');
@@ -178,6 +186,17 @@ export const AdBanner = ({
             dangerouslySetInnerHTML={{ __html: adHtml }}
             onClick={handleAdClick}
           />
+        ) : adImageUrl ? (
+          <div 
+            className="ad-content flex items-center justify-center w-full h-full cursor-pointer"
+            onClick={handleAdClick}
+          >
+            <img 
+              src={adImageUrl} 
+              alt="Publicité" 
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
         ) : (
           <div 
             className="ad-content flex items-center justify-center w-full h-full bg-gray-50 border border-gray-200 cursor-pointer"
