@@ -17,6 +17,21 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+// Define the Supabase database response interface
+interface AdPlacementRow {
+  id: string;
+  position: string;
+  size: string;
+  network: string;
+  is_active: boolean;
+  start_date: string;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+  ad_code: string | null;
+  image_url: string | null;
+}
+
 export default function AdPlacementList() {
   const [placements, setPlacements] = useState<AdPlacement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +55,7 @@ export default function AdPlacementList() {
         throw error;
       }
 
-      const formattedPlacements = data.map(item => ({
+      const formattedPlacements = (data as AdPlacementRow[]).map(item => ({
         id: item.id,
         position: item.position as AdPosition,
         size: item.size as AdSize,

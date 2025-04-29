@@ -4,6 +4,21 @@ import { AdProps } from './AdTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAds } from './AdProvider';
 
+// Define the Supabase database response interface
+interface AdPlacementRow {
+  id: string;
+  position: string;
+  size: string;
+  network: string;
+  is_active: boolean;
+  start_date: string;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+  ad_code: string | null;
+  image_url: string | null;
+}
+
 export const AdBanner = ({
   size = 'banner',
   position = 'top',
@@ -55,14 +70,15 @@ export const AdBanner = ({
         }
 
         if (data) {
-          console.log('Ad placement found:', data);
+          const adData = data as AdPlacementRow;
+          console.log('Ad placement found:', adData);
           
           // Enregistrer une impression
           try {
             await supabase
               .from('ad_stats')
               .insert({
-                placement_id: data.id,
+                placement_id: adData.id,
                 impressions: 1,
                 clicks: 0,
                 date: new Date().toISOString().split('T')[0]
@@ -74,18 +90,18 @@ export const AdBanner = ({
           setIsLoaded(true);
           
           // Gérer les différents types de réseaux publicitaires
-          if (data.network === 'adsense') {
-            setAdHtml(data.ad_code || null);
+          if (adData.network === 'adsense') {
+            setAdHtml(adData.ad_code || null);
             setAdImageUrl(null);
-          } else if (data.network === 'direct') {
+          } else if (adData.network === 'direct') {
             // Pour les annonces directes, utiliser le code HTML fourni
-            setAdHtml(data.ad_code || null);
+            setAdHtml(adData.ad_code || null);
             setAdImageUrl(null);
-            console.log('Direct ad code:', data.ad_code);
-          } else if (data.network === 'local') {
+            console.log('Direct ad code:', adData.ad_code);
+          } else if (adData.network === 'local') {
             // Pour les publicités locales, vérifier si nous avons une image
             setAdHtml(null);
-            setAdImageUrl(data.image_url || null);
+            setAdImageUrl(adData.image_url || null);
           } else {
             // Valeur par défaut
             setAdHtml(null);

@@ -92,7 +92,7 @@ export const usePaiementProScript = (
     
     // Attributs supplémentaires
     Object.entries(PAIEMENT_PRO_CONFIG.SCRIPT_ATTRIBUTES).forEach(([key, value]) => {
-      script.setAttribute(key, value);
+      script.setAttribute(key, value.toString()); // Explicitly convert to string
     });
 
     // Gestion du timeout
@@ -153,7 +153,7 @@ export const usePaiementProScript = (
         
         // Attributs supplémentaires
         Object.entries(PAIEMENT_PRO_CONFIG.SCRIPT_ATTRIBUTES).forEach(([key, value]) => {
-          fallbackScript.setAttribute(key, value);
+          fallbackScript.setAttribute(key, value.toString()); // Explicitly convert to string
         });
         
         const fallbackTimeoutId = setTimeout(() => {
