@@ -51,6 +51,7 @@ export default function AdPlacementList() {
         createdAt: item.created_at,
         updatedAt: item.updated_at,
         adCode: item.ad_code || undefined,
+        imageUrl: item.image_url || undefined
       }));
 
       setPlacements(formattedPlacements);
