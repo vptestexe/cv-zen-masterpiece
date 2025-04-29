@@ -1,15 +1,13 @@
+
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useInsertPayment } from "@/hooks/use-payments";
 import { 
   updateDownloadCount, 
   getDownloadCount,
-  hasDownloadsRemaining,
   canCreateNewCV,
   MAX_FREE_CVS,
   saveCVs,
   secureStorage,
-  PAYMENT_AMOUNT,
   resetCVPaymentStatus
 } from "@/utils/downloadManager";
 import { downloadCvAsPdf, downloadCvAsWord } from "@/utils/download";
@@ -18,7 +16,6 @@ import { generateUniqueId } from "@/utils/generateUniqueId";
 export function useDashboardActions(state: any) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { mutate: insertPayment } = useInsertPayment();
 
   const handleEdit = (cvId: string) => {
     const cv = state.userCVs.find((cv: any) => cv.id === cvId);
@@ -36,9 +33,7 @@ export function useDashboardActions(state: any) {
   };
 
   const handleDownload = async (cvId: string, format = "pdf") => {
-    // Since downloads are free, we don't need to check for remaining downloads
-    // But we'll keep the structure similar for backward compatibility
-    
+    // All downloads are free now
     try {
       const cv = state.userCVs.find((cv: any) => cv.id === cvId);
       if (!cv) {
@@ -54,7 +49,7 @@ export function useDashboardActions(state: any) {
       if (format === "pdf") await downloadCvAsPdf(cv, downloadId);
       else downloadCvAsWord(cv, downloadId);
 
-      // We still update the download count for statistics, but it's free
+      // Update download count for statistics only
       const updatedCount = updateDownloadCount(cvId);
       state.setDownloadCounts(prev => ({
         ...prev,
@@ -78,7 +73,7 @@ export function useDashboardActions(state: any) {
     if (!canCreateNewCV()) {
       toast({
         title: "Limite atteinte",
-        description: `Vous avez atteint votre limite de ${MAX_FREE_CVS} CV gratuits. Veuillez supprimer un CV existant ou acheter des téléchargements supplémentaires.`,
+        description: `Vous avez atteint votre limite de ${MAX_FREE_CVS} CV gratuits. Veuillez supprimer un CV existant.`,
         variant: "destructive"
       });
       return;

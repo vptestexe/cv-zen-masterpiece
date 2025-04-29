@@ -16,8 +16,6 @@ import {
   canCreateNewCV,
   MAX_FREE_CVS 
 } from "@/utils/downloadManager";
-import { useInsertPayment } from "@/hooks/use-payments";
-import { PAYMENT_AMOUNT } from "@/utils/downloadManager";
 
 export function useDashboardState() {
   const navigate = useNavigate();
@@ -37,6 +35,8 @@ export function useDashboardState() {
   const [duplicatesFound, setDuplicatesFound] = useState(0);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Load CVs and other initialization could go here if needed
 
   return {
     userCVs,

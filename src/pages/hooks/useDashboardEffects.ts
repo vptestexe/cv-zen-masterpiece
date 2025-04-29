@@ -1,7 +1,6 @@
 
 import { useEffect } from "react";
 import { useSessionTimeout } from "@/hooks/use-session-timeout";
-import { usePaymentVerification } from "@/hooks/use-payment-verification";
 import { useCVDataSync } from "@/hooks/use-cv-data-sync";
 
 export function useDashboardEffects(state: any) {
@@ -24,7 +23,7 @@ export function useDashboardEffects(state: any) {
     }
   }, [state.isAuthenticated]);
 
-  // Use our new custom hooks
+  // Use our session timeout hook
   useSessionTimeout(
     state.isAuthenticated,
     state.isLoading,
@@ -34,6 +33,6 @@ export function useDashboardEffects(state: any) {
     }
   );
 
-  usePaymentVerification(state, state.user?.id);
+  // We removed the usePaymentVerification call since we're removing payment features
   useCVDataSync(state);
 }
