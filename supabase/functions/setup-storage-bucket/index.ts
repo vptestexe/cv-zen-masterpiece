@@ -41,18 +41,6 @@ serve(async (req) => {
       if (createError) {
         throw createError;
       }
-      
-      // Set up RLS policy to allow public read access
-      const { error: policyError } = await supabaseAdmin.rpc('create_storage_policy', {
-        bucket_name: 'ads',
-        policy_name: 'Public Read Access',
-        definition: 'true',
-        operation: 'SELECT'
-      });
-      
-      if (policyError) {
-        console.error("Error setting up policy:", policyError);
-      }
     }
     
     return new Response(

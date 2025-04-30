@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from "@/integrations/supabase/client";
+import { ensureAdsBucketExists } from '@/services/adPlacement/storageHelpers';
 
 interface AdContextType {
   adsEnabled: boolean;
@@ -47,35 +48,8 @@ export const AdProvider = ({ children }: AdProviderProps) => {
     // Initialisation du système de publicités
     const initAds = async () => {
       try {
-        // Vérifier si le bucket de stockage "ads" existe
-        const { data: buckets, error } = await supabase.storage.listBuckets();
-        
-        if (error) {
-          console.error("Error checking storage buckets:", error);
-          setAdsLoaded(true);
-          return;
-        }
-        
-        const adsBucket = buckets.find(bucket => bucket.name === 'ads');
-        
-        if (!adsBucket) {
-          // Appeler notre fonction edge pour créer le bucket
-          const response = await fetch('/functions/v1/setup-storage-bucket', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              // Use a simple string instead of environment variable
-              'Authorization': `Bearer anon-key`
-            }
-          });
-          
-          if (!response.ok) {
-            console.warn("Failed to set up ads bucket, but continuing anyway");
-          } else {
-            console.log("Ads bucket created successfully");
-          }
-        }
-        
+        // Make sure the storage bucket exists
+        await ensureAdsBucketExists();
         setAdsLoaded(true);
       } catch (error) {
         console.error("Error initializing ads system:", error);

@@ -203,6 +203,15 @@ export type Database = {
         Args: { p_reference: string; p_amount: number }
         Returns: boolean
       }
+      create_storage_policy: {
+        Args: {
+          bucket_name: string
+          policy_name: string
+          definition: string
+          operation: string
+        }
+        Returns: undefined
+      }
       get_ad_stats: {
         Args: Record<PropertyKey, never> | { days?: number }
         Returns: {

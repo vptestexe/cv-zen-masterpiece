@@ -16,19 +16,19 @@ export async function ensureAdsBucketExists() {
     const adsBucket = buckets.find(bucket => bucket.name === 'ads');
     
     if (!adsBucket) {
-      // Call our function edge for creating the bucket
-      const response = await fetch('/functions/v1/setup-storage-bucket', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer anon-key`
-        }
+      // Create the ads bucket using Supabase storage API
+      const { data, error: createError } = await supabase.storage.createBucket('ads', {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB limit for ad images
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to create ads bucket: ${errorData.error || response.statusText}`);
+      if (createError) {
+        console.error("Error creating ads bucket:", createError);
+        throw createError;
       }
+      
+      console.log("Ads bucket created successfully");
     }
   } catch (error) {
     console.error("Error ensuring ads bucket exists:", error);
