@@ -8,24 +8,35 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Gérer les requêtes CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create a Supabase client
+    // Créer un client Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase credentials");
+    }
     
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false }
     });
 
-    // Get bucket name from request body or use 'ads' as default
-    const { bucketName = 'ads' } = await req.json().catch(() => ({}));
+    // Obtenir le nom du bucket à partir du corps de la requête ou utiliser 'ads' par défaut
+    let bucketName = 'ads';
+    try {
+      const body = await req.json().catch(() => ({}));
+      bucketName = body.bucketName || 'ads';
+    } catch (error) {
+      console.error("Error parsing request body:", error.message);
+      // Continuer avec le nom de bucket par défaut
+    }
     
-    // Try to list files in the bucket to check if it's available
+    // Essayer de lister les fichiers dans le bucket pour vérifier s'il est disponible
     const { data, error } = await supabase
       .storage
       .from(bucketName)
@@ -36,7 +47,7 @@ serve(async (req) => {
       throw error;
     }
     
-    // Return success response with bucket content list
+    // Retourner une réponse de succès avec la liste du contenu du bucket
     return new Response(
       JSON.stringify({ 
         success: true, 

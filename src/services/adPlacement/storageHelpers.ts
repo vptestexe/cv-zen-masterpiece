@@ -7,17 +7,28 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function ensureAdsBucketExists() {
   try {
-    // Call the edge function to check if the bucket exists
-    const { data: response, error } = await supabase.functions.invoke(
+    // Définir un timeout pour ne pas bloquer l'application
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Bucket check timed out")), 5000)
+    );
+    
+    // Appeler la fonction edge pour vérifier si le bucket existe
+    const fetchPromise = supabase.functions.invoke(
       'check-storage-bucket',
       {
         body: { bucketName: 'ads' }
       }
     );
     
+    // Utiliser Promise.race pour éviter de bloquer l'application
+    const { data: response, error } = await Promise.race([
+      fetchPromise,
+      timeoutPromise as Promise<any>
+    ]);
+    
     if (error) {
       console.error("Error calling check-storage-bucket function:", error);
-      // If there's an error, we'll continue with the app instead of blocking
+      // Si une erreur se produit, nous continuons avec l'application au lieu de la bloquer
       return;
     }
     
@@ -28,6 +39,6 @@ export async function ensureAdsBucketExists() {
     }
   } catch (error) {
     console.error("Error ensuring ads bucket exists:", error);
-    // We don't throw the error to avoid blocking the app entirely
+    // Nous ne propageons pas l'erreur pour éviter de bloquer l'application entièrement
   }
 }
