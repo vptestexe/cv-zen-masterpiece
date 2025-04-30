@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AdPlacement, AdPosition, AdSize, AdNetwork } from "@/types/admin";
 import { useToast } from "@/components/ui/use-toast";
-import { saveAdPlacement } from "@/services/adPlacementService";
+import { saveAdPlacement } from "@/services/adPlacement";
 
 // Import our new components
 import { AdPositionSelector } from "./AdPositionSelector";

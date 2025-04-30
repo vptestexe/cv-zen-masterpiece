@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import AdPlacementForm from "./adPlacement/AdPlacementForm";
 import { LoadingSpinner } from "./adPlacement/LoadingSpinner";
 import { EmptyState } from "./adPlacement/EmptyState";
 import { AdPlacementTable } from "./adPlacement/AdPlacementTable";
-import { fetchAdPlacements, deleteAdPlacement } from "@/services/adPlacementService";
+import { fetchAdPlacements, deleteAdPlacement } from "@/services/adPlacement";
 
 export default function AdPlacementList() {
   const [placements, setPlacements] = useState<AdPlacement[]>([]);
