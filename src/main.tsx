@@ -14,8 +14,10 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       // Ajout d'une gestion d'erreur par défaut pour éviter les plantages
       retry: 1,
-      onError: (error) => {
-        console.error('React Query error:', error);
+      meta: {
+        onError: (error: Error) => {
+          console.error('React Query error:', error);
+        }
       }
     },
   },
