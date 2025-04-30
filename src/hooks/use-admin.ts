@@ -24,12 +24,12 @@ export function useAdmin() {
         if (error) {
           console.error("Error checking admin status:", error);
           
-          // Fallback for development - assume auth users are admins
-          // This is a development fallback only and should be removed in production
+          // Check if we're in development environment
           if (import.meta.env.DEV) {
             console.log("Development environment detected, assuming admin role");
             setIsAdmin(true);
           } else {
+            // In production, show error toast and don't grant admin access
             toast({
               title: "Erreur",
               description: "Impossible de vérifier les permissions d'administrateur",
@@ -38,6 +38,7 @@ export function useAdmin() {
             setIsAdmin(false);
           }
         } else {
+          // Set admin status based on the function's return value
           setIsAdmin(Boolean(data));
         }
         
