@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdContextType {
   adsEnabled: boolean;
@@ -25,6 +27,8 @@ export const AdProvider = ({ children }: AdProviderProps) => {
   const [adsEnabled, setAdsEnabled] = useState(true);
   const [adsLoaded, setAdsLoaded] = useState(false);
   const [adBlockerDetected, setAdBlockerDetected] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const { toast } = useToast();
 
   // Fonction pour activer/désactiver les publicités
   const toggleAds = () => {
@@ -40,15 +44,50 @@ export const AdProvider = ({ children }: AdProviderProps) => {
       setAdsEnabled(savedPreference === 'true');
     }
     
-    // Simuler le chargement des scripts publicitaires
-    const timer = setTimeout(() => {
-      setAdsLoaded(true);
-      // Simple détection de bloqueur (sera amélioré plus tard)
-      setAdBlockerDetected(false);
-    }, 1500);
+    // Initialisation du système de publicités
+    const initAds = async () => {
+      try {
+        // Vérifier si le bucket de stockage "ads" existe
+        const { data: buckets, error } = await supabase.storage.listBuckets();
+        
+        if (error) {
+          console.error("Error checking storage buckets:", error);
+          setAdsLoaded(true);
+          return;
+        }
+        
+        const adsBucket = buckets.find(bucket => bucket.name === 'ads');
+        
+        if (!adsBucket) {
+          // Appeler notre fonction edge pour créer le bucket
+          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/setup-storage-bucket`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabase.supabaseKey}`
+            }
+          });
+          
+          if (!response.ok) {
+            console.warn("Failed to set up ads bucket, but continuing anyway");
+          } else {
+            console.log("Ads bucket created successfully");
+          }
+        }
+        
+        setAdsLoaded(true);
+      } catch (error) {
+        console.error("Error initializing ads system:", error);
+        setAdsLoaded(true);
+      }
+    };
     
-    return () => clearTimeout(timer);
-  }, []);
+    // Exécuter l'initialisation seulement une fois
+    if (!initialized) {
+      initAds();
+      setInitialized(true);
+    }
+  }, [initialized]);
 
   return (
     <AdContext.Provider value={{ 

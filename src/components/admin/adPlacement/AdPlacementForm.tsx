@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AdPlacement, AdPosition, AdSize, AdNetwork } from "@/types/admin";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { saveAdPlacement } from "@/services/adPlacementService";
 
 // Import our new components
 import { AdPositionSelector } from "./AdPositionSelector";
@@ -34,6 +34,7 @@ export default function AdPlacementForm({
   const [localImage, setLocalImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(placement?.imageUrl || null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   
   const { toast } = useToast();
 
@@ -49,79 +50,40 @@ export default function AdPlacementForm({
   const handleSave = async () => {
     try {
       setLoading(true);
-      
-      let finalImageUrl = imageUrl;
-      
-      // If we have a new local image, upload it first
-      if (localImage && network === "local") {
-        // Generate a unique file path
-        const filePath = `ads/${Date.now()}_${localImage.name.replace(/\s+/g, '_')}`;
-        
-        // Upload the image to storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('ads')
-          .upload(filePath, localImage, {
-            cacheControl: '3600',
-            upsert: false
-          });
-        
-        if (uploadError) {
-          throw uploadError;
-        }
-        
-        // Get the public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('ads')
-          .getPublicUrl(filePath);
-        
-        finalImageUrl = publicUrl;
-      }
+      setError(null);
       
       const adData = {
+        id: placement?.id,
         position,
         size,
         network,
-        is_active: isActive,
-        start_date: startDate.toISOString(),
-        end_date: endDate?.toISOString() || null,
-        ad_code: network === "local" ? null : adCode,
-        image_url: network === "local" ? finalImageUrl : null,
-        updated_at: new Date().toISOString()
+        isActive,
+        startDate: startDate.toISOString(),
+        endDate: endDate?.toISOString(),
+        adCode: network === "local" ? null : adCode,
+        imageUrl: network === "local" ? imageUrl : null,
       };
       
-      if (placement?.id) {
-        // Update existing ad placement
-        const { error } = await supabase
-          .from('ad_placements')
-          .update(adData)
-          .eq('id', placement.id);
-          
-        if (error) throw error;
-        
+      const result = await saveAdPlacement(adData, localImage);
+      
+      if (result.success) {
         toast({
           title: "Succès",
-          description: "L'emplacement publicitaire a été mis à jour",
+          description: result.message,
         });
+        onSave();
       } else {
-        // Create new ad placement
-        const { error } = await supabase
-          .from('ad_placements')
-          .insert({
-            ...adData,
-            created_at: new Date().toISOString()
-          });
-          
-        if (error) throw error;
-        
+        setError(result.message);
         toast({
-          title: "Succès",
-          description: "L'emplacement publicitaire a été créé",
+          title: "Erreur",
+          description: result.message,
+          variant: "destructive",
         });
       }
-      
-      onSave();
-    } catch (error) {
-      console.error("Error saving ad placement:", error);
+    } catch (err) {
+      console.error("Error saving ad placement:", err);
+      const errorMessage = err instanceof Error ? err.message : "Une erreur inconnue s'est produite";
+      setError(errorMessage);
       toast({
         title: "Erreur",
         description: "Impossible de sauvegarder l'emplacement publicitaire",
@@ -187,6 +149,12 @@ export default function AdPlacementForm({
               }}
               size={size}
             />
+          )}
+          
+          {error && (
+            <div className="text-red-500 text-sm p-2 bg-red-50 rounded-md">
+              {error}
+            </div>
           )}
         </div>
         

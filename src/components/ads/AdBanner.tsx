@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AdProps } from './AdTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAds } from './AdProvider';
+import { useToast } from '@/components/ui/use-toast';
 
 // Define the Supabase database response interface
 interface AdPlacementRow {
@@ -32,7 +33,9 @@ export const AdBanner = ({
   const [isError, setIsError] = useState(false);
   const [adHtml, setAdHtml] = useState<string | null>(null);
   const [adImageUrl, setAdImageUrl] = useState<string | null>(null);
+  const [placementId, setPlacementId] = useState<string | null>(null);
   const { adsEnabled } = useAds();
+  const { toast } = useToast();
   
   // Dimensions par défaut selon le format
   const dimensions = {
@@ -56,12 +59,15 @@ export const AdBanner = ({
         console.log(`Searching ad for position: ${position}, size: ${size}`);
         
         // Rechercher un emplacement publicitaire actif correspondant
+        const now = new Date().toISOString();
         const { data, error } = await supabase
           .from('ad_placements')
           .select('*')
           .eq('position', position)
           .eq('size', size)
           .eq('is_active', true)
+          .lte('start_date', now)
+          .or(`end_date.is.null,end_date.gt.${now}`)
           .maybeSingle();
 
         if (error) {
@@ -73,16 +79,41 @@ export const AdBanner = ({
           const adData = data as AdPlacementRow;
           console.log('Ad placement found:', adData);
           
+          setPlacementId(adData.id);
+          
           // Enregistrer une impression
           try {
-            await supabase
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Vérifier si une entrée existe déjà pour aujourd'hui
+            const { data: existingStat, error: checkError } = await supabase
               .from('ad_stats')
-              .insert({
-                placement_id: adData.id,
-                impressions: 1,
-                clicks: 0,
-                date: new Date().toISOString().split('T')[0]
-              });
+              .select('id, impressions')
+              .eq('placement_id', adData.id)
+              .eq('date', today)
+              .maybeSingle();
+              
+            if (checkError) throw checkError;
+            
+            if (existingStat) {
+              // Mettre à jour l'entrée existante
+              await supabase
+                .from('ad_stats')
+                .update({ 
+                  impressions: existingStat.impressions + 1 
+                })
+                .eq('id', existingStat.id);
+            } else {
+              // Créer une nouvelle entrée
+              await supabase
+                .from('ad_stats')
+                .insert({
+                  placement_id: adData.id,
+                  impressions: 1,
+                  clicks: 0,
+                  date: today
+                });
+            }
           } catch (statError) {
             console.error('Erreur lors de l\'enregistrement de l\'impression:', statError);
           }
@@ -121,29 +152,38 @@ export const AdBanner = ({
   }, [position, size, network, adsEnabled]);
   
   const handleAdClick = async () => {
+    if (!placementId) return;
+    
     try {
-      // Rechercher un emplacement publicitaire actif correspondant
-      const { data, error } = await supabase
-        .from('ad_placements')
-        .select('id')
-        .eq('position', position)
-        .eq('size', size)
-        .eq('is_active', true)
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Vérifier si une entrée existe déjà pour aujourd'hui
+      const { data: existingStat, error: checkError } = await supabase
+        .from('ad_stats')
+        .select('id, clicks')
+        .eq('placement_id', placementId)
+        .eq('date', today)
         .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        // Enregistrer un clic
+        
+      if (checkError) throw checkError;
+      
+      if (existingStat) {
+        // Mettre à jour l'entrée existante
+        await supabase
+          .from('ad_stats')
+          .update({ 
+            clicks: existingStat.clicks + 1 
+          })
+          .eq('id', existingStat.id);
+      } else {
+        // Créer une nouvelle entrée
         await supabase
           .from('ad_stats')
           .insert({
-            placement_id: data.id,
+            placement_id: placementId,
             impressions: 0,
             clicks: 1,
-            date: new Date().toISOString().split('T')[0]
+            date: today
           });
       }
     } catch (error) {
@@ -232,6 +272,6 @@ export const AdBanner = ({
       )}
     </div>
   );
-};
+}
 
 export default AdBanner;
