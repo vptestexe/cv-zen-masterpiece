@@ -11,9 +11,11 @@ export type Database = {
     Tables: {
       ad_placements: {
         Row: {
+          ad_code: string | null
           created_at: string
           end_date: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           network: string
           position: string
@@ -22,9 +24,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ad_code?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           network: string
           position: string
@@ -33,9 +37,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ad_code?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           network?: string
           position?: string

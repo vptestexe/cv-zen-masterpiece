@@ -42,6 +42,7 @@ export async function deleteAdPlacement(id: string) {
       .single();
       
     if (fetchError) {
+      console.error("Error fetching ad placement:", fetchError.message);
       throw fetchError;
     }
     
