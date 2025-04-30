@@ -1,2 +1,7 @@
 
-/* /index.html 200
+# Redirections Netlify pour Single Page Application (SPA)
+# Redirige toutes les requêtes vers index.html pour permettre le routage côté client
+/*    /index.html   200
+
+# Redirections spécifiques (à ajouter si nécessaire)
+# /ancienne-page    /nouvelle-page    301

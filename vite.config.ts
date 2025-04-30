@@ -20,4 +20,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Configuration de build pour netlify
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    // Ajout de polyfills pour la compatibilité navigateur
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
 }));

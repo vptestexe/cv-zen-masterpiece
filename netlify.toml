@@ -1,0 +1,30 @@
+
+# Configuration Netlify
+[build]
+  # Commande pour construire le site
+  command = "npm run build"
+  # Répertoire de publication (où Netlify cherchera les fichiers à déployer)
+  publish = "dist"
+
+# Paramètres d'environnement de production
+[context.production.environment]
+  NODE_VERSION = "18"
+  # Variables d'environnement pour le build de production
+  VITE_ENV = "production"
+
+# Headers pour la sécurité et performances
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.gpteng.co https://js.paiementpro.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://paiementpro.net; frame-src 'self' https://paiementpro.net;"
+
+# Redirection pour SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = true
