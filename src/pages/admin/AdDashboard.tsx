@@ -1,44 +1,16 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/use-auth";
+import { useAdmin } from "@/hooks/use-admin";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/components/ui/use-toast";
 import AdPlacementList from "@/components/admin/AdPlacementList";
 import AdStatsView from "@/components/admin/AdStatsView";
 import ActivityLogs from "@/components/admin/ActivityLogs";
-import { AdPlacement } from "@/types/admin";
 
 export default function AdDashboard() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function checkAdminStatus() {
-      if (!user?.id) {
-        navigate("/login");
-        return;
-      }
-
-      try {
-        // For development, we're simulating an admin check instead of using the actual function
-        // When the Supabase types are updated, replace with actual RPC call
-        setTimeout(() => {
-          // For demo purposes, all authenticated users are admins
-          setIsAdmin(true);
-          setLoading(false);
-        }, 500);
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        navigate("/");
-      } 
-    }
-
-    checkAdminStatus();
-  }, [user, navigate]);
+  const { isAdmin, loading } = useAdmin();
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -46,7 +18,11 @@ export default function AdDashboard() {
     </div>;
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin) {
+    // Redirect non-admin users to the dashboard
+    navigate("/dashboard");
+    return null;
+  }
 
   return (
     <div className="container mx-auto p-6">

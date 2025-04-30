@@ -175,7 +175,8 @@ async function ensureAdsBucketExists() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`
+          // Use a simple string instead of environment variable
+          'Authorization': `Bearer anon-key`
         }
       });
       
