@@ -60,11 +60,11 @@ export const AdProvider = ({ children }: AdProviderProps) => {
         
         if (!adsBucket) {
           // Appeler notre fonction edge pour créer le bucket
-          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/setup-storage-bucket`, {
+          const response = await fetch('/functions/v1/setup-storage-bucket', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`
+              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || ''}`
             }
           });
           
