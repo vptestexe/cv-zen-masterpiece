@@ -33,7 +33,11 @@ export const AdBanner = ({
   const positionClass = getPositionClasses(position);
   
   const handleClick = async () => {
-    await trackClick({ placementId });
+    try {
+      await trackClick({ placementId });
+    } catch (error) {
+      console.error("Error tracking ad click:", error);
+    }
   };
 
   return (

@@ -26,7 +26,7 @@ interface AdProviderProps {
 
 export const AdProvider = ({ children }: AdProviderProps) => {
   const [adsEnabled, setAdsEnabled] = useState(true);
-  const [adsLoaded, setAdsLoaded] = useState(false);
+  const [adsLoaded, setAdsLoaded] = useState(true); // Set to true by default to avoid blocking the app
   const [adBlockerDetected, setAdBlockerDetected] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const { toast } = useToast();
@@ -48,11 +48,14 @@ export const AdProvider = ({ children }: AdProviderProps) => {
     // Initialisation du système de publicités
     const initAds = async () => {
       try {
-        // Make sure the storage bucket exists
+        // Check if the storage bucket exists but don't block the app if it doesn't
         await ensureAdsBucketExists();
         setAdsLoaded(true);
       } catch (error) {
         console.error("Error initializing ads system:", error);
+        setAdsLoaded(true); // Still set to true so the app continues loading
+      } finally {
+        // Ensure the app is marked as loaded regardless of bucket status
         setAdsLoaded(true);
       }
     };

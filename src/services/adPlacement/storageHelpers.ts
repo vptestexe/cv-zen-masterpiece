@@ -3,35 +3,31 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Ensures that the 'ads' bucket exists in Supabase storage
+ * Now uses the check-storage-bucket edge function instead of direct creation
  */
 export async function ensureAdsBucketExists() {
   try {
-    // Check if the bucket "ads" exists
-    const { data: buckets, error } = await supabase.storage.listBuckets();
+    // Call the edge function to check if the bucket exists
+    const { data: response, error } = await supabase.functions.invoke(
+      'check-storage-bucket',
+      {
+        body: { bucketName: 'ads' }
+      }
+    );
     
     if (error) {
-      throw error;
+      console.error("Error calling check-storage-bucket function:", error);
+      // If there's an error, we'll continue with the app instead of blocking
+      return;
     }
     
-    const adsBucket = buckets.find(bucket => bucket.name === 'ads');
-    
-    if (!adsBucket) {
-      // Create the ads bucket using Supabase storage API
-      const { data, error: createError } = await supabase.storage.createBucket('ads', {
-        public: true,
-        fileSizeLimit: 10485760, // 10MB limit for ad images
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
-      });
-      
-      if (createError) {
-        console.error("Error creating ads bucket:", createError);
-        throw createError;
-      }
-      
-      console.log("Ads bucket created successfully");
+    if (response && response.success) {
+      console.log("Ads bucket is available:", response.message);
+    } else if (response) {
+      console.warn("Ads bucket check failed:", response.message);
     }
   } catch (error) {
     console.error("Error ensuring ads bucket exists:", error);
-    throw error;
+    // We don't throw the error to avoid blocking the app entirely
   }
 }
