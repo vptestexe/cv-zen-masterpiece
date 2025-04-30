@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { AdPlacement, AdPosition, AdSize, AdNetwork } from "@/types/admin";
-import AdPlacementForm from "./AdPlacementForm";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import AdPlacementForm from "./adPlacement/AdPlacementForm";
 
 // Define the Supabase database response interface
 interface AdPlacementRow {

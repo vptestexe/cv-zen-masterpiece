@@ -198,7 +198,7 @@ export type Database = {
         Returns: boolean
       }
       get_ad_stats: {
-        Args: { days?: number }
+        Args: Record<PropertyKey, never> | { days?: number }
         Returns: {
           id: string
           placement_id: string
